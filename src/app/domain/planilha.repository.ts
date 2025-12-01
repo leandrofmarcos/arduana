@@ -8,4 +8,5 @@ export abstract class PlanilhaRepository {
   abstract adicionarDespesa(d: Omit<Despesa, 'id'>): void;
   abstract editarDespesa(id: string, d: Partial<Despesa>): void;
   abstract removerDespesa(id: string): void;
+  abstract carregarSnapshot(snap: PlanilhaSnapshot): void;
 }

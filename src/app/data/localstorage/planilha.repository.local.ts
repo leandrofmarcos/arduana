@@ -97,4 +97,8 @@ export class LocalStoragePlanilhaRepository implements PlanilhaRepository {
     this.subject.next({ ...snap, despesas: snap.despesas.filter(x => x.id !== id) });
     this.emit();
   }
+  carregarSnapshot(snap: PlanilhaSnapshot){
+    this.subject.next(snap);
+    this.emit();
+  }
 }

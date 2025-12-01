@@ -13,7 +13,11 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'importacao'
+        redirectTo: 'planilhas'
+      },
+      {
+        path: 'planilhas',
+        loadComponent: () => import('./features/planilhas/planilhas.component').then(m => m.PlanilhasComponent)
       },
       {
         path: 'importacao',
