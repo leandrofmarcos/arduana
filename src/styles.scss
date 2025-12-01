@@ -1,7 +1,21 @@
 :root{
-  --bg:#edf2f7;
-  --text:#111827;
+  --color-bg:#f3f4f6;
+  --color-surface:#ffffff;
+  --color-text:#111827;
+  --color-muted:#6b7280;
+  --color-border:#e5e7eb;
+  --color-primary:#667eea;
+  --color-primary-ink:#1e3c72;
+  --color-secondary:#374151;
+  --color-header-bg:#1f2937;
+  --color-sidebar-bg:#111827;
+  --color-sidebar-text:#e5e7eb;
+  --color-danger:#ef4444;
+  --color-success:#48bb78;
+  --color-info:#4299e1;
+  --color-subtle-bg:#f7fafc;
+  --gradient-primary: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
 }
 html, body{height:100%;}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Segoe UI, Roboto, Arial, sans-serif;}
+body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:Segoe UI, Roboto, Arial, sans-serif;}
 *{box-sizing:border-box;}
