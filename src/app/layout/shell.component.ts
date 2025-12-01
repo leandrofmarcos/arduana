@@ -67,7 +67,7 @@ import { AuthService } from '../core/auth/auth.service';
     `.breadcrumb{list-style:none;margin:6px 0 0 0;padding:0;display:flex;gap:6px;color:var(--color-muted)}`,
     `.breadcrumb li::after{content:'/';margin:0 6px;color:#9ca3af}`,
     `.breadcrumb li:last-child::after{content:''}`,
-    `.content{padding:12px}`,
+    `.content{padding:24px}`,
     `.main-footer{grid-column:1/-1;background:var(--color-surface);border-top:1px solid var(--color-border);color:var(--color-muted);display:flex;align-items:center;justify-content:space-between;padding:0 16px}`,
     `.sidebar-collapsed{grid-template-columns:72px 1fr}`,
     `.sidebar-collapsed .menu a span:last-child{display:none}`
