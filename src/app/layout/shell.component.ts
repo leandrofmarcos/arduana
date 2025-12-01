@@ -2,7 +2,6 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
-import { PlanilhasService } from '../features/planilhas/planilhas.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -17,7 +16,6 @@ import { Router } from '@angular/router';
           <span class="brand">Importação</span>
         </div>
         <div class="nav-actions">
-          <button class="new" (click)="novaPlanilha()">＋ Nova Planilha</button>
           <span class="user-name">{{auth.currentUser?.username}}</span>
           <button class="logout" (click)="logout()">Sair</button>
         </div>
@@ -57,7 +55,6 @@ import { Router } from '@angular/router';
     `.sidebar-toggle{background:var(--color-secondary);color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer}`,
     `.brand{font-weight:800}`,
     `.nav-actions{display:flex;align-items:center;gap:10px}`,
-    `.new{background:var(--gradient-primary);color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-weight:700}`,
     `.logout{background:var(--color-danger);color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer}`,
     `.main-sidebar{grid-row:2/span 1;background:var(--color-sidebar-bg);color:var(--color-sidebar-text);display:flex;flex-direction:column;border-right:1px solid var(--color-sidebar-bg)}`,
     `.user-panel{display:flex;gap:10px;align-items:center;padding:16px;border-bottom:1px solid var(--color-sidebar-bg)}`,
@@ -83,13 +80,12 @@ export class ShellComponent {
   year = new Date().getFullYear();
   headerTitle = 'Planilhas';
   headerSubtitle = 'Gestão de Custos';
-  constructor(public auth: AuthService, private planilhas: PlanilhasService, private router: Router){
+  constructor(public auth: AuthService, private router: Router){
     this.updateHeader(this.router.url);
     this.router.events.subscribe(() => this.updateHeader(this.router.url));
   }
   toggleSidebar(){ this.collapsed = !this.collapsed; }
   logout(){ this.auth.logout(); location.href = '/login'; }
-  novaPlanilha(){ this.planilhas.nova({ produto: 'Nova Simulação' }); }
   private updateHeader(url: string){
     if(url.includes('/importacao')){ this.headerTitle = 'Editor'; this.headerSubtitle = 'Planilha de Importação'; }
     else { this.headerTitle = 'Planilhas'; this.headerSubtitle = 'Listagem e Ações'; }

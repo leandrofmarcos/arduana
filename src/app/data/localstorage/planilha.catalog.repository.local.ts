@@ -35,7 +35,11 @@ export class LocalStoragePlanilhaCatalogRepository implements PlanilhaCatalogRep
 
   constructor(){
     const index = readJSON<PlanilhaListItem[]>(INDEX_KEY);
-    if(index && index.length){ this.subject.next(index); }
+    if(index && index.length){
+      const migrated = index.map(i => ({ ...i, status: i.status ?? 'Ativo' }));
+      this.subject.next(migrated);
+      writeJSON(INDEX_KEY, migrated);
+    }
     else {
       const defaults: PlanilhaSnapshot = {
         premissas: { fobUsd: 46110, freteUsd: 2450, seguroUsd: 0, thcUsd: 0, taxaUsd: 5.55, quantidade: 1, ncm: '8423' },
@@ -52,7 +56,8 @@ export class LocalStoragePlanilhaCatalogRepository implements PlanilhaCatalogRep
         const id = typeof (globalThis as any).crypto?.randomUUID === 'function' ? (globalThis as any).crypto.randomUUID() : String(Date.now()+i);
         writeJSON(SNAP_KEY(id), defaults);
         const r = calcResumo(defaults.premissas, defaults.taxas, defaults.despesas);
-        return { id, produto: 'Balança de Pesagem', cliente: `Cliente ${i+1}`, processo: proc, origem: 'China', dataSimulacao: new Date().toISOString(), tributos: r.tributos, desembolsoTotal: r.desembolsoTotal } as PlanilhaListItem;
+        const statuses: PlanilhaListItem['status'][] = ['Ativo','Finalizado','Rascunho'];
+        return { id, produto: 'Balança de Pesagem', cliente: `Cliente ${i+1}`, processo: proc, origem: 'China', dataSimulacao: new Date().toISOString(), tributos: r.tributos, desembolsoTotal: r.desembolsoTotal, status: statuses[i % statuses.length] } as PlanilhaListItem;
       });
       this.subject.next(seed);
       writeJSON(INDEX_KEY, seed);
@@ -85,6 +90,7 @@ export class LocalStoragePlanilhaCatalogRepository implements PlanilhaCatalogRep
       dataSimulacao: new Date().toISOString(),
       tributos: 0,
       desembolsoTotal: 0,
+      status: 'Rascunho',
     };
     list.unshift(item);
     this.subject.next(list);
@@ -101,7 +107,7 @@ export class LocalStoragePlanilhaCatalogRepository implements PlanilhaCatalogRep
     const src = list.find(x => x.id === id);
     if(!src) return null;
     const r = calcResumo(snap.premissas, snap.taxas, snap.despesas);
-    const dup: PlanilhaListItem = { ...src, id: newId, processo: `${src.processo} • cópia`, dataSimulacao: new Date().toISOString(), tributos: r.tributos, desembolsoTotal: r.desembolsoTotal };
+    const dup: PlanilhaListItem = { ...src, id: newId, processo: `${src.processo} • cópia`, dataSimulacao: new Date().toISOString(), tributos: r.tributos, desembolsoTotal: r.desembolsoTotal, status: 'Rascunho' };
     list.unshift(dup);
     this.subject.next(list);
     writeJSON(INDEX_KEY, list);

@@ -10,6 +10,7 @@ export interface PlanilhaListItem {
   dataSimulacao: string;
   tributos: number;
   desembolsoTotal: number;
+  status: 'Ativo' | 'Finalizado' | 'Rascunho';
 }
 
 export abstract class PlanilhaCatalogRepository {

@@ -20,24 +20,49 @@ export class AuthService {
 
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   currentUser$ = this.currentUserSubject.asObservable();
+  private tokenKey = 'auth_token';
+  private userKey = 'auth_user';
 
   get currentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
-  isLoggedIn(): boolean {
-    return !!this.currentUserSubject.value;
+  constructor(){
+    const ls = (globalThis as any).localStorage as Storage | undefined;
+    const ss = (globalThis as any).sessionStorage as Storage | undefined;
+    const rawUser = ls?.getItem(this.userKey) ?? ss?.getItem(this.userKey);
+    if(rawUser){ try{ const u = JSON.parse(rawUser) as User; this.currentUserSubject.next(u); } catch{} }
   }
 
-  login(username: string, password: string): boolean {
+  isLoggedIn(): boolean { return !!this.currentUserSubject.value; }
+
+  login(username: string, password: string, remember = true): boolean {
     const found = this.users.find(u => u.username === username && (u as any).password === password);
     if (!found) return false;
     const user: User = { id: found.id, username: found.username, role: found.role };
     this.currentUserSubject.next(user);
+    const token = `fake-jwt-${found.id}-${Date.now()}`;
+    try {
+      const storage = remember ? (globalThis as any).localStorage as Storage : (globalThis as any).sessionStorage as Storage;
+      storage?.setItem(this.tokenKey, token);
+      storage?.setItem(this.userKey, JSON.stringify(user));
+    } catch {}
     return true;
   }
 
   logout(): void {
     this.currentUserSubject.next(null);
+    try{
+      (globalThis as any).localStorage?.removeItem(this.tokenKey);
+      (globalThis as any).localStorage?.removeItem(this.userKey);
+      (globalThis as any).sessionStorage?.removeItem(this.tokenKey);
+      (globalThis as any).sessionStorage?.removeItem(this.userKey);
+    }catch{}
+  }
+
+  getToken(): string | null {
+    try {
+      return (globalThis as any).localStorage?.getItem(this.tokenKey) ?? (globalThis as any).sessionStorage?.getItem(this.tokenKey) ?? null;
+    } catch { return null; }
   }
 }
