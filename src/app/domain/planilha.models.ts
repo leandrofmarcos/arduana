@@ -37,4 +37,10 @@ export interface PlanilhaSnapshot {
     desembolsoDesembaraco: number;
     desembolsoTotal: number;
   };
+  nfSaida?: {
+    cfop: string;
+    cst: string;
+    baseIcms: number;
+    icms: number;
+  };
 }

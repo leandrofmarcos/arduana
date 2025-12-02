@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { PlanilhaCatalogRepository, PlanilhaListItem } from '../../domain/planilha.catalog';
 import { PlanilhaSnapshot, Premissas, Taxas, Despesa } from '../../domain/planilha.models';
+import { PlanilhaTemplateService } from '../../core/templates/planilha.template.service';
 
 const INDEX_KEY = 'import_costs_catalog_index';
 const SNAP_KEY = (id: string) => `import_costs_planilha_${id}`;
@@ -33,7 +34,7 @@ function writeJSON(key: string, value: any) {
 export class LocalStoragePlanilhaCatalogRepository implements PlanilhaCatalogRepository {
   private subject = new BehaviorSubject<PlanilhaListItem[]>([]);
 
-  constructor(){
+  constructor(private templates: PlanilhaTemplateService){
     const index = readJSON<PlanilhaListItem[]>(INDEX_KEY);
     if(index && index.length){
       const migrated = index.map(i => ({ ...i, status: i.status ?? 'Ativo' }));
@@ -41,17 +42,7 @@ export class LocalStoragePlanilhaCatalogRepository implements PlanilhaCatalogRep
       writeJSON(INDEX_KEY, migrated);
     }
     else {
-      const defaults: PlanilhaSnapshot = {
-        premissas: { fobUsd: 46110, freteUsd: 2450, seguroUsd: 0, thcUsd: 0, taxaUsd: 5.55, quantidade: 1, ncm: '8423' },
-        taxas: { ii: 14.4, ipi: 7.43, icms: 4, pis: 2.1, cofins: 10.65 },
-        despesas: [
-          { id: '1', categoria: 'Porto', item: 'THC - V3', valor: 1280 },
-          { id: '2', categoria: 'Agência Marítima', item: 'Liberação de B/L - V3', valor: 900 },
-          { id: '3', categoria: 'Agência Marítima', item: 'Frete Marítimo - V3', valor: 1450 }
-        ],
-        totalDespesas: 0,
-        resumo: { tributos: 0, desembolsoDesembaraco: 0, desembolsoTotal: 0 }
-      };
+      const defaults: PlanilhaSnapshot = this.templates.defaultSnapshot();
       const seed = ['Processo 2024/001','Processo 2024/002','Processo 2024/003'].map((proc, i) => {
         const id = typeof (globalThis as any).crypto?.randomUUID === 'function' ? (globalThis as any).crypto.randomUUID() : String(Date.now()+i);
         writeJSON(SNAP_KEY(id), defaults);
@@ -72,13 +63,7 @@ export class LocalStoragePlanilhaCatalogRepository implements PlanilhaCatalogRep
 
   createNew(meta?: Partial<Omit<PlanilhaListItem,'id'|'tributos'|'desembolsoTotal'>>): string {
     const id = typeof (globalThis as any).crypto?.randomUUID === 'function' ? (globalThis as any).crypto.randomUUID() : String(Date.now());
-    const snap: PlanilhaSnapshot = {
-      premissas: { fobUsd: 0, freteUsd: 0, seguroUsd: 0, thcUsd: 0, taxaUsd: 5.00, quantidade: 1, ncm: '' },
-      taxas: { ii: 0, ipi: 0, icms: 0, pis: 0, cofins: 0 },
-      despesas: [],
-      totalDespesas: 0,
-      resumo: { tributos: 0, desembolsoDesembaraco: 0, desembolsoTotal: 0 }
-    };
+    const snap: PlanilhaSnapshot = this.templates.defaultSnapshot();
     writeJSON(SNAP_KEY(id), snap);
     const list = this.subject.value.slice();
     const item: PlanilhaListItem = {
@@ -119,5 +104,19 @@ export class LocalStoragePlanilhaCatalogRepository implements PlanilhaCatalogRep
     this.subject.next(list);
     writeJSON(INDEX_KEY, list);
     try { const ls = (globalThis as any).localStorage as Storage | undefined; ls?.removeItem(SNAP_KEY(id)); } catch {}
+  }
+
+  update(id: string, data: Partial<Omit<PlanilhaListItem,'id'>>): void {
+    const list = this.subject.value.slice();
+    const idx = list.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    const merged = { ...list[idx], ...data } as PlanilhaListItem;
+    list[idx] = merged;
+    this.subject.next(list);
+    writeJSON(INDEX_KEY, list);
+  }
+
+  setSnapshot(id: string, snap: PlanilhaSnapshot): void {
+    writeJSON(SNAP_KEY(id), snap);
   }
 }

@@ -20,6 +20,14 @@ export const routes: Routes = [
         loadComponent: () => import('./features/planilhas/planilhas.component').then(m => m.PlanilhasComponent)
       },
       {
+        path: 'aliquotas',
+        loadComponent: () => import('./features/aliquotas/aliquotas.component').then(m => m.AliquotasComponent)
+      },
+      {
+        path: 'portos',
+        loadComponent: () => import('./features/portos/portos.component').then(m => m.PortosComponent)
+      },
+      {
         path: 'importacao',
         loadComponent: () => import('./features/planilha/planilha.component').then(m => m.PlanilhaComponent)
       }

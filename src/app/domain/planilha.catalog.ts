@@ -19,4 +19,6 @@ export abstract class PlanilhaCatalogRepository {
   abstract createNew(meta?: Partial<Omit<PlanilhaListItem,'id'|'tributos'|'desembolsoTotal'>>): string;
   abstract duplicate(id: string): string | null;
   abstract remove(id: string): void;
+  abstract update(id: string, data: Partial<Omit<PlanilhaListItem,'id'>>): void;
+  abstract setSnapshot(id: string, snap: PlanilhaSnapshot): void;
 }

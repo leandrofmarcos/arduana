@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { Despesa, PlanilhaSnapshot, Premissas, Taxas } from '../../domain/planilha.models';
 import { PlanilhaRepository } from '../../domain/planilha.repository';
+import { PlanilhaTemplateService } from '../../core/templates/planilha.template.service';
 
 function calcResumo(p: Premissas, t: Taxas, despesas: Despesa[]) {
   const fobBrl = p.fobUsd * p.taxaUsd;
@@ -41,30 +42,22 @@ function writeStorage(snap: PlanilhaSnapshot) {
 
 @Injectable({ providedIn: 'root' })
 export class LocalStoragePlanilhaRepository implements PlanilhaRepository {
-  private subject = new BehaviorSubject<PlanilhaSnapshot>(
-    readStorage() ?? {
-      premissas: { fobUsd: 46110, freteUsd: 2450, seguroUsd: 0, thcUsd: 0, taxaUsd: 5.55, quantidade: 1, ncm: '8423' },
-      taxas: { ii: 14.4, ipi: 7.43, icms: 4, pis: 2.1, cofins: 10.65 },
-      despesas: [
-        { id: '1', categoria: 'Porto', item: 'THC - V3', valor: 1280 },
-        { id: '2', categoria: 'Agência Marítima', item: 'Liberação de B/L - V3', valor: 900 },
-        { id: '3', categoria: 'Agência Marítima', item: 'Frete Marítimo - V3', valor: 1450 }
-      ],
-      totalDespesas: 0,
-      resumo: { tributos: 0, desembolsoDesembaraco: 0, desembolsoTotal: 0 }
-    }
-  );
+  private subject: BehaviorSubject<PlanilhaSnapshot>;
 
-  constructor() {
+  constructor(private templates: PlanilhaTemplateService) {
+    const initial = readStorage() ?? this.templates.defaultSnapshot();
+    this.subject = new BehaviorSubject<PlanilhaSnapshot>(initial);
     this.emit();
   }
 
   private emit() {
     const snap = this.subject.value;
     const r = calcResumo(snap.premissas, snap.taxas, snap.despesas);
+    const baseIcms = snap.nfSaida?.baseIcms ?? 0;
+    const icmsSaida = baseIcms * ((snap.taxas.icms || 0) / 100);
     const next = { ...snap, totalDespesas: r.totalDespesas, resumo: {
       tributos: r.tributos, desembolsoDesembaraco: r.desembolsoDesembaraco, desembolsoTotal: r.desembolsoTotal
-    }};
+    }, nfSaida: { ...(snap.nfSaida ?? { cfop: '', cst: '', baseIcms: 0, icms: 0 }), icms: icmsSaida }};
     this.subject.next(next);
     writeStorage(next);
   }
@@ -99,6 +92,12 @@ export class LocalStoragePlanilhaRepository implements PlanilhaRepository {
   }
   carregarSnapshot(snap: PlanilhaSnapshot){
     this.subject.next(snap);
+    this.emit();
+  }
+  atualizarNfSaida(n: Partial<NonNullable<PlanilhaSnapshot['nfSaida']>>){
+    const snap = this.subject.value;
+    const merged = { ...(snap.nfSaida ?? { cfop: '', cst: '', baseIcms: 0, icms: 0 }), ...n };
+    this.subject.next({ ...snap, nfSaida: merged });
     this.emit();
   }
 }

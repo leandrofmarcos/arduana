@@ -30,6 +30,8 @@ import { Router } from '@angular/router';
         </div>
         <nav class="menu">
           <a routerLink="/planilhas" routerLinkActive="active"><span class="icon">🗂</span><span>Planilhas</span></a>
+          <a routerLink="/aliquotas" routerLinkActive="active"><span class="icon">🧮</span><span>Alíquotas</span></a>
+          <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
           <a routerLink="/importacao" routerLinkActive="active"><span class="icon">📊</span><span>Editor</span></a>
         </nav>
       </aside>
