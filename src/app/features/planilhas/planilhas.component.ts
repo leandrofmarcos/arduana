@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PlanilhasService } from './planilhas.service';
 import { PlanilhaListItem } from '../../domain/planilha.catalog';
@@ -7,7 +8,7 @@ import { PlanilhaListItem } from '../../domain/planilha.catalog';
 @Component({
   selector: 'app-planilhas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="content">
       <div class="filters card">
@@ -45,7 +46,7 @@ import { PlanilhaListItem } from '../../domain/planilha.catalog';
           </div>
           <div class="field actions-inline">
             <button class="btn btn-secondary" (click)="limparFiltros()">Limpar</button>
-            <button class="btn btn-primary" (click)="nova()"><span class="icon">＋</span> Nova Planilha</button>
+            <button class="btn btn-primary" (click)="nova()"><span class="icon">＋</span> Novo Processo</button>
           </div>
         </div>
       </div>
@@ -61,6 +62,7 @@ import { PlanilhaListItem } from '../../domain/planilha.catalog';
               <th>Data</th>
               <th style="text-align:right">Tributos</th>
               <th style="text-align:right">Desembolso Total</th>
+              <th style="text-align:right">Versões</th>
               <th style="width:320px">Ações</th>
             </tr>
           </thead>
@@ -74,10 +76,16 @@ import { PlanilhaListItem } from '../../domain/planilha.catalog';
               <td>{{row.dataSimulacao | date:'shortDate'}}</td>
               <td style="text-align:right">{{row.tributos | currency:'BRL'}}</td>
               <td style="text-align:right">{{row.desembolsoTotal | currency:'BRL'}}</td>
+              <td style="text-align:right">{{row.versionsCount || 0}}</td>
               <td>
                 <div class="row-actions">
                   <button class="btn btn-secondary" (click)="abrir(row.id)">Abrir</button>
                   <button class="btn btn-secondary" (click)="duplicar(row.id)">Duplicar</button>
+                  <a class="btn btn-secondary" [routerLink]="['/processos', row.id, 'versoes']">Versões</a>
+                  <a class="btn btn-secondary" [routerLink]="['/processos', row.id, 'comparar']">Comparar</a>
+                  <a class="btn btn-secondary" [routerLink]="['/processos', row.id, 'numerario']">Numerário</a>
+                  <a class="btn btn-secondary" routerLink="/venda">Venda</a>
+                  <a class="btn btn-secondary" routerLink="/anexos">Anexos</a>
                   <button class="btn btn-danger" (click)="excluir(row.id)">Excluir</button>
                 </div>
               </td>

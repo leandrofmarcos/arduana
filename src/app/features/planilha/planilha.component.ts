@@ -4,6 +4,7 @@ import jsPDF from 'jspdf';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PlanilhaService } from './planilha.service';
+import { PlanilhasService } from '../planilhas/planilhas.service';
 import { PortosService } from '../portos/portos.service';
 import { AliquotasService } from '../aliquotas/aliquotas.service';
 
@@ -13,10 +14,12 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
   imports: [CommonModule, FormsModule],
   template: `
     <div id="print-root" class="container" *ngIf="snapshot$ | async as s">
+      <div *ngIf="toastVisible" class="toast">{{toastMessage}}</div>
       <div class="header">
         <div class="header-left">
           <h1>📊 Sistema de Gestão de Custos de Importação</h1>
           <p>Controle completo de custos e impostos · Simulação em tempo real</p>
+          <div *ngIf="faseLabel" class="fase-badge">{{faseLabel}}</div>
         </div>
         <div class="header-grid">
           <div class="header-item"><label>Produto</label><input type="text" [(ngModel)]="produto"></div>
@@ -274,6 +277,8 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
             <button class="btn btn-secondary" (click)="exportar(s)"><span class="icon">📄</span> Exportar</button>
             <button class="btn btn-primary" (click)="salvar()"><span class="icon">💾</span> Salvar</button>
             <button class="btn btn-secondary" (click)="salvarComoCopia()"><span class="icon">📑</span> Salvar como cópia</button>
+            <button class="btn btn-primary" [disabled]="locked" (click)="aprovarOrcamento()"><span class="icon">✓</span> Aprovar Orçamento</button>
+            <button class="btn btn-secondary" [disabled]="!locked" (click)="novaVersao()"><span class="icon">🧱</span> Nova Versão</button>
           </div>
         </div>
       </div>
@@ -292,6 +297,7 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
     `.header{background:linear-gradient(135deg,#1e3c72 0%,#2a5298 100%);color:#fff;padding:40px 50px;display:flex;justify-content:space-between;align-items:flex-start}`,
     `.header-left h1{font-size:32px;margin-bottom:8px;font-weight:700}`,
     `.header-left p{font-size:14px;opacity:.9}`,
+    `.fase-badge{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:12px;background:#fff;color:#1e3c72;font-weight:700}`,
     `.header-grid{display:grid;grid-template-columns:repeat(3,280px);gap:20px}`,
     `.header-item{background:rgba(255,255,255,.15);padding:15px 18px;border-radius:10px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2)}`,
     `.header-item label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;opacity:.85;margin-bottom:6px;font-weight:600}`,
@@ -324,10 +330,11 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
     `.summary-item{background:rgba(255,255,255,.15);padding:18px 20px;border-radius:10px;margin-bottom:15px;backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2)}`,
     `.summary-item .value{font-size:26px;font-weight:700}`,
     `.summary-item.highlight{background:rgba(255,255,255,.25);border:2px solid rgba(255,255,255,.4)}`,
-    `.action-buttons{display:flex;gap:15px;margin-top:25px}`,
+    `.action-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-top:25px}`,
     `.btn{flex:1;padding:14px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:.3s;display:flex;align-items:center;justify-content:center;gap:8px}`,
     `.btn-primary{background:var(--gradient-primary);color:#fff}`,
     `.btn-secondary{background:var(--color-surface);color:var(--color-primary);border:2px solid var(--color-primary)}`,
+    `.toast{position:fixed;top:16px;right:16px;background:var(--gradient-primary);color:#fff;padding:12px 16px;border-radius:8px;box-shadow:0 6px 24px rgba(17,24,39,.2);z-index:1000}`,
     `.bottom-actions{padding:30px 50px;background:var(--color-subtle-bg);border-top:1px solid var(--color-border);display:flex;justify-content:space-between;align-items:center}`,
     `.bottom-actions .info{color:var(--color-muted);font-size:14px}`,
     `.bottom-actions .buttons{display:flex;gap:15px}`,
@@ -375,6 +382,7 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
 })
 export class PlanilhaComponent implements OnInit {
   private service = inject(PlanilhaService);
+  private catalogService = inject(PlanilhasService);
   private portsService = inject(PortosService);
   private aliqService = inject(AliquotasService);
   snapshot$ = this.service.snapshot$();
@@ -408,6 +416,9 @@ export class PlanilhaComponent implements OnInit {
   catMap: any = { 'Agência Marítima': 'am', 'Despachante': 'dp', 'Tributos': 'tr', 'Porto': 'po', 'Outros': 'ou' };
   activeFilter: string = 'Todas';
   lastUpdate = new Date().toLocaleString('pt-BR');
+  faseLabel = '';
+  toastVisible = false;
+  toastMessage = '';
 
   atualizarPremissas(p: any){ if(this.locked) return; this.service.atualizarPremissas(p); this.update(); }
   atualizarTaxas(t: any){ if(this.locked) return; this.service.atualizarTaxas(t); this.update(); }
@@ -432,12 +443,20 @@ export class PlanilhaComponent implements OnInit {
   percSobreFob(s:any){ const fobBrl = s.premissas.fobUsd * s.premissas.taxaUsd; return fobBrl ? (s.resumo.desembolsoTotal / fobBrl) * 100 : 0; }
   atualizarNfSaida(n:any){ this.service.atualizarNfSaida(n); this.update(); }
   async exportar(s:any){ this.printMode = true; await new Promise(r => setTimeout(r, 100)); const el = document.getElementById('print-view'); if(!el){ this.printMode = false; return; } const canvas = await html2canvas(el, { scale: 2, useCORS: true }); const img = canvas.toDataURL('image/png'); const pdf = new jsPDF('p','mm','a4'); const pageW = pdf.internal.pageSize.getWidth(); const pageH = pdf.internal.pageSize.getHeight(); const imgW = pageW; const imgH = canvas.height * imgW / canvas.width; let heightLeft = imgH; let position = 0; pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= pageH; while(heightLeft > 0){ position = heightLeft - imgH; pdf.addPage(); pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= pageH; } pdf.save('planilha-de-custo.pdf'); this.printMode = false; }
+  aprovarOrcamento(){ this.service.aprovarOrcamento(); this.locked = true; this.update(); this.updateFaseLabel(); this.showToast('Orçamento aprovado. Fase Aduana iniciada.'); }
+  novaVersao(){ this.service.novaVersao(); this.locked = false; this.update(); this.updateFaseLabel(); this.showToast('Edição liberada. Salve para criar nova versão.'); }
   salvar(){ this.service.salvar({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); alert('Simulação salva como não finalizada.'); }
   salvarComoCopia(){ this.service.salvarComoCopia({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); alert('Cópia salva no catálogo.'); }
   limpar(){ if(confirm('Nova simulação?')){ location.reload(); } }
   finalizar(){ if(confirm('Finalizar importação?')){ this.service.finalizarImportacao(); alert('Importação finalizada.'); location.href = '/planilhas'; } }
   update(){ this.lastUpdate = new Date().toLocaleString('pt-BR'); }
   ngOnInit(){ this.locked = localStorage.getItem('import_costs_locked') === 'true'; this.aliqService.list$().subscribe(list => { this.aliquotasList = list; const d = list.find((x:any)=> x.padrao); if(d && !this.selectedAliquotaId){ this.selectedAliquotaId = d.id; this.aplicarAliquota(d.id); } }); }
+  ngAfterViewInit(){ this.updateFaseLabel();
+  }
+  diffDays(a: Date, b: Date){ return Math.floor((b.getTime() - a.getTime()) / (1000*60*60*24)); }
+  updateFaseLabel(){ const id = localStorage.getItem('import_costs_current_catalog_id'); this.faseLabel=''; if(id){ const meta = this.catalogService.meta(id); if(meta?.faseAtual==='Aduana'){ const start = meta?.faseDates?.Aduana?.start; if(start){ const dias = this.diffDays(new Date(start), new Date()); const restante = Math.max(0, 30 - dias); this.faseLabel = `Aduana · ${restante} dias restantes`; } } else if(meta?.faseAtual==='Orcamento'){ this.faseLabel = `Orçamento`; } else if(meta?.faseAtual==='Fechamento'){ this.faseLabel = `Fechamento`; } }
+  }
+  showToast(msg: string){ this.toastMessage = msg; this.toastVisible = true; setTimeout(() => { this.toastVisible = false; }, 2500); }
   novaDespesa: any = { categoria: 'Porto', item: '', fornecedor: '', valor: 0, observacao: '' };
   limparDespesaForm(){ const c = this.novaDespesa.categoria; this.novaDespesa = { categoria: c, item: '', fornecedor: '', valor: 0, observacao: '' }; }
 }

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 import { Router } from '@angular/router';
+import { PlanilhasService } from '../features/planilhas/planilhas.service';
 
 @Component({
   selector: 'app-shell',
@@ -29,10 +30,25 @@ import { Router } from '@angular/router';
           </div>
         </div>
         <nav class="menu">
-          <a routerLink="/planilhas" routerLinkActive="active"><span class="icon">🗂</span><span>Planilhas</span></a>
-          <a routerLink="/aliquotas" routerLinkActive="active"><span class="icon">🧮</span><span>Alíquotas</span></a>
-          <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
-          <a routerLink="/importacao" routerLinkActive="active"><span class="icon">📊</span><span>Editor</span></a>
+          <div class="menu-group">
+            <div class="menu-title">Processo</div>
+            <a routerLink="/processos" routerLinkActive="active"><span class="icon">📁</span><span>Processos</span></a>
+            <a routerLink="/importacao" routerLinkActive="active"><span class="icon">📊</span><span>Orçamento (Editor)</span></a>
+            <a routerLink="/numerario" routerLinkActive="active"><span class="icon">💰</span><span>Numerário</span></a>
+            <a routerLink="/venda" routerLinkActive="active"><span class="icon">💵</span><span>Venda (OMINIUM)</span></a>
+            <a routerLink="/anexos" routerLinkActive="active"><span class="icon">📎</span><span>Anexos</span></a>
+            <a routerLink="/fechamento" routerLinkActive="active"><span class="icon">✅</span><span>Fechamento</span></a>
+            <a class="create" (click)="novaProcesso()"><span class="icon">＋</span><span>Novo Processo</span></a>
+          </div>
+          <div class="menu-group">
+            <div class="menu-title">Cadastros</div>
+            <a routerLink="/aliquotas" routerLinkActive="active"><span class="icon">🧮</span><span>Alíquotas</span></a>
+            <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
+          </div>
+          <div class="menu-group">
+            <div class="menu-title">Relatórios</div>
+            <a routerLink="/planilhas" routerLinkActive="active"><span class="icon">🗂</span><span>Catálogo</span></a>
+          </div>
         </nav>
       </aside>
       <main class="content-wrapper">
@@ -62,8 +78,11 @@ import { Router } from '@angular/router';
     `.user-panel{display:flex;gap:10px;align-items:center;padding:16px;border-bottom:1px solid var(--color-sidebar-bg)}`,
     `.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--color-header-bg)}`,
     `.menu{display:flex;flex-direction:column;padding:8px}`,
+    `.menu-group{display:flex;flex-direction:column;margin-bottom:10px}`,
+    `.menu-title{font-size:11px;color:var(--color-muted);text-transform:uppercase;letter-spacing:.8px;margin:6px 12px}`,
     `.menu a{display:flex;align-items:center;gap:8px;color:var(--color-sidebar-text);text-decoration:none;padding:10px 12px;border-radius:8px}`,
     `.menu a.active, .menu a:hover{background:var(--color-header-bg)}`,
+    `.menu .create{margin-top:8px;display:flex;align-items:center;gap:8px;color:#fff;background:var(--gradient-primary);border:none;border-radius:8px;padding:10px 12px;cursor:pointer;text-decoration:none}`,
     `.content-wrapper{background:var(--color-bg);overflow:auto}`,
     `.content-header{background:var(--color-surface);border-bottom:1px solid var(--color-border);padding:12px 16px}`,
     `.content-header h1{margin:0;font-size:18px;color:var(--color-text)}`,
@@ -74,7 +93,8 @@ import { Router } from '@angular/router';
     `.content{padding:24px}`,
     `.main-footer{grid-column:1/-1;background:var(--color-surface);border-top:1px solid var(--color-border);color:var(--color-muted);display:flex;align-items:center;justify-content:space-between;padding:0 16px}`,
     `.sidebar-collapsed{grid-template-columns:72px 1fr}`,
-    `.sidebar-collapsed .menu a span:last-child{display:none}`
+    `.sidebar-collapsed .menu a span:last-child{display:none}`,
+    `.sidebar-collapsed .menu .create span:last-child{display:none}`
   ]
 })
 export class ShellComponent {
@@ -82,12 +102,13 @@ export class ShellComponent {
   year = new Date().getFullYear();
   headerTitle = 'Planilhas';
   headerSubtitle = 'Gestão de Custos';
-  constructor(public auth: AuthService, private router: Router){
+  constructor(public auth: AuthService, private router: Router, private planilhas: PlanilhasService){
     this.updateHeader(this.router.url);
     this.router.events.subscribe(() => this.updateHeader(this.router.url));
   }
   toggleSidebar(){ this.collapsed = !this.collapsed; }
   logout(){ this.auth.logout(); location.href = '/login'; }
+  novaProcesso(){ this.planilhas.nova({ produto: 'Nova Simulação' }); }
   private updateHeader(url: string){
     if(url.includes('/importacao')){ this.headerTitle = 'Editor'; this.headerSubtitle = 'Planilha de Importação'; }
     else { this.headerTitle = 'Planilhas'; this.headerSubtitle = 'Listagem e Ações'; }

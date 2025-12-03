@@ -19,3 +19,12 @@
 html, body{height:100%;}
 body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:Segoe UI, Roboto, Arial, sans-serif;}
 *{box-sizing:border-box;}
+.btn{padding:14px 20px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:.3s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--gradient-primary);color:#fff}
+.btn-secondary{background:var(--color-surface);color:var(--color-primary);border:2px solid var(--color-primary)}
+.badge{display:inline-block;padding:4px 10px;background:var(--color-success);color:#fff;border-radius:12px;font-size:11px;font-weight:600;letter-spacing:.5px}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;overflow:hidden}
+.chip{padding:8px 14px;border-radius:20px;border:2px solid var(--color-border);background:var(--color-surface);font-size:13px;font-weight:700;color:var(--color-text);cursor:pointer}
+.chip.active{border-color:var(--color-primary);background:#ebf4ff;color:var(--color-primary-ink)}
+.toast{position:fixed;top:16px;right:16px;background:var(--gradient-primary);color:#fff;padding:12px 16px;border-radius:8px;box-shadow:0 6px 24px rgba(17,24,39,.2);z-index:1000}

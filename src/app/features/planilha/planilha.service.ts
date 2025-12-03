@@ -34,8 +34,21 @@ export class PlanilhaService {
     const s = this.lastSnapshot; if(!s) return;
     const ls = (globalThis as any).localStorage as Storage | undefined;
     const id = ls?.getItem('import_costs_current_catalog_id');
-    if(id){ this.catalog.setSnapshot(id, s); this.catalog.update(id, { dataSimulacao: new Date().toISOString(), tributos: s.resumo.tributos, desembolsoTotal: s.resumo.desembolsoTotal, status: 'Finalizado' }); }
+    if(id){ this.catalog.setSnapshot(id, s); this.catalog.update(id, { dataSimulacao: new Date().toISOString(), tributos: s.resumo.tributos, desembolsoTotal: s.resumo.desembolsoTotal, status: 'Finalizado', faseAtual: 'Fechamento', faseDates: { Fechamento: { start: new Date().toISOString() } } }); }
     ls?.setItem('import_costs_locked', 'true');
+  }
+
+  aprovarOrcamento(){
+    const s = this.lastSnapshot; if(!s) return;
+    const ls = (globalThis as any).localStorage as Storage | undefined;
+    const id = ls?.getItem('import_costs_current_catalog_id');
+    if(id){ const now = new Date().toISOString(); this.catalog.setSnapshot(id, s); this.catalog.update(id, { dataSimulacao: now, tributos: s.resumo.tributos, desembolsoTotal: s.resumo.desembolsoTotal, status: 'Ativo', faseAtual: 'Aduana', faseDates: { Orcamento: { start: now, end: now }, Aduana: { start: now } } }); }
+    ls?.setItem('import_costs_locked', 'true');
+  }
+
+  novaVersao(){
+    const ls = (globalThis as any).localStorage as Storage | undefined;
+    ls?.setItem('import_costs_locked', 'false');
   }
 
   salvarComoCopia(meta?: Partial<{ produto: string; cliente: string; processo: string; origem: string }>) {
