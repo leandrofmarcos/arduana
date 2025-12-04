@@ -6,6 +6,17 @@ export interface Premissas {
   taxaUsd: number;
   quantidade: number;
   ncm: string;
+  taxaEur: number;
+  pesoLiquido: number;
+  quantProdutos: number;
+  unidMedida: string;
+  estatistica: string;
+  volume: number;
+  fcl: 'FCL'|'LCL';
+  incoterm: 'FOB'|'CIF'|'EXW';
+  precoPeca: number;
+  porto: string;
+  beneficioFiscal: number;
 }
 
 export interface Taxas {

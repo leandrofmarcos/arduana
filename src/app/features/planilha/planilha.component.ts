@@ -114,7 +114,7 @@ import { NumerarioService } from '../numerario/numerario.service';
           <div class="pv-section-title">5 - ANÁLISE CONCLUSIVA DA PLANILHA</div>
           <table class="pv-table">
             <tbody>
-              <tr><td class="pv-label">Benefício Fiscal</td><td class="pv-value">{{beneficioFiscal | number:'1.2-2'}}</td></tr>
+              <tr><td class="pv-label">Benefício Fiscal</td><td class="pv-value">{{s.premissas.beneficioFiscal | number:'1.2-2'}}</td></tr>
               <tr><td class="pv-label">Total real na operação sobre valor FOB</td><td class="pv-value">{{percSobreFob(s) | number:'1.2-2'}}%</td></tr>
             </tbody>
           </table>
@@ -143,19 +143,19 @@ import { NumerarioService } from '../numerario/numerario.service';
               <div class="field"><label>Seguro (USD)</label><input type="number" step="0.01" min="0" [(ngModel)]="s.premissas.seguroUsd" (change)="atualizarPremissas(s.premissas)"><div class="hint">{{s.premissas.seguroUsd | currency:'USD'}}</div></div>
               <div class="field"><label>THC (USD)</label><input type="number" step="0.01" min="0" [(ngModel)]="s.premissas.thcUsd" (change)="atualizarPremissas(s.premissas)"><div class="hint">{{s.premissas.thcUsd | currency:'USD'}}</div></div>
               <div class="field"><label><span class="icon">💱</span> Taxa USD</label><input type="number" step="0.0001" [(ngModel)]="s.premissas.taxaUsd" (change)="atualizarPremissas(s.premissas)"><div class="hint">{{s.premissas.taxaUsd | number:'1.4-4'}}</div></div>
-              <div class="field"><label>Taxa EUR</label><input type="number" step="0.0001" [(ngModel)]="taxaEur"><div class="hint">{{taxaEur | number:'1.4-4'}}</div></div>
-              <div class="field"><label>Peso Líquido (kg)</label><input type="number" [(ngModel)]="pesoLiquido" step="0.01"><div class="hint">{{pesoLiquido | number:'1.2-2'}} kg</div></div>
-              <div class="field"><label>Quant. Produtos</label><input type="number" [(ngModel)]="quantProdutos" step="1"><div class="hint">{{quantProdutos | number}}</div></div>
+              <div class="field"><label>Taxa EUR</label><input type="number" step="0.0001" [(ngModel)]="s.premissas.taxaEur" (change)="atualizarPremissas(s.premissas)"><div class="hint">{{s.premissas.taxaEur | number:'1.4-4'}}</div></div>
+              <div class="field"><label>Peso Líquido (kg)</label><input type="number" [(ngModel)]="s.premissas.pesoLiquido" (change)="atualizarPremissas(s.premissas)" step="0.01"><div class="hint">{{s.premissas.pesoLiquido | number:'1.2-2'}} kg</div></div>
+              <div class="field"><label>Quant. Produtos</label><input type="number" [(ngModel)]="s.premissas.quantProdutos" (change)="atualizarPremissas(s.premissas)" step="1"><div class="hint">{{s.premissas.quantProdutos | number}}</div></div>
               <div class="field"><label>NCM</label><input type="text" inputmode="numeric" pattern="[0-9]{4,8}" placeholder="8423" [(ngModel)]="s.premissas.ncm" (change)="atualizarPremissas(s.premissas)"></div>
-              <div class="field"><label>Unid. Medida</label><select [(ngModel)]="unidMedida"><option>1X40HC</option><option>20FT</option><option>40FT</option></select></div>
-              <div class="field"><label>Estatística</label><input type="text" [(ngModel)]="estatistica"></div>
-              <div class="field"><label>Volume (m³)</label><input type="number" step="0.0001" [(ngModel)]="volume"><div class="hint">{{volume | number:'1.3-3'}} m³</div></div>
-              <div class="field"><label>FCL / LCL</label><select [(ngModel)]="fcl"><option>FCL</option><option>LCL</option></select></div>
-              <div class="field"><label>Incoterm</label><select [(ngModel)]="incoterm"><option>FOB</option><option>CIF</option><option>EXW</option></select></div>
-              <div class="field"><label>Preço por Peça</label><input type="number" step="0.01" [(ngModel)]="precoPeca"><div class="hint">{{precoPeca | currency:'USD'}}</div></div>
-              <div class="field"><label>Porto</label><select [(ngModel)]="porto"><option *ngFor="let p of (portos$ | async)" [value]="p.codigo">{{p.nome}} ({{p.codigo}})</option></select></div>
-              <div class="field"><label>Benefício Fiscal Repassado (%)</label><input type="number" step="0.01" [(ngModel)]="beneficioFiscal"><div class="hint">{{beneficioFiscal | number:'1.2-2'}}%</div></div>
-              <div class="field"><label>Quantidade</label><input type="number" [(ngModel)]="quantidade" step="1"><div class="hint">{{quantidade | number}}</div></div>
+              <div class="field"><label>Unid. Medida</label><select [(ngModel)]="s.premissas.unidMedida" (ngModelChange)="atualizarPremissas({ unidMedida: $event })"><option>1X40HC</option><option>20FT</option><option>40FT</option></select></div>
+              <div class="field"><label>Estatística</label><input type="text" [(ngModel)]="s.premissas.estatistica" (change)="atualizarPremissas(s.premissas)"></div>
+              <div class="field"><label>Volume (m³)</label><input type="number" step="0.0001" [(ngModel)]="s.premissas.volume" (change)="atualizarPremissas(s.premissas)"><div class="hint">{{s.premissas.volume | number:'1.3-3'}} m³</div></div>
+              <div class="field"><label>FCL / LCL</label><select [(ngModel)]="s.premissas.fcl" (ngModelChange)="atualizarPremissas({ fcl: $event })"><option>FCL</option><option>LCL</option></select></div>
+              <div class="field"><label>Incoterm</label><select [(ngModel)]="s.premissas.incoterm" (ngModelChange)="atualizarPremissas({ incoterm: $event })"><option>FOB</option><option>CIF</option><option>EXW</option></select></div>
+              <div class="field"><label>Preço por Peça</label><input type="number" step="0.01" [(ngModel)]="s.premissas.precoPeca" (change)="atualizarPremissas(s.premissas)"><div class="hint">{{s.premissas.precoPeca | currency:'USD'}}</div></div>
+              <div class="field"><label>Porto</label><select [(ngModel)]="s.premissas.porto" (ngModelChange)="atualizarPremissas({ porto: $event })"><option *ngFor="let p of (portos$ | async)" [value]="p.codigo">{{p.nome}} ({{p.codigo}})</option></select></div>
+              <div class="field"><label>Benefício Fiscal Repassado (%)</label><input type="number" step="0.01" [(ngModel)]="s.premissas.beneficioFiscal" (change)="atualizarPremissas(s.premissas)"><div class="hint">{{s.premissas.beneficioFiscal | number:'1.2-2'}}%</div></div>
+              <div class="field"><label>Quantidade</label><input type="number" [(ngModel)]="s.premissas.quantidade" (change)="atualizarPremissas(s.premissas)" step="1"><div class="hint">{{s.premissas.quantidade | number}}</div></div>
             </div>
             <div class="divider"></div>
             <h3 style="font-size: 16px; color: #4a5568; margin-bottom: 12px; font-weight: 600;">Alíquotas de Impostos</h3>
@@ -438,18 +438,7 @@ export class PlanilhaComponent implements OnInit {
   cliente = '';
   dataSimulacao = '2025-10-23';
   origem = 'China';
-  taxaEur = 0;
-  pesoLiquido = 20043.67;
-  quantProdutos = 13417;
-  unidMedida = '1X40HC';
-  estatistica = '';
-  volume = 210.5997;
-  fcl = 'FCL';
-  incoterm = 'FOB';
-  precoPeca = 0;
-  porto = '';
-  beneficioFiscal = 0;
-  quantidade = 1;
+  
   beneficioFiscalPerc = 0;
   aliqReadonly = true;
   locked = false;

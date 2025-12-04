@@ -24,7 +24,7 @@ function calcResumo(p: Premissas, t: Taxas, despesas: Despesa[]) {
 @Injectable({ providedIn: 'root' })
 export class StaticPlanilhaRepository implements PlanilhaRepository {
   private subject = new BehaviorSubject<PlanilhaSnapshot>({
-    premissas: { fobUsd: 46110, freteUsd: 2450, seguroUsd: 0, thcUsd: 0, taxaUsd: 5.55, quantidade: 1, ncm: '8423' },
+    premissas: { fobUsd: 46110, freteUsd: 2450, seguroUsd: 0, thcUsd: 0, taxaUsd: 5.55, quantidade: 1, ncm: '8423', taxaEur: 0, pesoLiquido: 20043.67, quantProdutos: 13417, unidMedida: '1X40HC', estatistica: '', volume: 210.5997, fcl: 'FCL', incoterm: 'FOB', precoPeca: 0, porto: '', beneficioFiscal: 0 },
     taxas: { ii: 14.4, ipi: 7.43, icms: 4, pis: 2.1, cofins: 10.65 },
     despesas: [
       { id: '1', categoria: 'Porto', item: 'THC - V3', valor: 1280 },

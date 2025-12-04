@@ -4,7 +4,26 @@ import { Despesa, PlanilhaSnapshot, Premissas, Taxas } from '../../domain/planil
 @Injectable({ providedIn: 'root' })
 export class PlanilhaTemplateService {
   defaultPremissas(): Premissas {
-    return { fobUsd: 46110, freteUsd: 2450, seguroUsd: 0, thcUsd: 0, taxaUsd: 5.55, quantidade: 1, ncm: '8423' };
+    return {
+      fobUsd: 46110,
+      freteUsd: 2450,
+      seguroUsd: 0,
+      thcUsd: 0,
+      taxaUsd: 5.55,
+      quantidade: 1,
+      ncm: '8423',
+      taxaEur: 0,
+      pesoLiquido: 20043.67,
+      quantProdutos: 13417,
+      unidMedida: '1X40HC',
+      estatistica: '',
+      volume: 210.5997,
+      fcl: 'FCL',
+      incoterm: 'FOB',
+      precoPeca: 0,
+      porto: '',
+      beneficioFiscal: 0
+    };
   }
   defaultTaxas(): Taxas {
     return { ii: 14.4, ipi: 7.43, icms: 4, pis: 2.1, cofins: 10.65 };
@@ -29,7 +48,7 @@ export class PlanilhaTemplateService {
   }
   emptySnapshot(): PlanilhaSnapshot {
     return {
-      premissas: { fobUsd: 0, freteUsd: 0, seguroUsd: 0, thcUsd: 0, taxaUsd: 5.55, quantidade: 1, ncm: '' },
+      premissas: { fobUsd: 0, freteUsd: 0, seguroUsd: 0, thcUsd: 0, taxaUsd: 5.55, quantidade: 1, ncm: '', taxaEur: 0, pesoLiquido: 0, quantProdutos: 0, unidMedida: '1X40HC', estatistica: '', volume: 0, fcl: 'FCL', incoterm: 'FOB', precoPeca: 0, porto: '', beneficioFiscal: 0 },
       taxas: { ii: 0, ipi: 0, icms: 0, pis: 0, cofins: 0 },
       despesas: [],
       totalDespesas: 0,
