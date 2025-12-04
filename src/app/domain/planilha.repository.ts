@@ -10,4 +10,7 @@ export abstract class PlanilhaRepository {
   abstract removerDespesa(id: string): void;
   abstract carregarSnapshot(snap: PlanilhaSnapshot): void;
   abstract atualizarNfSaida(n: Partial<NonNullable<PlanilhaSnapshot['nfSaida']>>): void;
+  abstract adicionarNumerario(d: { valor: number; moeda: 'BRL'|'USD'|'EUR'; responsavel: string; observacao?: string }): void;
+  abstract atualizarStatusNumerario(id: string, status: 'Solicitado'|'Enviado'|'Pago'|'Recebido'): void;
+  abstract removerNumerario(id: string): void;
 }

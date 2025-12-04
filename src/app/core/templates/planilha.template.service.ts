@@ -23,7 +23,8 @@ export class PlanilhaTemplateService {
       despesas: this.defaultDespesas(),
       totalDespesas: 0,
       resumo: { tributos: 0, desembolsoDesembaraco: 0, desembolsoTotal: 0 },
-      nfSaida: { cfop: '', cst: '', baseIcms: 0, icms: 0 }
+      nfSaida: { cfop: '', cst: '', baseIcms: 0, icms: 0 },
+      numerario: []
     };
   }
   emptySnapshot(): PlanilhaSnapshot {
@@ -33,7 +34,8 @@ export class PlanilhaTemplateService {
       despesas: [],
       totalDespesas: 0,
       resumo: { tributos: 0, desembolsoDesembaraco: 0, desembolsoTotal: 0 },
-      nfSaida: { cfop: '', cst: '', baseIcms: 0, icms: 0 }
+      nfSaida: { cfop: '', cst: '', baseIcms: 0, icms: 0 },
+      numerario: []
     };
   }
 }

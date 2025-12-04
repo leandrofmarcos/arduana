@@ -4,6 +4,7 @@ import { PlanilhaRepository } from '../../domain/planilha.repository';
 import { Observable } from 'rxjs';
 import { PlanilhaSnapshot, Premissas, Taxas, Despesa, CategoriaDespesa } from '../../domain/planilha.models';
 import { PlanilhaCatalogRepository } from '../../domain/planilha.catalog';
+import { NumerarioStatus } from '../../domain/numerario.models';
 
 @Injectable({ providedIn: 'root' })
 export class PlanilhaService {
@@ -22,6 +23,9 @@ export class PlanilhaService {
   }
   editarDespesa(id: string, dados: Partial<Despesa>) { this.repo.editarDespesa(id, dados); }
   removerDespesa(id: string) { this.repo.removerDespesa(id); }
+  adicionarNumerario(valor: number, moeda: 'BRL'|'USD'|'EUR', responsavel: string, observacao?: string){ this.repo.adicionarNumerario({ valor, moeda, responsavel, observacao }); }
+  atualizarStatusNumerario(id: string, status: NumerarioStatus){ this.repo.atualizarStatusNumerario(id, status); }
+  removerNumerario(id: string){ this.repo.removerNumerario(id); }
   salvar(meta?: Partial<{ produto: string; cliente: string; processo: string; origem: string }>) {
     const s = this.lastSnapshot; if(!s) return;
     const ls = (globalThis as any).localStorage as Storage | undefined;

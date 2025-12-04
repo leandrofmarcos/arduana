@@ -7,6 +7,7 @@ import { PlanilhaService } from './planilha.service';
 import { PlanilhasService } from '../planilhas/planilhas.service';
 import { PortosService } from '../portos/portos.service';
 import { AliquotasService } from '../aliquotas/aliquotas.service';
+import { NumerarioService } from '../numerario/numerario.service';
 
 @Component({
   selector: 'app-planilha',
@@ -241,7 +242,43 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
             </div>
           </div>
           <div class="section">
-            <h2 class="section-title" (click)="toggle('analise')"><span class="section-number">5</span>Análise Conclusiva da Planilha <span class="chevron">{{accordion.analise? '▾':'▸'}}</span></h2>
+            <h2 class="section-title" (click)="toggle('numerario')"><span class="section-number">5</span>Numerário <span class="chevron">{{accordion.numerario? '▾':'▸'}}</span></h2>
+            <div class="section-body" *ngIf="accordion.numerario">
+            <div class="form-grid-3" style="margin-bottom:16px;">
+              <div class="field"><label>Valor</label><input type="number" [(ngModel)]="numerarioValor" step="0.01"></div>
+              <div class="field"><label>Moeda</label><select [(ngModel)]="numerarioMoeda"><option>BRL</option><option>USD</option><option>EUR</option></select></div>
+              <div class="field"><label>Responsável</label><input type="text" [(ngModel)]="numerarioResponsavel"></div>
+              <div class="field" style="grid-column:1/-1"><label>Observação</label><input type="text" [(ngModel)]="numerarioObservacao"></div>
+            </div>
+            <div class="action-buttons">
+              <button class="btn btn-primary" (click)="criarNumerario()">Solicitar</button>
+              <button class="btn btn-secondary" (click)="limparNumerario()">Limpar</button>
+            </div>
+            <div style="margin-top:16px;">
+              <table class="num-grid">
+                <thead><tr><th>Data</th><th>Valor</th><th>Status</th><th>Responsável</th><th style="width:280px">Ações</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let r of (numerarioList$ | async)">
+                    <td>{{r.data | date:'short'}}</td>
+                    <td>{{r.valor | currency:r.moeda}}</td>
+                    <td><span class="badge">{{r.status}}</span></td>
+                    <td>{{r.responsavel}}</td>
+                    <td>
+                      <div class="num-actions">
+                        <button class="btn btn-secondary" (click)="setNumerarioStatus(r.id,'Enviado')">Enviar</button>
+                        <button class="btn btn-secondary" (click)="setNumerarioStatus(r.id,'Pago')">Marcar como Pago</button>
+                        <button class="btn btn-secondary" (click)="setNumerarioStatus(r.id,'Recebido')">Marcar como Recebido</button>
+                        <button class="btn btn-secondary" (click)="removerNumerario(r.id)">Excluir</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            </div>
+          </div>
+          <div class="section">
+            <h2 class="section-title" (click)="toggle('analise')"><span class="section-number">6</span>Análise Conclusiva da Planilha <span class="chevron">{{accordion.analise? '▾':'▸'}}</span></h2>
             <div class="section-body" *ngIf="accordion.analise">
             <div class="form-grid-2">
               <div class="field"><label>Benefício Fiscal</label><input type="text" [value]="0 | number:'1.2-2'" readonly></div>
@@ -250,7 +287,7 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
             </div>
           </div>
           <div class="section">
-            <h2 class="section-title" (click)="toggle('formacao')"><span class="section-number">6</span>Formação do Custo Unitário <span class="chevron">{{accordion.formacao? '▾':'▸'}}</span></h2>
+            <h2 class="section-title" (click)="toggle('formacao')"><span class="section-number">7</span>Formação do Custo Unitário <span class="chevron">{{accordion.formacao? '▾':'▸'}}</span></h2>
             <div class="section-body" *ngIf="accordion.formacao">
             <div class="info-card">Tabela por item do packlist com rateio selecionado (a implementar).</div>
             </div>
@@ -378,6 +415,10 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
     `.pv-cat-ou{background:#f4c7c3}`,
     `.pv-subtotal td{font-weight:800}`,
     `.pv-highlight td{background:#fff2b3;font-weight:800}`
+    ,`.num-grid{width:100%;border-collapse:collapse}`
+    ,`.num-grid th{background:var(--color-subtle-bg);color:var(--color-text);text-align:left;padding:10px;border-bottom:1px solid var(--color-border)}`
+    ,`.num-grid td{padding:10px;border-bottom:1px solid var(--color-border)}`
+    ,`.num-actions{display:flex;gap:10px}`
   ]
 })
 export class PlanilhaComponent implements OnInit {
@@ -410,7 +451,7 @@ export class PlanilhaComponent implements OnInit {
   beneficioFiscalPerc = 0;
   aliqReadonly = true;
   locked = false;
-  accordion = { premissas: false, despesas: false, custos: false, nfSaida: false, analise: false, formacao: false };
+  accordion = { premissas: false, despesas: false, custos: false, numerario: false, nfSaida: false, analise: false, formacao: false };
   printMode = false;
   categorias = ['Agência Marítima','Despachante','Tributos','Porto','Outros'];
   catMap: any = { 'Agência Marítima': 'am', 'Despachante': 'dp', 'Tributos': 'tr', 'Porto': 'po', 'Outros': 'ou' };
@@ -420,6 +461,12 @@ export class PlanilhaComponent implements OnInit {
   toastVisible = false;
   toastMessage = '';
   hasId = false;
+  private numerarioService = inject(NumerarioService);
+  numerarioList$ = this.numerarioService.list$();
+  numerarioValor = 0;
+  numerarioMoeda: 'BRL'|'USD'|'EUR' = 'BRL';
+  numerarioResponsavel = '';
+  numerarioObservacao = '';
 
   atualizarPremissas(p: any){ if(this.locked) return; this.service.atualizarPremissas(p); this.update(); }
   atualizarTaxas(t: any){ if(this.locked) return; this.service.atualizarTaxas(t); this.update(); }
@@ -443,6 +490,10 @@ export class PlanilhaComponent implements OnInit {
   desembolsoUsd(s:any){ const taxa = s.premissas.taxaUsd || 1; return taxa ? s.resumo.desembolsoTotal / taxa : 0; }
   percSobreFob(s:any){ const fobBrl = s.premissas.fobUsd * s.premissas.taxaUsd; return fobBrl ? (s.resumo.desembolsoTotal / fobBrl) * 100 : 0; }
   atualizarNfSaida(n:any){ this.service.atualizarNfSaida(n); this.update(); }
+  criarNumerario(){ if(this.numerarioValor>0 && this.numerarioResponsavel){ this.numerarioService.novo(this.numerarioValor, this.numerarioMoeda, this.numerarioResponsavel, this.numerarioObservacao); this.limparNumerario(); } }
+  limparNumerario(){ const m = this.numerarioMoeda; this.numerarioValor=0; this.numerarioResponsavel=''; this.numerarioObservacao=''; this.numerarioMoeda = m; }
+  setNumerarioStatus(id:string, st:'Enviado'|'Pago'|'Recebido'){ this.numerarioService.atualizar(id, st); }
+  removerNumerario(id:string){ this.numerarioService.remover(id); }
   async exportar(s:any){ this.printMode = true; await new Promise(r => setTimeout(r, 100)); const el = document.getElementById('print-view'); if(!el){ this.printMode = false; return; } const canvas = await html2canvas(el, { scale: 2, useCORS: true }); const img = canvas.toDataURL('image/png'); const pdf = new jsPDF('p','mm','a4'); const pageW = pdf.internal.pageSize.getWidth(); const pageH = pdf.internal.pageSize.getHeight(); const imgW = pageW; const imgH = canvas.height * imgW / canvas.width; let heightLeft = imgH; let position = 0; pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= pageH; while(heightLeft > 0){ position = heightLeft - imgH; pdf.addPage(); pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= pageH; } pdf.save('planilha-de-custo.pdf'); this.printMode = false; }
   aprovarOrcamento(){ this.service.aprovarOrcamento(); this.locked = true; this.update(); this.updateFaseLabel(); this.showToast('Orçamento aprovado. Fase Aduana iniciada.'); }
   novaVersao(){ this.service.novaVersao(); this.locked = false; this.update(); this.updateFaseLabel(); this.showToast('Edição liberada. Salve para criar nova versão.'); }

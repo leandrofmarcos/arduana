@@ -27,6 +27,8 @@ export interface Despesa {
   observacao?: string;
 }
 
+import { NumerarioLancamento } from './numerario.models';
+
 export interface PlanilhaSnapshot {
   premissas: Premissas;
   taxas: Taxas;
@@ -43,4 +45,5 @@ export interface PlanilhaSnapshot {
     baseIcms: number;
     icms: number;
   };
+  numerario?: NumerarioLancamento[];
 }

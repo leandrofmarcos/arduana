@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { Despesa, PlanilhaSnapshot, Premissas, Taxas } from '../../domain/planilha.models';
+import { NumerarioLancamento, NumerarioStatus } from '../../domain/numerario.models';
 import { PlanilhaRepository } from '../../domain/planilha.repository';
 import { PlanilhaTemplateService } from '../../core/templates/planilha.template.service';
 
@@ -98,6 +99,33 @@ export class LocalStoragePlanilhaRepository implements PlanilhaRepository {
     const snap = this.subject.value;
     const merged = { ...(snap.nfSaida ?? { cfop: '', cst: '', baseIcms: 0, icms: 0 }), ...n };
     this.subject.next({ ...snap, nfSaida: merged });
+    this.emit();
+  }
+  adicionarNumerario(d: { valor: number; moeda: 'BRL'|'USD'|'EUR'; responsavel: string; observacao?: string }){
+    const snap = this.subject.value;
+    const id = typeof (globalThis as any).crypto?.randomUUID === 'function' ? (globalThis as any).crypto.randomUUID() : String(Date.now());
+    const novo: NumerarioLancamento = { id, processoId: '', valor: d.valor, moeda: d.moeda, responsavel: d.responsavel, observacao: d.observacao, data: new Date().toISOString(), status: 'Solicitado', trilha: [{ evento: 'Solicitado', data: new Date().toISOString() }] };
+    const arr = [...(snap.numerario ?? [])];
+    arr.unshift(novo);
+    this.subject.next({ ...snap, numerario: arr });
+    this.emit();
+  }
+  atualizarStatusNumerario(id: string, status: NumerarioStatus){
+    const snap = this.subject.value;
+    const arr = [...(snap.numerario ?? [])];
+    const idx = arr.findIndex(x => x.id === id);
+    if(idx < 0) return;
+    const item = { ...arr[idx] } as NumerarioLancamento;
+    item.status = status;
+    item.trilha = [...item.trilha, { evento: status, data: new Date().toISOString() }];
+    arr[idx] = item;
+    this.subject.next({ ...snap, numerario: arr });
+    this.emit();
+  }
+  removerNumerario(id: string){
+    const snap = this.subject.value;
+    const arr = (snap.numerario ?? []).filter(x => x.id !== id);
+    this.subject.next({ ...snap, numerario: arr });
     this.emit();
   }
 }
