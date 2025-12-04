@@ -7,6 +7,7 @@ import { PlanilhaService } from './planilha.service';
 import { PlanilhasService } from '../planilhas/planilhas.service';
 import { PortosService } from '../portos/portos.service';
 import { AliquotasService } from '../aliquotas/aliquotas.service';
+import { ClientesService } from '../clientes/clientes.service';
 import { NumerarioService } from '../numerario/numerario.service';
 
 @Component({
@@ -26,7 +27,7 @@ import { NumerarioService } from '../numerario/numerario.service';
           <div class="header-item"><label>Produto</label><input type="text" [(ngModel)]="produto"></div>
           <div class="header-item"><label>Código</label><input type="text" [(ngModel)]="codigo"></div>
           <div class="header-item"><label>Processo</label><input type="text" [(ngModel)]="processo"></div>
-          <div class="header-item"><label>Cliente</label><input type="text" [(ngModel)]="cliente"></div>
+          <div class="header-item"><label>Cliente</label><select [ngModel]="cliente" (ngModelChange)="onSelectCliente($event)"><option *ngFor="let c of (clientes$ | async)" [value]="c.nome">{{c.nome}} ({{c.documento}})</option></select></div>
           <div class="header-item"><label>Data Simulação</label><input type="date" [(ngModel)]="dataSimulacao"></div>
           <div class="header-item"><label>Origem</label><select [(ngModel)]="origem"><option>China</option><option>EUA</option><option>Europa</option><option>Ásia</option></select></div>
         </div>
@@ -315,7 +316,6 @@ import { NumerarioService } from '../numerario/numerario.service';
             <button class="btn btn-primary" (click)="salvar()"><span class="icon">💾</span> Salvar</button>
             <button class="btn btn-secondary" (click)="salvarComoCopia()"><span class="icon">📑</span> Salvar como cópia</button>
             <button *ngIf="hasId" class="btn btn-primary" [disabled]="locked" (click)="aprovarOrcamento()"><span class="icon">✓</span> Aprovar Orçamento</button>
-            <button class="btn btn-secondary" [disabled]="!locked" (click)="novaVersao()"><span class="icon">🧱</span> Nova Versão</button>
           </div>
         </div>
       </div>
@@ -426,8 +426,10 @@ export class PlanilhaComponent implements OnInit {
   private catalogService = inject(PlanilhasService);
   private portsService = inject(PortosService);
   private aliqService = inject(AliquotasService);
+  private clientesService = inject(ClientesService);
   snapshot$ = this.service.snapshot$();
   portos$ = this.portsService.list$();
+  clientes$ = this.clientesService.list$();
   selectedAliquotaId: string | null = null;
   aliquotasList: any[] = [];
   produto = '';
@@ -501,6 +503,7 @@ export class PlanilhaComponent implements OnInit {
   salvarComoCopia(){ this.service.salvarComoCopia({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); alert('Cópia salva no catálogo.'); }
   limpar(){ if(confirm('Nova simulação?')){ location.reload(); } }
   finalizar(){ if(confirm('Finalizar importação?')){ this.service.finalizarImportacao(); alert('Importação finalizada.'); location.href = '/planilhas'; } }
+  onSelectCliente(nome: string){ this.cliente = nome; }
   update(){ this.lastUpdate = new Date().toLocaleString('pt-BR'); }
   ngOnInit(){ this.locked = localStorage.getItem('import_costs_locked') === 'true'; this.hasId = !!localStorage.getItem('import_costs_current_catalog_id'); this.aliqService.list$().subscribe(list => { this.aliquotasList = list; const d = list.find((x:any)=> x.padrao); if(d && !this.selectedAliquotaId){ this.selectedAliquotaId = d.id; this.aplicarAliquota(d.id); } }); }
   ngAfterViewInit(){ this.updateFaseLabel();

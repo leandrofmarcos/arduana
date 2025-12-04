@@ -11,7 +11,7 @@ export class PlanilhaService {
   private repo = inject<PlanilhaRepository>(PLANILHA_REPOSITORY);
   private catalog = inject<PlanilhaCatalogRepository>(PLANILHA_CATALOG_REPOSITORY);
   private lastSnapshot: PlanilhaSnapshot | null = null;
-  constructor(){ this.snapshot$().subscribe(s => this.lastSnapshot = s); }
+  constructor(){ this.snapshot$().subscribe(s => { this.lastSnapshot = s; try { const ls = (globalThis as any).localStorage as Storage | undefined; const id = ls?.getItem('import_costs_current_catalog_id'); if(id){ this.catalog.setSnapshot(id, s); } } catch {} }); }
   snapshot$(): Observable<PlanilhaSnapshot> { return this.repo.snapshot$(); }
   atualizarPremissas(p: Partial<Premissas>) { this.repo.atualizarPremissas(p); }
   atualizarTaxas(t: Partial<Taxas>) { this.repo.atualizarTaxas(t); }
