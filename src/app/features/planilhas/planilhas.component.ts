@@ -82,8 +82,6 @@ import { PlanilhaListItem } from '../../domain/planilha.catalog';
                   <button class="btn btn-secondary" (click)="abrir(row.id)">Abrir</button>
                   <a class="btn btn-secondary" [routerLink]="['/processos', row.id, 'versoes']">Versões</a>
                   <a class="btn btn-secondary" [routerLink]="['/processos', row.id, 'comparar']">Comparar</a>
-                  <a class="btn btn-secondary" [routerLink]="['/processos', row.id, 'numerario']">Numerário</a>
-                  <a class="btn btn-secondary" routerLink="/venda">Venda</a>
                   <a class="btn btn-secondary" routerLink="/anexos">Anexos</a>
                   <button class="btn btn-danger" (click)="excluir(row.id)">Excluir</button>
                 </div>
