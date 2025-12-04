@@ -47,6 +47,14 @@ export class PlanilhaService {
     ls?.setItem('import_costs_locked', 'true');
   }
 
+  desaprovarOrcamento(){
+    const s = this.lastSnapshot; if(!s) return;
+    const ls = (globalThis as any).localStorage as Storage | undefined;
+    const id = ls?.getItem('import_costs_current_catalog_id');
+    if(id){ const now = new Date().toISOString(); this.catalog.setSnapshot(id, s); this.catalog.update(id, { dataSimulacao: now, tributos: s.resumo.tributos, desembolsoTotal: s.resumo.desembolsoTotal, status: 'Ativo', faseAtual: 'Orcamento', faseDates: { Orcamento: { start: now } } }); }
+    ls?.setItem('import_costs_locked', 'false');
+  }
+
   novaVersao(){
     const ls = (globalThis as any).localStorage as Storage | undefined;
     ls?.setItem('import_costs_locked', 'false');

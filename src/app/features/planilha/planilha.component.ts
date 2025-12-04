@@ -126,6 +126,8 @@ import { NumerarioService } from '../numerario/numerario.service';
             <tbody>
               <tr><td class="pv-label">Tributos</td><td class="pv-value">{{s.resumo.tributos | currency:'BRL'}}</td></tr>
               <tr><td class="pv-label">Despesas no Desembaraço</td><td class="pv-value">{{s.totalDespesas | currency:'BRL'}}</td></tr>
+              <tr><td class="pv-label">Provisão de Numerário</td><td class="pv-value">{{totalNumerarioBRL(numerarioList,s) | currency:'BRL'}}</td></tr>
+              <tr><td class="pv-label">Gap (Desembaraço - Numerário)</td><td class="pv-value">{{(s.totalDespesas - totalNumerarioBRL(numerarioList,s)) | currency:'BRL'}}</td></tr>
               <tr><td class="pv-label">Desembolso Total</td><td class="pv-value">{{s.resumo.desembolsoTotal | currency:'BRL'}}</td></tr>
             </tbody>
           </table>
@@ -177,9 +179,9 @@ import { NumerarioService } from '../numerario/numerario.service';
               <div class="field"><label>PIS (%)</label><input type="number" step="0.01" [readOnly]="aliqReadonly" [(ngModel)]="s.taxas.pis" (change)="atualizarTaxas(s.taxas)"></div>
               <div class="field"><label>COFINS (%)</label><input type="number" step="0.01" [readOnly]="aliqReadonly" [(ngModel)]="s.taxas.cofins" (change)="atualizarTaxas(s.taxas)"></div>
               <div class="field"><label>Benefício Fiscal (%)</label><input type="number" step="0.01" [readOnly]="aliqReadonly" [(ngModel)]="beneficioFiscalPerc"></div>
-            </div>
-            </div>
           </div>
+          </div>
+        </div>
           <div class="section">
             <h2 class="section-title" (click)="toggle('despesas')"><span class="section-number">2</span>Despesas no Desembaraço <span class="chevron">{{accordion.despesas? '▾':'▸'}}</span></h2>
             <div class="section-body" *ngIf="accordion.despesas">
@@ -244,7 +246,46 @@ import { NumerarioService } from '../numerario/numerario.service';
             </div>
           </div>
           <div class="section">
-            <h2 class="section-title" (click)="toggle('analise')"><span class="section-number">5</span>Análise Conclusiva da Planilha <span class="chevron">{{accordion.analise? '▾':'▸'}}</span></h2>
+            <h2 class="section-title" (click)="toggle('numerario')"><span class="section-number">5</span>Numerário <span class="chevron">{{accordion.numerario? '▾':'▸'}}</span></h2>
+            <div class="section-body" *ngIf="accordion.numerario">
+            <div class="form-grid-3" style="margin-bottom:12px">
+              <div class="field"><label>Valor</label><input type="number" [(ngModel)]="nValor" step="0.01"></div>
+              <div class="field"><label>Moeda</label><select [(ngModel)]="nMoeda"><option>BRL</option><option>USD</option><option>EUR</option></select></div>
+              <div class="field"><label>Responsável</label><input type="text" [(ngModel)]="nResponsavel"></div>
+              <div class="field" style="grid-column:1/-1"><label>Observação</label><input type="text" [(ngModel)]="nObservacao"></div>
+            </div>
+            <div class="action-buttons" style="margin-bottom:12px"><button class="btn btn-primary" [disabled]="nValor<=0 || !nResponsavel" (click)="criarNumerario()">Lançar</button><button class="btn btn-secondary" (click)="limparNumerarioForm()">Limpar</button></div>
+            <div class="card">
+              <table class="table">
+                <thead><tr><th>Data</th><th>Valor</th><th>Moeda</th><th>Responsável</th><th>Status</th><th>Observação</th><th style="width:260px">Ações</th></tr></thead>
+                <tbody>
+                  <tr *ngIf="numerarioList.length === 0">
+                    <td colspan="7">Nenhum lançamento de numerário</td>
+                  </tr>
+                  <tr *ngFor="let n of numerarioList">
+                    <td>{{n.data | date:'short'}}</td>
+                    <td>{{n.valor | currency:n.moeda}}</td>
+                    <td>{{n.moeda}}</td>
+                    <td>{{n.responsavel}}</td>
+                    <td>{{n.status}}</td>
+                    <td>{{n.observacao}}</td>
+                    <td>
+                      <div class="row-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn btn-secondary" (click)="setNumerarioStatus(n.id,'Enviado')">Enviado</button>
+                        <button class="btn btn-secondary" (click)="setNumerarioStatus(n.id,'Pago')">Pago</button>
+                        <button class="btn btn-secondary" (click)="setNumerarioStatus(n.id,'Recebido')">Recebido</button>
+                        <button class="btn btn-danger" (click)="removerNumerario(n.id)">Excluir</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="highlight-box" style="margin-top:12px"><strong>Provisão de Numerário</strong><span class="value">{{totalNumerarioBRL(numerarioList,s) | currency:'BRL'}}</span></div>
+            </div>
+          </div>
+          <div class="section">
+            <h2 class="section-title" (click)="toggle('analise')"><span class="section-number">6</span>Análise Conclusiva da Planilha <span class="chevron">{{accordion.analise? '▾':'▸'}}</span></h2>
             <div class="section-body" *ngIf="accordion.analise">
             <div class="form-grid-2">
               <div class="field"><label>Benefício Fiscal</label><input type="text" [value]="0 | number:'1.2-2'" readonly></div>
@@ -253,46 +294,20 @@ import { NumerarioService } from '../numerario/numerario.service';
             </div>
           </div>
           <div class="section">
-            <h2 class="section-title" (click)="toggle('formacao')"><span class="section-number">6</span>Formação do Custo Unitário <span class="chevron">{{accordion.formacao? '▾':'▸'}}</span></h2>
+            <h2 class="section-title" (click)="toggle('formacao')"><span class="section-number">7</span>Formação do Custo Unitário <span class="chevron">{{accordion.formacao? '▾':'▸'}}</span></h2>
             <div class="section-body" *ngIf="accordion.formacao">
             <div class="info-card">Tabela por item do packlist com rateio selecionado (a implementar).</div>
             </div>
           </div>
-          <div class="section">
-            <h2 class="section-title" (click)="toggle('numerario')"><span class="section-number">7</span>Numerário <span class="chevron">{{accordion.numerario? '▾':'▸'}}</span></h2>
-            <div class="section-body" *ngIf="accordion.numerario">
-            <div class="form-grid-3">
-              <div class="field"><label>Valor</label><input type="number" [(ngModel)]="nValor" step="0.01"></div>
-              <div class="field"><label>Moeda</label><select [(ngModel)]="nMoeda"><option>BRL</option><option>USD</option><option>EUR</option></select></div>
-              <div class="field"><label>Responsável</label><input type="text" [(ngModel)]="nResponsavel"></div>
-              <div class="field" style="grid-column:1/-1"><label>Observação</label><input type="text" [(ngModel)]="nObservacao"></div>
-            </div>
-            <div class="action-buttons">
-              <button class="btn btn-primary" (click)="criarNumerario()">Solicitar</button>
-              <button class="btn btn-secondary" (click)="limparNumerarioForm()">Limpar</button>
-            </div>
-            <div class="category-group" style="margin-top:16px">
-              <div class="category-header"><span>Solicitações</span></div>
-              <div *ngFor="let r of (numerario$ | async)" class="expense-row" style="grid-template-columns:1fr 0.8fr 0.8fr 2fr">
-                <div>{{r.data | date:'short'}}</div>
-                <div class="expense-amount">{{r.valor | currency:r.moeda}}</div>
-                <div><span class="badge">{{r.status}}</span></div>
-                <div class="expense-actions">
-                  <button class="btn btn-secondary" (click)="setNumerarioStatus(r.id,'Enviado')">Enviar</button>
-                  <button class="btn btn-secondary" (click)="setNumerarioStatus(r.id,'Pago')">Marcar Pago</button>
-                  <button class="btn btn-secondary" (click)="setNumerarioStatus(r.id,'Recebido')">Marcar Recebido</button>
-                  <button class="btn btn-secondary" (click)="removerNumerario(r.id)">Excluir</button>
-                </div>
-              </div>
-            </div>
-            </div>
-          </div>
+          
         </div>
         <div class="right-panel">
           <div class="summary-panel">
             <h3>📈 Resumo Financeiro</h3>
             <div class="summary-item"><label>Tributos</label><div class="value">{{s.resumo.tributos | currency:'BRL'}}</div></div>
             <div class="summary-item"><label>Outras Despesas</label><div class="value">{{s.totalDespesas | currency:'BRL'}}</div></div>
+            <div class="summary-item"><label>Provisão Numerário</label><div class="value">{{totalNumerarioBRL(numerarioList,s) | currency:'BRL'}}</div></div>
+            <div class="summary-item"><label>Gap (Desembaraço - Numerário)</label><div class="value">{{(s.totalDespesas - totalNumerarioBRL(numerarioList,s)) | currency:'BRL'}}</div></div>
             <div class="summary-item"><label>PIS/COFINS Saída</label><div class="value">{{0 | currency:'BRL'}}</div></div>
             <div class="summary-item highlight"><label>Desembolso Desembaraço</label><div class="value">{{s.totalDespesas | currency:'BRL'}}</div></div>
             <div class="summary-item highlight"><label>Desembolso Total</label><div class="value">{{s.resumo.desembolsoTotal | currency:'BRL'}}</div></div>
@@ -309,7 +324,8 @@ import { NumerarioService } from '../numerario/numerario.service';
             <button class="btn btn-secondary" (click)="exportar(s)"><span class="icon">📄</span> Exportar</button>
             <button class="btn btn-primary" (click)="salvar()"><span class="icon">💾</span> Salvar</button>
             <button class="btn btn-secondary" (click)="salvarComoCopia()"><span class="icon">📑</span> Salvar como cópia</button>
-            <button *ngIf="hasId" class="btn btn-primary" [disabled]="locked" (click)="aprovarOrcamento()"><span class="icon">✓</span> Aprovar Orçamento</button>
+            <button *ngIf="hasId && !approved" class="btn btn-primary" [disabled]="locked" (click)="aprovarOrcamento()"><span class="icon">✓</span> Aprovar Orçamento</button>
+            <button *ngIf="hasId && approved" class="btn btn-secondary" (click)="desaprovarOrcamento()"><span class="icon">↺</span> Desaprovar Orçamento</button>
           </div>
         </div>
       </div>
@@ -375,6 +391,18 @@ import { NumerarioService } from '../numerario/numerario.service';
     `.chip-group{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 22px}`,
     `.chip{padding:8px 14px;border-radius:20px;border:2px solid var(--color-border);background:var(--color-surface);font-size:13px;font-weight:700;color:var(--color-text);cursor:pointer}`,
     `.chip.active{border-color:var(--color-primary);background:#ebf4ff;color:var(--color-primary-ink)}`,
+    `.table{width:100%;border-collapse:collapse}`,
+    `.table thead th{font-size:12px;color:var(--color-muted);font-weight:700;letter-spacing:.4px;text-transform:uppercase}`,
+    `.table th,.table td{border-bottom:1px solid var(--color-border);padding:12px;text-align:left;vertical-align:middle}`,
+    `.table thead th:nth-child(1){width:180px}`,
+    `.table thead th:nth-child(2){width:120px}`,
+    `.table thead th:nth-child(3){width:80px;text-align:center}`,
+    `.table thead th:nth-child(4){width:160px}`,
+    `.table thead th:nth-child(5){width:120px}`,
+    `.table thead th:nth-child(7){width:280px}`,
+    `.table td:nth-child(2){text-align:right;font-weight:700}`,
+    `.table td:nth-child(3){text-align:center}`,
+    `.row-actions{display:flex;gap:8px;flex-wrap:wrap}`,
     `.category-group{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;margin-bottom:18px;overflow:hidden}`,
     `.category-header{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;background:var(--color-subtle-bg);font-weight:800;color:var(--color-text)}`,
     `.category-total{font-weight:800;color:var(--color-primary-ink)}`,
@@ -455,6 +483,7 @@ export class PlanilhaComponent implements OnInit {
   toastVisible = false;
   toastMessage = '';
   hasId = false;
+  approved = false;
   nValor = 0;
   nMoeda: 'BRL'|'USD'|'EUR' = 'BRL';
   nResponsavel = '';
@@ -482,25 +511,35 @@ export class PlanilhaComponent implements OnInit {
   desembolsoUsd(s:any){ const taxa = s.premissas.taxaUsd || 1; return taxa ? s.resumo.desembolsoTotal / taxa : 0; }
   percSobreFob(s:any){ const fobBrl = s.premissas.fobUsd * s.premissas.taxaUsd; return fobBrl ? (s.resumo.desembolsoTotal / fobBrl) * 100 : 0; }
   atualizarNfSaida(n:any){ this.service.atualizarNfSaida(n); this.update(); }
-  criarNumerario(){ if(this.nValor>0 && this.nResponsavel){ this.numerarioService.novo(this.nValor, this.nMoeda, this.nResponsavel, this.nObservacao); this.limparNumerarioForm(); } }
+  criarNumerario(){
+    if(this.nValor<=0 || !String(this.nResponsavel).trim()) return;
+    this.numerarioService.novo(this.nValor, this.nMoeda, this.nResponsavel, this.nObservacao);
+    this.numerarioList = this.numerarioService.listSync();
+    this.bindNumerario();
+    this.limparNumerarioForm();
+    this.showToast('Numerário lançado.');
+  }
   limparNumerarioForm(){ const m = this.nMoeda; this.nValor = 0; this.nResponsavel = ''; this.nObservacao = ''; this.nMoeda = m; }
   setNumerarioStatus(id: string, st: 'Enviado'|'Pago'|'Recebido'){ this.numerarioService.atualizar(id, st); }
   removerNumerario(id: string){ this.numerarioService.remover(id); }
+  totalNumerarioBRL(arr: any[], s:any){ return (arr||[]).reduce((sum, n) => sum + (n.moeda==='BRL'? n.valor : (n.moeda==='USD'? n.valor * s.premissas.taxaUsd : n.valor * this.taxaEur * s.premissas.taxaUsd)), 0); }
   async exportar(s:any){ this.printMode = true; await new Promise(r => setTimeout(r, 100)); const el = document.getElementById('print-view'); if(!el){ this.printMode = false; return; } const canvas = await html2canvas(el, { scale: 2, useCORS: true }); const img = canvas.toDataURL('image/png'); const pdf = new jsPDF('p','mm','a4'); const pageW = pdf.internal.pageSize.getWidth(); const pageH = pdf.internal.pageSize.getHeight(); const imgW = pageW; const imgH = canvas.height * imgW / canvas.width; let heightLeft = imgH; let position = 0; pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= pageH; while(heightLeft > 0){ position = heightLeft - imgH; pdf.addPage(); pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= pageH; } pdf.save('planilha-de-custo.pdf'); this.printMode = false; }
   aprovarOrcamento(){ this.service.aprovarOrcamento(); this.locked = true; this.update(); this.updateFaseLabel(); this.showToast('Orçamento aprovado. Fase Aduana iniciada.'); }
+  desaprovarOrcamento(){ this.service.desaprovarOrcamento(); this.locked = false; this.update(); this.updateFaseLabel(); this.showToast('Orçamento voltou para fase de Orçamento.'); }
   novaVersao(){ this.service.novaVersao(); this.locked = false; this.update(); this.updateFaseLabel(); this.showToast('Edição liberada. Salve para criar nova versão.'); }
-  salvar(){ const okHeader = [this.produto, this.codigo, this.processo, this.cliente].every(v => !!String(v||'').trim()); if(!okHeader){ alert('Preencha produto, código, processo e cliente.'); return; } if(!this.service.premissasValid()){ alert('Premissas da operação não preenchidas.'); return; } this.service.salvar({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); this.hasId = !!localStorage.getItem('import_costs_current_catalog_id'); this.update(); this.updateFaseLabel(); alert('Simulação salva como não finalizada.'); }
+  salvar(){ const okHeader = [this.produto, this.codigo, this.processo, this.cliente].every(v => !!String(v||'').trim()); if(!okHeader){ alert('Preencha produto, código, processo e cliente.'); return; } if(!this.service.premissasValid()){ alert('Premissas da operação não preenchidas.'); return; } this.service.salvar({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); this.hasId = !!localStorage.getItem('import_costs_current_catalog_id'); this.bindNumerario(); this.update(); this.updateFaseLabel(); alert('Simulação salva como não finalizada.'); }
   salvarComoCopia(){ this.service.salvarComoCopia({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); alert('Cópia salva no catálogo.'); }
   limpar(){ if(confirm('Nova simulação?')){ location.reload(); } }
   finalizar(){ if(confirm('Finalizar importação?')){ this.service.finalizarImportacao(); alert('Importação finalizada.'); location.href = '/planilhas'; } }
   update(){ this.lastUpdate = new Date().toLocaleString('pt-BR'); }
-  ngOnInit(){ this.locked = localStorage.getItem('import_costs_locked') === 'true'; this.hasId = !!localStorage.getItem('import_costs_current_catalog_id'); const extras = this.tpl.defaultPremissasExtras(); this.taxaEur = extras.taxaEur; this.pesoLiquido = extras.pesoLiquido; this.quantProdutos = extras.quantProdutos; this.unidMedida = extras.unidMedida; this.estatistica = extras.estatistica; this.volume = extras.volume; this.fcl = extras.fcl; this.incoterm = extras.incoterm; this.precoPeca = extras.precoPeca; this.beneficioFiscal = extras.beneficioFiscal; this.aliqService.list$().subscribe(list => { this.aliquotasList = list; const d = list.find((x:any)=> x.padrao); if(d && !this.selectedAliquotaId){ this.selectedAliquotaId = d.id; this.aplicarAliquota(d.id); } }); this.portsService.list$().subscribe(arr => { if(!this.porto && arr && arr.length){ this.porto = arr[0].codigo; } }); }
+  ngOnInit(){ this.locked = localStorage.getItem('import_costs_locked') === 'true'; this.hasId = !!localStorage.getItem('import_costs_current_catalog_id'); const extras = this.tpl.defaultPremissasExtras(); this.taxaEur = extras.taxaEur; this.pesoLiquido = extras.pesoLiquido; this.quantProdutos = extras.quantProdutos; this.unidMedida = extras.unidMedida; this.estatistica = extras.estatistica; this.volume = extras.volume; this.fcl = extras.fcl; this.incoterm = extras.incoterm; this.precoPeca = extras.precoPeca; this.beneficioFiscal = extras.beneficioFiscal; this.aliqService.list$().subscribe(list => { this.aliquotasList = list; const d = list.find((x:any)=> x.padrao); if(d && !this.selectedAliquotaId){ this.selectedAliquotaId = d.id; this.aplicarAliquota(d.id); } }); this.portsService.list$().subscribe(arr => { if(!this.porto && arr && arr.length){ this.porto = arr[0].codigo; } }); this.bindNumerario(); }
   ngAfterViewInit(){ this.updateFaseLabel();
   }
   diffDays(a: Date, b: Date){ return Math.floor((b.getTime() - a.getTime()) / (1000*60*60*24)); }
-  updateFaseLabel(){ const id = localStorage.getItem('import_costs_current_catalog_id'); this.hasId = !!id; this.faseLabel=''; if(id){ const meta = this.catalogService.meta(id); if(meta?.faseAtual==='Aduana'){ const start = meta?.faseDates?.Aduana?.start; if(start){ const dias = this.diffDays(new Date(start), new Date()); const restante = Math.max(0, 30 - dias); this.faseLabel = `Aduana · ${restante} dias restantes`; } } else if(meta?.faseAtual==='Orcamento'){ this.faseLabel = `Orçamento`; } else if(meta?.faseAtual==='Fechamento'){ this.faseLabel = `Fechamento`; } }
-  }
+  updateFaseLabel(){ const id = localStorage.getItem('import_costs_current_catalog_id'); this.hasId = !!id; this.faseLabel=''; this.approved = false; if(id){ const meta = this.catalogService.meta(id); if(meta?.faseAtual==='Aduana'){ this.approved = true; const start = meta?.faseDates?.Aduana?.start; if(start){ const dias = this.diffDays(new Date(start), new Date()); const restante = Math.max(0, 30 - dias); this.faseLabel = `Aduana · ${restante} dias restantes`; } } else if(meta?.faseAtual==='Orcamento'){ this.faseLabel = `Orçamento`; } else if(meta?.faseAtual==='Fechamento'){ this.faseLabel = `Fechamento`; } } this.bindNumerario(); }
   showToast(msg: string){ this.toastMessage = msg; this.toastVisible = true; setTimeout(() => { this.toastVisible = false; }, 2500); }
   novaDespesa: any = { categoria: 'Porto', item: '', fornecedor: '', valor: 0, observacao: '' };
   limparDespesaForm(){ const c = this.novaDespesa.categoria; this.novaDespesa = { categoria: c, item: '', fornecedor: '', valor: 0, observacao: '' }; }
+  numerarioList: any[] = [];
+  bindNumerario(){ this.numerario$ = this.numerarioService.list$(); this.numerario$.subscribe((arr: any[]) => { this.numerarioList = arr || []; }); }
 }

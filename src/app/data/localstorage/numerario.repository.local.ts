@@ -25,7 +25,6 @@ export class LocalStorageNumerarioRepository implements NumerarioRepository {
   add(d: Omit<NumerarioLancamento,'id'|'trilha'|'data'|'status'> & { valor: number; moeda: 'BRL'|'USD'|'EUR'; responsavel: string; observacao?: string }){
     const ls = (globalThis as any).localStorage as Storage | undefined;
     const pid = ls?.getItem('import_costs_current_catalog_id') || '';
-    if(!pid) return;
     const id = typeof (globalThis as any).crypto?.randomUUID === 'function' ? (globalThis as any).crypto.randomUUID() : String(Date.now());
     const novo: NumerarioLancamento = { id, processoId: pid, valor: d.valor, moeda: d.moeda, responsavel: d.responsavel, observacao: d.observacao, data: new Date().toISOString(), status: 'Solicitado', trilha: [{ evento: 'Solicitado', data: new Date().toISOString() }] };
     const arr = (readJSON<NumerarioLancamento[]>(KEY(pid)) || []).slice();
@@ -37,7 +36,6 @@ export class LocalStorageNumerarioRepository implements NumerarioRepository {
   updateStatus(id: string, status: NumerarioStatus){
     const ls = (globalThis as any).localStorage as Storage | undefined;
     const pid = ls?.getItem('import_costs_current_catalog_id') || '';
-    if(!pid) return;
     const arr = (readJSON<NumerarioLancamento[]>(KEY(pid)) || []).slice();
     const idx = arr.findIndex(x => x.id === id);
     if(idx < 0) return;
@@ -52,7 +50,6 @@ export class LocalStorageNumerarioRepository implements NumerarioRepository {
   remove(id: string){
     const ls = (globalThis as any).localStorage as Storage | undefined;
     const pid = ls?.getItem('import_costs_current_catalog_id') || '';
-    if(!pid) return;
     const arr = (readJSON<NumerarioLancamento[]>(KEY(pid)) || []).filter(x => x.id !== id);
     writeJSON(KEY(pid), arr);
     this.next(pid, arr);
