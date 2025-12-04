@@ -26,14 +26,15 @@ export class PlanilhaService {
   adicionarNumerario(valor: number, moeda: 'BRL'|'USD'|'EUR', responsavel: string, observacao?: string){ this.repo.adicionarNumerario({ valor, moeda, responsavel, observacao }); }
   atualizarStatusNumerario(id: string, status: NumerarioStatus){ this.repo.atualizarStatusNumerario(id, status); }
   removerNumerario(id: string){ this.repo.removerNumerario(id); }
-  salvar(meta?: Partial<{ produto: string; cliente: string; processo: string; origem: string }>) {
-    const s = this.lastSnapshot; if(!s) return;
+  salvar(meta?: Partial<{ produto: string; cliente: string; processo: string; origem: string }>): string | null {
+    const s = this.lastSnapshot; if(!s) return null;
     const ls = (globalThis as any).localStorage as Storage | undefined;
     const currentId = ls?.getItem('import_costs_current_catalog_id') || null;
     let id = currentId;
     if(!id){ id = this.catalog.createNew({ produto: meta?.produto, cliente: meta?.cliente, processo: meta?.processo, origem: meta?.origem }); ls?.setItem('import_costs_current_catalog_id', id); }
     this.catalog.setSnapshot(id!, s);
     this.catalog.update(id!, { produto: meta?.produto, cliente: meta?.cliente, processo: meta?.processo, origem: meta?.origem, dataSimulacao: new Date().toISOString(), tributos: s.resumo.tributos, desembolsoTotal: s.resumo.desembolsoTotal, status: 'Ativo' });
+    return id!;
   }
   finalizarImportacao(){
     const s = this.lastSnapshot; if(!s) return;
