@@ -74,4 +74,14 @@ export class StaticPlanilhaRepository implements PlanilhaRepository {
     this.subject.next({ ...snap, despesas: snap.despesas.filter(x => x.id !== id) });
     this.emit();
   }
+  carregarSnapshot(snap: PlanilhaSnapshot){
+    this.subject.next(snap);
+    this.emit();
+  }
+  atualizarNfSaida(n: Partial<NonNullable<PlanilhaSnapshot['nfSaida']>>){
+    const snap = this.subject.value;
+    const merged = { ...(snap.nfSaida ?? { cfop: '', cst: '', baseIcms: 0, icms: 0 }), ...n };
+    this.subject.next({ ...snap, nfSaida: merged });
+    this.emit();
+  }
 }

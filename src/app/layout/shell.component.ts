@@ -31,14 +31,8 @@ import { PlanilhasService } from '../features/planilhas/planilhas.service';
         </div>
         <nav class="menu">
           <div class="menu-group">
-            <div class="menu-title">Processo</div>
-            <a routerLink="/processos" routerLinkActive="active"><span class="icon">📁</span><span>Processos</span></a>
-            <a routerLink="/importacao" routerLinkActive="active"><span class="icon">📊</span><span>Orçamento (Editor)</span></a>
-            <a routerLink="/numerario" routerLinkActive="active"><span class="icon">💰</span><span>Numerário</span></a>
-            <a routerLink="/venda" routerLinkActive="active"><span class="icon">💵</span><span>Venda (OMINIUM)</span></a>
-            <a routerLink="/anexos" routerLinkActive="active"><span class="icon">📎</span><span>Anexos</span></a>
-            <a routerLink="/fechamento" routerLinkActive="active"><span class="icon">✅</span><span>Fechamento</span></a>
-            <a class="create" (click)="novaProcesso()"><span class="icon">＋</span><span>Novo Processo</span></a>
+            <div class="menu-title">Processos</div>
+            <a routerLink="/processos" routerLinkActive="active"><span class="icon">📁</span><span>Listagem</span></a>
           </div>
           <div class="menu-group">
             <div class="menu-title">Cadastros</div>
@@ -109,7 +103,7 @@ export class ShellComponent {
   }
   toggleSidebar(){ this.collapsed = !this.collapsed; }
   logout(){ this.auth.logout(); location.href = '/login'; }
-  novaProcesso(){ this.planilhas.nova(); }
+  // criação de processos acontece pela listagem
   private updateHeader(url: string){
     if(url.includes('/importacao')){ this.headerTitle = 'Editor'; this.headerSubtitle = 'Planilha de Importação'; }
     else { this.headerTitle = 'Planilhas'; this.headerSubtitle = 'Listagem e Ações'; }

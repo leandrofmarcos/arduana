@@ -63,7 +63,7 @@ import { PlanilhaListItem } from '../../domain/planilha.catalog';
               <th style="text-align:right">Tributos</th>
               <th style="text-align:right">Desembolso Total</th>
               <th style="text-align:right">Versões</th>
-              <th style="width:320px">Ações</th>
+              <th style="width:280px">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -80,7 +80,6 @@ import { PlanilhaListItem } from '../../domain/planilha.catalog';
               <td>
                 <div class="row-actions">
                   <button class="btn btn-secondary" (click)="abrir(row.id)">Abrir</button>
-                  <button class="btn btn-secondary" (click)="duplicar(row.id)">Duplicar</button>
                   <a class="btn btn-secondary" [routerLink]="['/processos', row.id, 'versoes']">Versões</a>
                   <a class="btn btn-secondary" [routerLink]="['/processos', row.id, 'comparar']">Comparar</a>
                   <a class="btn btn-secondary" [routerLink]="['/processos', row.id, 'numerario']">Numerário</a>
@@ -157,7 +156,6 @@ export class PlanilhasComponent {
   setPage(p:number){ this.page = p; this.applyFilters(); }
   nova(){ this.s.nova({ produto: 'Nova Simulação' }); }
   abrir(id:string){ this.s.abrir(id); }
-  duplicar(id:string){ this.s.duplicar(id); }
   excluir(id:string){ this.s.excluir(id); this.applyFilters(); }
   limparFiltros(){ this.q=''; this.origem=''; this.status=''; this.dataInicio=''; this.dataFim=''; this.applyFilters(); }
 }

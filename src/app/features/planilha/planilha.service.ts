@@ -15,6 +15,7 @@ export class PlanilhaService {
   atualizarPremissas(p: Partial<Premissas>) { this.repo.atualizarPremissas(p); }
   atualizarTaxas(t: Partial<Taxas>) { this.repo.atualizarTaxas(t); }
   atualizarNfSaida(n: any) { this.repo.atualizarNfSaida(n); }
+  premissasValid(){ const s = this.lastSnapshot; if(!s) return false; const p = s.premissas as any; return !!p && !!p.ncm && (p.taxaUsd||0) > 0 && (p.quantidade||0) > 0; }
   adicionarDespesa(categoria: CategoriaDespesa, item: string, valor: number, fornecedor?: string, observacao?: string) {
     const d: Omit<Despesa,'id'> = { categoria, item, valor, fornecedor, observacao };
     this.repo.adicionarDespesa(d);

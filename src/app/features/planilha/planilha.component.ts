@@ -277,7 +277,7 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
             <button class="btn btn-secondary" (click)="exportar(s)"><span class="icon">📄</span> Exportar</button>
             <button class="btn btn-primary" (click)="salvar()"><span class="icon">💾</span> Salvar</button>
             <button class="btn btn-secondary" (click)="salvarComoCopia()"><span class="icon">📑</span> Salvar como cópia</button>
-            <button class="btn btn-primary" [disabled]="locked" (click)="aprovarOrcamento()"><span class="icon">✓</span> Aprovar Orçamento</button>
+            <button *ngIf="hasId" class="btn btn-primary" [disabled]="locked" (click)="aprovarOrcamento()"><span class="icon">✓</span> Aprovar Orçamento</button>
             <button class="btn btn-secondary" [disabled]="!locked" (click)="novaVersao()"><span class="icon">🧱</span> Nova Versão</button>
           </div>
         </div>
@@ -419,6 +419,7 @@ export class PlanilhaComponent implements OnInit {
   faseLabel = '';
   toastVisible = false;
   toastMessage = '';
+  hasId = false;
 
   atualizarPremissas(p: any){ if(this.locked) return; this.service.atualizarPremissas(p); this.update(); }
   atualizarTaxas(t: any){ if(this.locked) return; this.service.atualizarTaxas(t); this.update(); }
@@ -445,16 +446,16 @@ export class PlanilhaComponent implements OnInit {
   async exportar(s:any){ this.printMode = true; await new Promise(r => setTimeout(r, 100)); const el = document.getElementById('print-view'); if(!el){ this.printMode = false; return; } const canvas = await html2canvas(el, { scale: 2, useCORS: true }); const img = canvas.toDataURL('image/png'); const pdf = new jsPDF('p','mm','a4'); const pageW = pdf.internal.pageSize.getWidth(); const pageH = pdf.internal.pageSize.getHeight(); const imgW = pageW; const imgH = canvas.height * imgW / canvas.width; let heightLeft = imgH; let position = 0; pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= pageH; while(heightLeft > 0){ position = heightLeft - imgH; pdf.addPage(); pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= pageH; } pdf.save('planilha-de-custo.pdf'); this.printMode = false; }
   aprovarOrcamento(){ this.service.aprovarOrcamento(); this.locked = true; this.update(); this.updateFaseLabel(); this.showToast('Orçamento aprovado. Fase Aduana iniciada.'); }
   novaVersao(){ this.service.novaVersao(); this.locked = false; this.update(); this.updateFaseLabel(); this.showToast('Edição liberada. Salve para criar nova versão.'); }
-  salvar(){ this.service.salvar({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); alert('Simulação salva como não finalizada.'); }
+  salvar(){ const okHeader = [this.produto, this.codigo, this.processo, this.cliente].every(v => !!String(v||'').trim()); if(!okHeader){ alert('Preencha produto, código, processo e cliente.'); return; } if(!this.service.premissasValid()){ alert('Premissas da operação não preenchidas.'); return; } this.service.salvar({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); this.update(); this.updateFaseLabel(); alert('Simulação salva como não finalizada.'); }
   salvarComoCopia(){ this.service.salvarComoCopia({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); alert('Cópia salva no catálogo.'); }
   limpar(){ if(confirm('Nova simulação?')){ location.reload(); } }
   finalizar(){ if(confirm('Finalizar importação?')){ this.service.finalizarImportacao(); alert('Importação finalizada.'); location.href = '/planilhas'; } }
   update(){ this.lastUpdate = new Date().toLocaleString('pt-BR'); }
-  ngOnInit(){ this.locked = localStorage.getItem('import_costs_locked') === 'true'; this.aliqService.list$().subscribe(list => { this.aliquotasList = list; const d = list.find((x:any)=> x.padrao); if(d && !this.selectedAliquotaId){ this.selectedAliquotaId = d.id; this.aplicarAliquota(d.id); } }); }
+  ngOnInit(){ this.locked = localStorage.getItem('import_costs_locked') === 'true'; this.hasId = !!localStorage.getItem('import_costs_current_catalog_id'); this.aliqService.list$().subscribe(list => { this.aliquotasList = list; const d = list.find((x:any)=> x.padrao); if(d && !this.selectedAliquotaId){ this.selectedAliquotaId = d.id; this.aplicarAliquota(d.id); } }); }
   ngAfterViewInit(){ this.updateFaseLabel();
   }
   diffDays(a: Date, b: Date){ return Math.floor((b.getTime() - a.getTime()) / (1000*60*60*24)); }
-  updateFaseLabel(){ const id = localStorage.getItem('import_costs_current_catalog_id'); this.faseLabel=''; if(id){ const meta = this.catalogService.meta(id); if(meta?.faseAtual==='Aduana'){ const start = meta?.faseDates?.Aduana?.start; if(start){ const dias = this.diffDays(new Date(start), new Date()); const restante = Math.max(0, 30 - dias); this.faseLabel = `Aduana · ${restante} dias restantes`; } } else if(meta?.faseAtual==='Orcamento'){ this.faseLabel = `Orçamento`; } else if(meta?.faseAtual==='Fechamento'){ this.faseLabel = `Fechamento`; } }
+  updateFaseLabel(){ const id = localStorage.getItem('import_costs_current_catalog_id'); this.hasId = !!id; this.faseLabel=''; if(id){ const meta = this.catalogService.meta(id); if(meta?.faseAtual==='Aduana'){ const start = meta?.faseDates?.Aduana?.start; if(start){ const dias = this.diffDays(new Date(start), new Date()); const restante = Math.max(0, 30 - dias); this.faseLabel = `Aduana · ${restante} dias restantes`; } } else if(meta?.faseAtual==='Orcamento'){ this.faseLabel = `Orçamento`; } else if(meta?.faseAtual==='Fechamento'){ this.faseLabel = `Fechamento`; } }
   }
   showToast(msg: string){ this.toastMessage = msg; this.toastVisible = true; setTimeout(() => { this.toastVisible = false; }, 2500); }
   novaDespesa: any = { categoria: 'Porto', item: '', fornecedor: '', valor: 0, observacao: '' };
