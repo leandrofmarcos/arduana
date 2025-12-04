@@ -23,7 +23,7 @@ export class PlanilhasService {
       ls?.removeItem('import_costs_current_catalog_id');
       ls?.setItem('import_costs_locked', 'false');
     }catch{}
-    const snap = this.templates.emptySnapshot();
+    const snap = this.templates.defaultSnapshot();
     this.editor.carregarSnapshot(snap);
     if(taxas){ this.editor.atualizarTaxas(taxas); }
     this.router.navigateByUrl('/importacao');

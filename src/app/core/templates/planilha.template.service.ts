@@ -36,4 +36,19 @@ export class PlanilhaTemplateService {
       nfSaida: { cfop: '', cst: '', baseIcms: 0, icms: 0 }
     };
   }
+
+  defaultPremissasExtras(){
+    return {
+      taxaEur: 0.98,
+      pesoLiquido: 20043.67,
+      quantProdutos: 13417,
+      unidMedida: '1X40HC',
+      estatistica: '',
+      volume: 210.5997,
+      fcl: 'FCL',
+      incoterm: 'FOB',
+      precoPeca: 0,
+      beneficioFiscal: 0
+    };
+  }
 }

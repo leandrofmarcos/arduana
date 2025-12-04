@@ -7,6 +7,9 @@ import { PlanilhaService } from './planilha.service';
 import { PlanilhasService } from '../planilhas/planilhas.service';
 import { PortosService } from '../portos/portos.service';
 import { AliquotasService } from '../aliquotas/aliquotas.service';
+import { PlanilhaTemplateService } from '../../core/templates/planilha.template.service';
+import { ClientesService } from '../clientes/clientes.service';
+import { NumerarioService } from '../numerario/numerario.service';
 
 @Component({
   selector: 'app-planilha',
@@ -25,7 +28,7 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
           <div class="header-item"><label>Produto</label><input type="text" [(ngModel)]="produto"></div>
           <div class="header-item"><label>Código</label><input type="text" [(ngModel)]="codigo"></div>
           <div class="header-item"><label>Processo</label><input type="text" [(ngModel)]="processo"></div>
-          <div class="header-item"><label>Cliente</label><input type="text" [(ngModel)]="cliente"></div>
+          <div class="header-item"><label>Cliente</label><select [(ngModel)]="cliente"><option *ngFor="let c of (clientes$ | async)" [value]="c.nome">{{c.nome}} ({{c.documento}})</option></select></div>
           <div class="header-item"><label>Data Simulação</label><input type="date" [(ngModel)]="dataSimulacao"></div>
           <div class="header-item"><label>Origem</label><select [(ngModel)]="origem"><option>China</option><option>EUA</option><option>Europa</option><option>Ásia</option></select></div>
         </div>
@@ -255,6 +258,35 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
             <div class="info-card">Tabela por item do packlist com rateio selecionado (a implementar).</div>
             </div>
           </div>
+          <div class="section">
+            <h2 class="section-title" (click)="toggle('numerario')"><span class="section-number">7</span>Numerário <span class="chevron">{{accordion.numerario? '▾':'▸'}}</span></h2>
+            <div class="section-body" *ngIf="accordion.numerario">
+            <div class="form-grid-3">
+              <div class="field"><label>Valor</label><input type="number" [(ngModel)]="nValor" step="0.01"></div>
+              <div class="field"><label>Moeda</label><select [(ngModel)]="nMoeda"><option>BRL</option><option>USD</option><option>EUR</option></select></div>
+              <div class="field"><label>Responsável</label><input type="text" [(ngModel)]="nResponsavel"></div>
+              <div class="field" style="grid-column:1/-1"><label>Observação</label><input type="text" [(ngModel)]="nObservacao"></div>
+            </div>
+            <div class="action-buttons">
+              <button class="btn btn-primary" (click)="criarNumerario()">Solicitar</button>
+              <button class="btn btn-secondary" (click)="limparNumerarioForm()">Limpar</button>
+            </div>
+            <div class="category-group" style="margin-top:16px">
+              <div class="category-header"><span>Solicitações</span></div>
+              <div *ngFor="let r of (numerario$ | async)" class="expense-row" style="grid-template-columns:1fr 0.8fr 0.8fr 2fr">
+                <div>{{r.data | date:'short'}}</div>
+                <div class="expense-amount">{{r.valor | currency:r.moeda}}</div>
+                <div><span class="badge">{{r.status}}</span></div>
+                <div class="expense-actions">
+                  <button class="btn btn-secondary" (click)="setNumerarioStatus(r.id,'Enviado')">Enviar</button>
+                  <button class="btn btn-secondary" (click)="setNumerarioStatus(r.id,'Pago')">Marcar Pago</button>
+                  <button class="btn btn-secondary" (click)="setNumerarioStatus(r.id,'Recebido')">Marcar Recebido</button>
+                  <button class="btn btn-secondary" (click)="removerNumerario(r.id)">Excluir</button>
+                </div>
+              </div>
+            </div>
+            </div>
+          </div>
         </div>
         <div class="right-panel">
           <div class="summary-panel">
@@ -278,14 +310,12 @@ import { AliquotasService } from '../aliquotas/aliquotas.service';
             <button class="btn btn-primary" (click)="salvar()"><span class="icon">💾</span> Salvar</button>
             <button class="btn btn-secondary" (click)="salvarComoCopia()"><span class="icon">📑</span> Salvar como cópia</button>
             <button *ngIf="hasId" class="btn btn-primary" [disabled]="locked" (click)="aprovarOrcamento()"><span class="icon">✓</span> Aprovar Orçamento</button>
-            <button class="btn btn-secondary" [disabled]="!locked" (click)="novaVersao()"><span class="icon">🧱</span> Nova Versão</button>
           </div>
         </div>
       </div>
       <div class="bottom-actions">
         <div class="info"><span class="badge">✓ Ativo</span><span style="margin-left: 15px;">Última atualização: {{lastUpdate}}</span></div>
         <div class="buttons">
-          <button class="btn btn-secondary" (click)="limpar()"><span class="icon">🔄</span> Nova Simulação</button>
           <button class="btn btn-primary" (click)="finalizar()"><span class="icon">✓</span> Finalizar Importação</button>
         </div>
       </div>
@@ -385,8 +415,13 @@ export class PlanilhaComponent implements OnInit {
   private catalogService = inject(PlanilhasService);
   private portsService = inject(PortosService);
   private aliqService = inject(AliquotasService);
+  private tpl = inject(PlanilhaTemplateService);
+  private clientesService = inject(ClientesService);
+  private numerarioService = inject(NumerarioService);
   snapshot$ = this.service.snapshot$();
   portos$ = this.portsService.list$();
+  clientes$ = this.clientesService.list$();
+  numerario$ = this.numerarioService.list$();
   selectedAliquotaId: string | null = null;
   aliquotasList: any[] = [];
   produto = '';
@@ -410,7 +445,7 @@ export class PlanilhaComponent implements OnInit {
   beneficioFiscalPerc = 0;
   aliqReadonly = true;
   locked = false;
-  accordion = { premissas: false, despesas: false, custos: false, nfSaida: false, analise: false, formacao: false };
+  accordion = { premissas: false, despesas: false, custos: false, nfSaida: false, analise: false, formacao: false, numerario: false };
   printMode = false;
   categorias = ['Agência Marítima','Despachante','Tributos','Porto','Outros'];
   catMap: any = { 'Agência Marítima': 'am', 'Despachante': 'dp', 'Tributos': 'tr', 'Porto': 'po', 'Outros': 'ou' };
@@ -420,6 +455,10 @@ export class PlanilhaComponent implements OnInit {
   toastVisible = false;
   toastMessage = '';
   hasId = false;
+  nValor = 0;
+  nMoeda: 'BRL'|'USD'|'EUR' = 'BRL';
+  nResponsavel = '';
+  nObservacao = '';
 
   atualizarPremissas(p: any){ if(this.locked) return; this.service.atualizarPremissas(p); this.update(); }
   atualizarTaxas(t: any){ if(this.locked) return; this.service.atualizarTaxas(t); this.update(); }
@@ -443,15 +482,19 @@ export class PlanilhaComponent implements OnInit {
   desembolsoUsd(s:any){ const taxa = s.premissas.taxaUsd || 1; return taxa ? s.resumo.desembolsoTotal / taxa : 0; }
   percSobreFob(s:any){ const fobBrl = s.premissas.fobUsd * s.premissas.taxaUsd; return fobBrl ? (s.resumo.desembolsoTotal / fobBrl) * 100 : 0; }
   atualizarNfSaida(n:any){ this.service.atualizarNfSaida(n); this.update(); }
+  criarNumerario(){ if(this.nValor>0 && this.nResponsavel){ this.numerarioService.novo(this.nValor, this.nMoeda, this.nResponsavel, this.nObservacao); this.limparNumerarioForm(); } }
+  limparNumerarioForm(){ const m = this.nMoeda; this.nValor = 0; this.nResponsavel = ''; this.nObservacao = ''; this.nMoeda = m; }
+  setNumerarioStatus(id: string, st: 'Enviado'|'Pago'|'Recebido'){ this.numerarioService.atualizar(id, st); }
+  removerNumerario(id: string){ this.numerarioService.remover(id); }
   async exportar(s:any){ this.printMode = true; await new Promise(r => setTimeout(r, 100)); const el = document.getElementById('print-view'); if(!el){ this.printMode = false; return; } const canvas = await html2canvas(el, { scale: 2, useCORS: true }); const img = canvas.toDataURL('image/png'); const pdf = new jsPDF('p','mm','a4'); const pageW = pdf.internal.pageSize.getWidth(); const pageH = pdf.internal.pageSize.getHeight(); const imgW = pageW; const imgH = canvas.height * imgW / canvas.width; let heightLeft = imgH; let position = 0; pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= pageH; while(heightLeft > 0){ position = heightLeft - imgH; pdf.addPage(); pdf.addImage(img, 'PNG', 0, position, imgW, imgH); heightLeft -= pageH; } pdf.save('planilha-de-custo.pdf'); this.printMode = false; }
   aprovarOrcamento(){ this.service.aprovarOrcamento(); this.locked = true; this.update(); this.updateFaseLabel(); this.showToast('Orçamento aprovado. Fase Aduana iniciada.'); }
   novaVersao(){ this.service.novaVersao(); this.locked = false; this.update(); this.updateFaseLabel(); this.showToast('Edição liberada. Salve para criar nova versão.'); }
-  salvar(){ const okHeader = [this.produto, this.codigo, this.processo, this.cliente].every(v => !!String(v||'').trim()); if(!okHeader){ alert('Preencha produto, código, processo e cliente.'); return; } if(!this.service.premissasValid()){ alert('Premissas da operação não preenchidas.'); return; } this.service.salvar({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); this.update(); this.updateFaseLabel(); alert('Simulação salva como não finalizada.'); }
+  salvar(){ const okHeader = [this.produto, this.codigo, this.processo, this.cliente].every(v => !!String(v||'').trim()); if(!okHeader){ alert('Preencha produto, código, processo e cliente.'); return; } if(!this.service.premissasValid()){ alert('Premissas da operação não preenchidas.'); return; } this.service.salvar({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); this.hasId = !!localStorage.getItem('import_costs_current_catalog_id'); this.update(); this.updateFaseLabel(); alert('Simulação salva como não finalizada.'); }
   salvarComoCopia(){ this.service.salvarComoCopia({ produto: this.produto, cliente: this.cliente, processo: this.processo, origem: this.origem }); alert('Cópia salva no catálogo.'); }
   limpar(){ if(confirm('Nova simulação?')){ location.reload(); } }
   finalizar(){ if(confirm('Finalizar importação?')){ this.service.finalizarImportacao(); alert('Importação finalizada.'); location.href = '/planilhas'; } }
   update(){ this.lastUpdate = new Date().toLocaleString('pt-BR'); }
-  ngOnInit(){ this.locked = localStorage.getItem('import_costs_locked') === 'true'; this.hasId = !!localStorage.getItem('import_costs_current_catalog_id'); this.aliqService.list$().subscribe(list => { this.aliquotasList = list; const d = list.find((x:any)=> x.padrao); if(d && !this.selectedAliquotaId){ this.selectedAliquotaId = d.id; this.aplicarAliquota(d.id); } }); }
+  ngOnInit(){ this.locked = localStorage.getItem('import_costs_locked') === 'true'; this.hasId = !!localStorage.getItem('import_costs_current_catalog_id'); const extras = this.tpl.defaultPremissasExtras(); this.taxaEur = extras.taxaEur; this.pesoLiquido = extras.pesoLiquido; this.quantProdutos = extras.quantProdutos; this.unidMedida = extras.unidMedida; this.estatistica = extras.estatistica; this.volume = extras.volume; this.fcl = extras.fcl; this.incoterm = extras.incoterm; this.precoPeca = extras.precoPeca; this.beneficioFiscal = extras.beneficioFiscal; this.aliqService.list$().subscribe(list => { this.aliquotasList = list; const d = list.find((x:any)=> x.padrao); if(d && !this.selectedAliquotaId){ this.selectedAliquotaId = d.id; this.aplicarAliquota(d.id); } }); this.portsService.list$().subscribe(arr => { if(!this.porto && arr && arr.length){ this.porto = arr[0].codigo; } }); }
   ngAfterViewInit(){ this.updateFaseLabel();
   }
   diffDays(a: Date, b: Date){ return Math.floor((b.getTime() - a.getTime()) / (1000*60*60*24)); }
