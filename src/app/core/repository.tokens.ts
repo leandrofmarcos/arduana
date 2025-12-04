@@ -7,6 +7,7 @@ import { NumerarioRepository } from '../domain/numerario.repository';
 import { FechamentoRepository } from '../domain/fechamento.repository';
 import { VendaRepository } from '../domain/venda.repository';
 import { AnexoRepository } from '../domain/anexo.repository';
+import { ClienteRepository } from '../domain/cliente.repository';
 
 export const PLANILHA_REPOSITORY = new InjectionToken<PlanilhaRepository>('PLANILHA_REPOSITORY');
 export const PLANILHA_CATALOG_REPOSITORY = new InjectionToken<PlanilhaCatalogRepository>('PLANILHA_CATALOG_REPOSITORY');
@@ -16,3 +17,4 @@ export const NUMERARIO_REPOSITORY = new InjectionToken<NumerarioRepository>('NUM
 export const FECHAMENTO_REPOSITORY = new InjectionToken<FechamentoRepository>('FECHAMENTO_REPOSITORY');
 export const VENDA_REPOSITORY = new InjectionToken<VendaRepository>('VENDA_REPOSITORY');
 export const ANEXO_REPOSITORY = new InjectionToken<AnexoRepository>('ANEXO_REPOSITORY');
+export const CLIENTE_REPOSITORY = new InjectionToken<ClienteRepository>('CLIENTE_REPOSITORY');

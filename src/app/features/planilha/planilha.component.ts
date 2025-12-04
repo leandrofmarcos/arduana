@@ -389,10 +389,10 @@ export class PlanilhaComponent implements OnInit {
   portos$ = this.portsService.list$();
   selectedAliquotaId: string | null = null;
   aliquotasList: any[] = [];
-  produto = 'BALANÇAS / PESAGEM';
-  codigo = 'LELA03';
-  processo = 'NBZY25090511';
-  cliente = 'ANTÔNIO';
+  produto = '';
+  codigo = '';
+  processo = '';
+  cliente = '';
   dataSimulacao = '2025-10-23';
   origem = 'China';
   taxaEur = 0;
@@ -410,7 +410,7 @@ export class PlanilhaComponent implements OnInit {
   beneficioFiscalPerc = 0;
   aliqReadonly = true;
   locked = false;
-  accordion = { premissas: true, despesas: true, custos: true, nfSaida: true, analise: true, formacao: true };
+  accordion = { premissas: false, despesas: false, custos: false, nfSaida: false, analise: false, formacao: false };
   printMode = false;
   categorias = ['Agência Marítima','Despachante','Tributos','Porto','Outros'];
   catMap: any = { 'Agência Marítima': 'am', 'Despachante': 'dp', 'Tributos': 'tr', 'Porto': 'po', 'Outros': 'ou' };

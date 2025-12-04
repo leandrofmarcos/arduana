@@ -6,19 +6,27 @@ import { PlanilhaCatalogRepository, PlanilhaListItem } from '../../domain/planil
 import { PlanilhaRepository } from '../../domain/planilha.repository';
 import { Observable } from 'rxjs';
 import { Taxas } from '../../domain/planilha.models';
+import { PlanilhaTemplateService } from '../../core/templates/planilha.template.service';
 
 @Injectable({ providedIn: 'root' })
 export class PlanilhasService {
   private catalog = inject<PlanilhaCatalogRepository>(PLANILHA_CATALOG_REPOSITORY);
   private editor = inject<PlanilhaRepository>(PLANILHA_REPOSITORY);
   private router = inject(Router);
+  private templates = inject(PlanilhaTemplateService);
 
   list$(): Observable<PlanilhaListItem[]> { return this.catalog.list$(); }
 
   nova(meta?: Partial<Omit<PlanilhaListItem,'id'|'tributos'|'desembolsoTotal'>>, taxas?: Partial<Taxas>) {
-    const id = this.catalog.createNew(meta);
-    const snap = this.catalog.getSnapshot(id);
-    if(snap){ try{ const ls = (globalThis as any).localStorage as Storage | undefined; ls?.setItem('import_costs_current_catalog_id', id); ls?.setItem('import_costs_locked', 'false'); }catch{} this.editor.carregarSnapshot(snap); if(taxas){ this.editor.atualizarTaxas(taxas); } this.router.navigateByUrl('/importacao'); }
+    try{
+      const ls = (globalThis as any).localStorage as Storage | undefined;
+      ls?.removeItem('import_costs_current_catalog_id');
+      ls?.setItem('import_costs_locked', 'false');
+    }catch{}
+    const snap = this.templates.emptySnapshot();
+    this.editor.carregarSnapshot(snap);
+    if(taxas){ this.editor.atualizarTaxas(taxas); }
+    this.router.navigateByUrl('/importacao');
   }
 
   abrir(id: string, taxas?: Partial<Taxas>) {

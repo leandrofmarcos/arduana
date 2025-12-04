@@ -44,6 +44,7 @@ import { PlanilhasService } from '../features/planilhas/planilhas.service';
             <div class="menu-title">Cadastros</div>
             <a routerLink="/aliquotas" routerLinkActive="active"><span class="icon">🧮</span><span>Alíquotas</span></a>
             <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
+            <a routerLink="/clientes" routerLinkActive="active"><span class="icon">👥</span><span>Clientes</span></a>
           </div>
           <div class="menu-group">
             <div class="menu-title">Relatórios</div>
@@ -108,7 +109,7 @@ export class ShellComponent {
   }
   toggleSidebar(){ this.collapsed = !this.collapsed; }
   logout(){ this.auth.logout(); location.href = '/login'; }
-  novaProcesso(){ this.planilhas.nova({ produto: 'Nova Simulação' }); }
+  novaProcesso(){ this.planilhas.nova(); }
   private updateHeader(url: string){
     if(url.includes('/importacao')){ this.headerTitle = 'Editor'; this.headerSubtitle = 'Planilha de Importação'; }
     else { this.headerTitle = 'Planilhas'; this.headerSubtitle = 'Listagem e Ações'; }
