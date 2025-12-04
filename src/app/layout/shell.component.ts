@@ -40,10 +40,7 @@ import { PlanilhasService } from '../features/planilhas/planilhas.service';
             <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
             <a routerLink="/clientes" routerLinkActive="active"><span class="icon">👥</span><span>Clientes</span></a>
           </div>
-          <div class="menu-group">
-            <div class="menu-title">Relatórios</div>
-            <a routerLink="/planilhas" routerLinkActive="active"><span class="icon">🗂</span><span>Catálogo</span></a>
-          </div>
+          
         </nav>
       </aside>
       <main class="content-wrapper">
