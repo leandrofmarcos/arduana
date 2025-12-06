@@ -5,7 +5,7 @@ import { provideClientHydration } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideAuth } from './core/auth/auth.providers';
-import { PLANILHA_REPOSITORY, PLANILHA_CATALOG_REPOSITORY, NUMERARIO_REPOSITORY, FECHAMENTO_REPOSITORY, VENDA_REPOSITORY, ANEXO_REPOSITORY, CLIENTE_REPOSITORY } from './core/repository.tokens';
+import { PLANILHA_REPOSITORY, PLANILHA_CATALOG_REPOSITORY, NUMERARIO_REPOSITORY, FECHAMENTO_REPOSITORY, VENDA_REPOSITORY, ANEXO_REPOSITORY, CLIENTE_REPOSITORY, DESPACHANTE_REPOSITORY } from './core/repository.tokens';
 import { LocalStoragePlanilhaRepository } from './data/localstorage/planilha.repository.local';
 import { LocalStoragePlanilhaCatalogRepository } from './data/localstorage/planilha.catalog.repository.local';
 import { PORTO_REPOSITORY } from './core/repository.tokens';
@@ -17,6 +17,7 @@ import { LocalStorageFechamentoRepository } from './data/localstorage/fechamento
 import { LocalStorageVendaRepository } from './data/localstorage/venda.repository.local';
 import { LocalStorageAnexoRepository } from './data/localstorage/anexo.repository.local';
 import { LocalStorageClienteRepository } from './data/localstorage/cliente.repository.local';
+import { LocalStorageDespachanteRepository } from './data/localstorage/despachante.repository.local';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -34,6 +35,7 @@ export const appConfig: ApplicationConfig = {
     { provide: FECHAMENTO_REPOSITORY, useClass: LocalStorageFechamentoRepository },
     { provide: VENDA_REPOSITORY, useClass: LocalStorageVendaRepository },
     { provide: ANEXO_REPOSITORY, useClass: LocalStorageAnexoRepository },
-    { provide: CLIENTE_REPOSITORY, useClass: LocalStorageClienteRepository }
+    { provide: CLIENTE_REPOSITORY, useClass: LocalStorageClienteRepository },
+    { provide: DESPACHANTE_REPOSITORY, useClass: LocalStorageDespachanteRepository }
   ]
 };

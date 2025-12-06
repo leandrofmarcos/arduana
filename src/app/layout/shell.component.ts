@@ -38,7 +38,22 @@ import { PlanilhasService } from '../features/planilhas/planilhas.service';
             <div class="menu-title">Cadastros</div>
             <a routerLink="/aliquotas" routerLinkActive="active"><span class="icon">🧮</span><span>Alíquotas</span></a>
             <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
-            <a routerLink="/clientes" routerLinkActive="active"><span class="icon">👥</span><span>Clientes</span></a>
+          <a routerLink="/clientes" routerLinkActive="active"><span class="icon">👥</span><span>Clientes</span></a>
+          <a routerLink="/despachantes" routerLinkActive="active"><span class="icon">🧭</span><span>Despachantes</span></a>
+          </div>
+          <div class="menu-group">
+            <div class="menu-title">Nova Versão</div>
+            <a routerLink="/nova" routerLinkActive="active"><span class="icon">🧭</span><span>Versão Completa</span></a>
+            <a routerLink="/nova/processo/novo" routerLinkActive="active"><span class="icon">🧩</span><span>Processos</span></a>
+            <a routerLink="/nova/processo/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
+            <a routerLink="/nova/processo/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
+            <a routerLink="/nova/processo/venda" routerLinkActive="active"><span class="icon">💼</span><span>Planilha de Venda</span></a>
+            <a routerLink="/nova/processo/aduana" routerLinkActive="active"><span class="icon">🛃</span><span>Aduana</span></a>
+            <a routerLink="/nova/processo/aduana/atualizar" routerLinkActive="active"><span class="icon">📝</span><span>Atualização Aduana</span></a>
+            <a routerLink="/nova/processo/numerario" routerLinkActive="active"><span class="icon">💵</span><span>Numerário</span></a>
+            <a routerLink="/nova/processo/numerario/historico" routerLinkActive="active"><span class="icon">🗂️</span><span>Histórico Numerário</span></a>
+            <a routerLink="/nova/processo/fechamento" routerLinkActive="active"><span class="icon">✅</span><span>Fechamento</span></a>
+            <a routerLink="/nova/processo/historico" routerLinkActive="active"><span class="icon">🕑</span><span>Histórico do Processo</span></a>
           </div>
         </nav>
       </aside>

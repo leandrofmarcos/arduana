@@ -4,11 +4,12 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProcessoServiceNova } from '../services/processo.service';
 import { Despesa, CategoriaDespesa } from '../../domain/planilha.models';
+import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
 
 @Component({
   standalone: true,
   selector: 'app-custo-nova',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, ResumoFinanceiroComponent],
   template: `
     <div class="card" *ngIf="!editing">
       <div class="header">
@@ -138,27 +139,7 @@ import { Despesa, CategoriaDespesa } from '../../domain/planilha.models';
         </div>
 
         <div class="editor-right">
-          <div class="card summary-card">
-            <h3 class="section-title">Resumo de Custos</h3>
-            <div class="summary-grid">
-              <div class="summary-item">
-                <div class="summary-label">CIF (USD)</div>
-                <div class="summary-value">$ {{totais.cifUsd.toFixed(2)}}</div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-label">CIF (BRL)</div>
-                <div class="summary-value">R$ {{totais.cifBrl.toFixed(2)}}</div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-label">Total Despesas</div>
-                <div class="summary-value">R$ {{totais.totalDespesas.toFixed(2)}}</div>
-              </div>
-              <div class="summary-item">
-                <div class="summary-label">Custo Total</div>
-                <div class="summary-value large">R$ {{totais.custoTotal.toFixed(2)}}</div>
-              </div>
-            </div>
-          </div>
+          <app-resumo-financeiro [form]="form" [despesas]="despesas"></app-resumo-financeiro>
         </div>
       </div>
 
@@ -223,6 +204,8 @@ import { Despesa, CategoriaDespesa } from '../../domain/planilha.models';
     `.summary-label{font-size:12px;color:var(--color-muted);margin-bottom:4px;text-transform:uppercase;font-weight:600}`,
     `.summary-value{font-size:20px;font-weight:700;color:var(--color-primary)}`,
     `.summary-value.large{font-size:28px;background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}`,
+    `.summary-subtitle{font-size:12px;font-weight:800;color:var(--color-muted);margin-bottom:8px;text-transform:uppercase}`,
+    `.summary-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;background:rgba(0,0,0,.03);border:1px solid var(--color-border);border-radius:10px;padding:10px}`,
     `.actions-inline{display:flex;gap:10px;justify-content:flex-end;margin:8px 0 16px}`,
     `.pill{display:inline-block;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.8);color:var(--color-primary-ink);font-weight:700;border:2px solid var(--color-border)}`,
     `.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}`,
@@ -292,7 +275,7 @@ export class CustoNovaComponent {
     if(pid){
       const vendaExistente = this.s.getVendaSnapshot(pid);
       if(vendaExistente) return;
-      this.s.saveVendaSnapshot(pid, { premissas: this.form, despesas: this.despesas });
+      this.s.saveVendaSnapshot(pid, { premissas: this.form, despesas: [] });
       this.showSaved = true;
     }
   }
@@ -306,6 +289,15 @@ export class CustoNovaComponent {
     const cifBrl = cifUsd * (this.form.taxaUsd || 0);
     const totalDespesas = this.despesas.reduce((s,d)=>s + (d.valor||0), 0);
     return { cifUsd, cifBrl, totalDespesas, custoTotal: cifBrl + totalDespesas };
+  }
+  get resumoPremissas(){
+    const cifUsd = (this.form.fobUsd || 0) + (this.form.freteUsd || 0) + (this.form.seguroUsd || 0);
+    const cifBrl = cifUsd * (this.form.taxaUsd || 0);
+    return { cifUsd, cifBrl };
+  }
+  get resumoDesembaraco(){
+    const total = this.despesas.reduce((s,d)=>s + (d.valor||0), 0);
+    return { total };
   }
   get totalDespesas(){ return this.despesas.reduce((s,d)=>s + (d.valor||0), 0); }
   adicionarDespesa(){
