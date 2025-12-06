@@ -11,7 +11,7 @@ export interface ProcessoListItem {
   despachanteId?: string;
   codigo?: string;
   data: string;
-  status: 'CRIADO' | 'Orçamento' | 'Em aprovação' | 'Aduana' | 'Numerário' | 'Fechamento' | 'Fechado';
+  status: 'CRIADO' | 'Orçamento' | 'Em aprovação' | 'Aprovado' | 'Reprovado' | 'Aduana' | 'Numerário' | 'Fechamento' | 'Fechado';
 }
 
 export interface PacklistItem {
@@ -206,5 +206,20 @@ export class ProcessoServiceNova {
     arr.push({ at: new Date().toISOString(), type: 'VENDA', before: { item: beforeItem, snapshot: before }, after: { item: this.getListItem(id), snapshot: data } });
     writeJSON(keys.history(id), arr);
     this.ensureVendaForProcess(id);
+  }
+
+  // Aduana (Fase de Embarque)
+  ensureAduanaForProcess(id: string): void {
+    const idx = (readJSON<any[]>(keys.aduanaIndex()) || []) as Array<{ id: string; processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }>;
+    if(idx.some(x => x.processoId === id)) return;
+    const proc = this.getListItem(id);
+    const createdAt = new Date().toISOString();
+    const novo = { id: randomId(), processoId: id, codigo: proc?.codigo, cliente: proc?.cliente, despachante: proc?.despachante, createdAt };
+    const next = [novo, ...idx];
+    writeJSON(keys.aduanaIndex(), next);
+  }
+
+  listAduanas(): Array<{ processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }>{
+    return (readJSON<any[]>(keys.aduanaIndex()) || []) as any[];
   }
 }

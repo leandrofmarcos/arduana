@@ -23,5 +23,7 @@ export const keys = {
   custosIndex: () => `nova_custos_index`,
   custoSnapshot: (id: string) => `nova_custo_${id}`,
   vendasIndex: () => `nova_vendas_index`,
-  vendaSnapshot: (id: string) => `nova_venda_${id}`
+  vendaSnapshot: (id: string) => `nova_venda_${id}`,
+  aduanaIndex: () => `nova_aduana_index`,
+  aduanaSnapshot: (id: string) => `nova_aduana_${id}`
 };

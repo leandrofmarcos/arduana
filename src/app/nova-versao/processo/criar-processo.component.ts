@@ -15,16 +15,31 @@ import { Despachante } from '../../domain/despachante.models';
   imports: [CommonModule, RouterModule, FormsModule],
   template: `
     <div class="card">
-      <h2>Criar Processo</h2>
+      <div class="header">
+        <h2 class="title">Criar Processo</h2>
+        <div class="status-inline">
+          <div class="status-pill subtle" [class.aprovacao]="statusAtual==='Em aprovação'">
+            <span class="dot">•</span>
+            <span>{{statusAtual || 'CRIADO'}}</span>
+          </div>
+          <div class="divider" *ngIf="statusAtual==='Em aprovação'"></div>
+          <div class="actions-inline" *ngIf="statusAtual==='Em aprovação'">
+            <button class="btn-icon icon-approve" title="Aprovar" aria-label="Aprovar" (click)="aprovar()">✓</button>
+            <button class="btn-icon icon-reject" title="Reprovar" aria-label="Reprovar" (click)="reprovar()">✕</button>
+          </div>
+        </div>
+      </div>
       <p>Preencha os dados e importe o packlist (CSV)</p>
       <div class="alert error" *ngIf="triedSubmit && !canSave()">
         ⚠️ Existem campos obrigatórios não preenchidos: {{missingFields.join(', ')}}.
       </div>
 
+      
+
       <div class="form-grid">
         <div class="field">
           <label>Cliente</label>
-          <select class="input" [class.error]="triedSubmit && !clienteId" [attr.aria-invalid]="triedSubmit && !clienteId" [(ngModel)]="clienteId">
+          <select class="input" [class.error]="triedSubmit && !clienteId" [attr.aria-invalid]="triedSubmit && !clienteId" [(ngModel)]="clienteId" [disabled]="isBlocked">
             <option [ngValue]="''">Selecione</option>
             <option *ngFor="let c of clientes" [ngValue]="c.id">{{c.nome}}</option>
           </select>
@@ -32,7 +47,7 @@ import { Despachante } from '../../domain/despachante.models';
         </div>
         <div class="field">
           <label>Despachante</label>
-          <select class="input" [class.error]="triedSubmit && !despachanteId" [attr.aria-invalid]="triedSubmit && !despachanteId" [(ngModel)]="despachanteId">
+          <select class="input" [class.error]="triedSubmit && !despachanteId" [attr.aria-invalid]="triedSubmit && !despachanteId" [(ngModel)]="despachanteId" [disabled]="isBlocked">
             <option [ngValue]="''">Selecione</option>
             <option *ngFor="let d of despachantes" [ngValue]="d.id">{{d.nome}}</option>
           </select>
@@ -40,21 +55,21 @@ import { Despachante } from '../../domain/despachante.models';
         </div>
         <div class="field">
           <label>Código</label>
-          <input class="input" [class.error]="triedSubmit && !codigo.trim()" [attr.aria-invalid]="triedSubmit && !codigo.trim()" [(ngModel)]="codigo" placeholder="Código do processo" />
+          <input class="input" [class.error]="triedSubmit && !codigo.trim()" [attr.aria-invalid]="triedSubmit && !codigo.trim()" [(ngModel)]="codigo" placeholder="Código do processo" [readonly]="isBlocked" />
           <div class="error-text" *ngIf="triedSubmit && !codigo.trim()">Campo obrigatório</div>
         </div>
         <div class="field">
           <label>Data</label>
-          <input class="input" type="date" [class.error]="triedSubmit && !data" [attr.aria-invalid]="triedSubmit && !data" [(ngModel)]="data" />
+          <input class="input" type="date" [class.error]="triedSubmit && !data" [attr.aria-invalid]="triedSubmit && !data" [(ngModel)]="data" [readonly]="isBlocked" />
           <div class="error-text" *ngIf="triedSubmit && !data">Campo obrigatório</div>
         </div>
       </div>
 
       <div class="upload-row">
         <input #fileInput class="hidden-file" type="file" accept=".csv" (change)="onFileChange($event)" />
-        <button class="btn btn-secondary" (click)="fileInput.click()">📤 Upload CSV</button>
+        <button class="btn btn-secondary" (click)="fileInput.click()" [disabled]="isBlocked">📤 Upload CSV</button>
         <span class="file-name" *ngIf="fileName">{{fileName}}</span>
-        <button class="btn btn-secondary" (click)="importarMock()">Importar CSV (mock)</button>
+        <button class="btn btn-secondary" (click)="importarMock()" [disabled]="isBlocked">Importar CSV (mock)</button>
       </div>
 
       <div class="table" *ngIf="packlistPreview.length">
@@ -84,7 +99,7 @@ import { Despachante } from '../../domain/despachante.models';
       </div>
 
       <div class="actions">
-        <button class="btn btn-primary" (click)="trySalvar()">Salvar</button>
+        <button class="btn btn-primary" (click)="trySalvar()" [disabled]="isBlocked">Salvar</button>
         <a class="btn" routerLink="/nova/processo/novo">Cancelar</a>
       </div>
 
@@ -99,6 +114,19 @@ import { Despachante } from '../../domain/despachante.models';
   `,
   styles: [
     `.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:24px}`,
+    `.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}`,
+    `.title{margin:0}`,
+    `.status-inline{display:flex;align-items:center;gap:8px;margin-left:auto}`,
+    
+    `.status-pill{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:999px;background:var(--color-subtle-bg);border:1px solid var(--color-border);font-weight:700}`,
+    `.status-bar{display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--color-subtle-bg);border:1px solid var(--color-border);border-radius:10px}`,
+    `.status-pill.subtle{background:#fffbe6;border:2px solid #facc15;color:#b45309}`,
+    `.status-pill.subtle .dot{color:#b45309}`,
+    `.divider{width:1px;height:22px;background:var(--color-border)}`,
+    `.actions-inline{display:flex;align-items:center;gap:8px}`,
+    `.btn-icon{width:36px;height:36px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:900;border:none}`,
+    `.icon-approve{background:#22c55e;color:#fff}`,
+    `.icon-reject{background:#ef4444;color:#fff}`,
     `.alert{padding:12px 16px;border-radius:10px;margin:12px 0}`,
     `.alert.error{border:2px solid var(--color-danger);color:var(--color-danger);background:var(--color-surface)}`,
     `.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}`,
@@ -138,6 +166,8 @@ export class CriarProcessoNovaComponent {
 
   showSuccess = false;
   private editingId: string | null = null;
+  statusAtual: string | null = null;
+  get isBlocked(){ return this.statusAtual === 'Reprovado'; }
   triedSubmit = false;
   get missingFields(): string[] {
     const out: string[] = [];
@@ -158,7 +188,7 @@ export class CriarProcessoNovaComponent {
       const meta = this.s.getMeta(id);
       const item = this.s.getListItem(id) as ProcessoListItem | null;
       if(meta){ this.clienteId = meta.clienteId || ''; this.despachanteId = meta.despachanteId || ''; this.data = meta.createdAt?.slice(0,10) || this.data; }
-      if(item){ this.codigo = item.codigo || ''; }
+      if(item){ this.codigo = item.codigo || ''; this.statusAtual = item.status || null; }
       const pl = this.s.getPacklist(id);
       if(pl && pl.length){ this.packlistPreview = pl; }
     }
@@ -190,4 +220,16 @@ export class CriarProcessoNovaComponent {
   }
 
   confirmSuccess(){ this.showSuccess = false; this.router.navigateByUrl('/nova/processo/novo'); }
+
+  aprovar(){
+    if(!this.editingId) return;
+    this.s.update(this.editingId, { status: 'Aprovado', faseAtual: 'Aduana' });
+    this.s.ensureAduanaForProcess(this.editingId);
+    this.statusAtual = 'Aprovado';
+  }
+  reprovar(){
+    if(!this.editingId) return;
+    this.s.update(this.editingId, { status: 'Reprovado', faseAtual: 'Orcamento' });
+    this.statusAtual = 'Reprovado';
+  }
 }
