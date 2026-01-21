@@ -43,6 +43,9 @@ import { PlanilhasService } from '../features/planilhas/planilhas.service';
           </div>
           <div class="menu-group">
             <div class="menu-title">Nova Versão</div>
+            <a routerLink="/nova/processo/jornada" routerLinkActive="active"><span class="icon">🗺️</span><span>Jornada Aduaneira</span></a>
+            <a routerLink="/nova/processo/jornada2" routerLinkActive="active"><span class="icon">🗺️</span><span>Jornada Aduaneira 2</span></a>
+            <a routerLink="/nova/processo/jornada3" routerLinkActive="active"><span class="icon">🗺️</span><span>Jornada Aduaneira 3</span></a>
             <a routerLink="/nova" routerLinkActive="active"><span class="icon">🧭</span><span>Versão Completa</span></a>
             <a routerLink="/nova/processo/novo" routerLinkActive="active"><span class="icon">🧩</span><span>Processos</span></a>
             <a routerLink="/nova/processo/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
