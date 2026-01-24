@@ -3,7 +3,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ProcessoServiceNova } from '../services/processo.service';
+import { OrcamentoService } from '../services/orcamento.service';
 import { Despesa, CategoriaDespesa } from '../../domain/planilha.models';
 import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
 
@@ -31,7 +31,7 @@ import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
         <tbody>
           <tr *ngIf="vendas.length === 0"><td colspan="5">Nenhum registro</td></tr>
           <tr *ngFor="let v of vendas">
-            <td>{{v.codigo || v.processoId}}</td>
+            <td>{{v.codigo || v.orcamentoId}}</td>
             <td>{{v.cliente || '-'}} </td>
             <td>{{v.despachante || '-'}} </td>
             <td>{{v.createdAt | date:'short'}}</td>
@@ -212,8 +212,8 @@ import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
   ]
 })
 export class VendaNovaComponent {
-  vendas: { processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] = [];
-  editing: { processoId: string; codigo?: string; cliente?: string; despachante?: string } | null = null;
+  vendas: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] = [];
+  editing: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string } | null = null;
   form: any = { fobUsd: 0, freteUsd: 0, seguroUsd: 0, taxaUsd: 5, ncm: '', pesoLiquido: 0, quantProdutos: 0 };
   readOnly = true;
   despesas: Despesa[] = [];
@@ -222,25 +222,25 @@ export class VendaNovaComponent {
   toggle(k: 'premissas'|'despachante'|'itens'){ this.acc[k] = !this.acc[k]; }
   novaDespesa: { categoria: CategoriaDespesa; item: string; fornecedor?: string; valor: number; observacao?: string } = { categoria: 'Agência Marítima', item: '', fornecedor: '', valor: 0, observacao: '' };
   editId: string | null = null;
-  constructor(private s: ProcessoServiceNova, private router: Router){ this.vendas = this.s.listVendas(); }
-  editar(v: { processoId: string; codigo?: string; cliente?: string; despachante?: string }){
+  constructor(private s: OrcamentoService, private router: Router){ this.vendas = this.s.listVendas(); }
+  editar(v: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string }){
     this.editing = v;
-    const item = this.s.getListItem(v.processoId);
+    const item = this.s.getListItem(v.orcamentoId);
     this.readOnly = !(item?.status === 'Em aprovação');
-    const snap = this.s.getVendaSnapshot(v.processoId);
+    const snap = this.s.getVendaSnapshot(v.orcamentoId);
     if(snap){
       this.form = { ...this.form, ...(snap.premissas || {}) };
       const arr = Array.isArray(snap.despesas) ? (snap.despesas as any) : [];
       this.despesas = (arr as Despesa[]).filter((d: Despesa) => d.categoria === 'Agência Marítima');
     }
-    const snapCusto = this.s.getCustoSnapshot(v.processoId);
+    const snapCusto = this.s.getCustoSnapshot(v.orcamentoId);
     if(snapCusto){
       const arr = Array.isArray(snapCusto.despesas) ? (snapCusto.despesas as any) : [];
       this.despesasDespachante = (arr as Despesa[]).filter((d: Despesa) => d.categoria === 'Despachante');
     }
   }
   cancelarEdicao(){ this.editing = null; }
-  salvarEdicao(){ const pid = this.editing?.processoId; if(pid){ this.s.saveVendaSnapshot(pid, { premissas: this.form, despesas: this.despesas }); this.editing = null; } }
+  salvarEdicao(){ const pid = this.editing?.orcamentoId; if(pid){ this.s.saveVendaSnapshot(pid, { premissas: this.form, despesas: this.despesas }); this.editing = null; } }
   get totais(){ const cifUsd = (this.form.fobUsd || 0) + (this.form.freteUsd || 0) + (this.form.seguroUsd || 0); const cifBrl = cifUsd * (this.form.taxaUsd || 0); const totalDespesas = this.despesas.reduce((s,d)=>s + (d.valor||0), 0); return { cifUsd, cifBrl, totalDespesas, custoTotal: cifBrl + totalDespesas }; }
   get totalDespachante(){ return this.despesasDespachante.reduce((s,d)=>s + (d.valor||0), 0); }
   adicionarDespesa(){ const n = this.novaDespesa; if(!n.item || (n.valor||0) <= 0) return; if(this.editId){ const idx = this.despesas.findIndex(x=>x.id===this.editId); if(idx>=0){ this.despesas[idx] = { id: this.editId, categoria: n.categoria, item: n.item, fornecedor: n.fornecedor, valor: n.valor||0, observacao: n.observacao }; } this.editId = null; } else { const id = `${Date.now()}_${Math.random().toString(36).slice(2,8)}`; this.despesas.push({ id, categoria: n.categoria, item: n.item, fornecedor: n.fornecedor, valor: n.valor||0, observacao: n.observacao }); } this.limparDespesaForm(); }
@@ -251,7 +251,7 @@ export class VendaNovaComponent {
   abrirConfirmacaoEnvio(){ this.confirmEnviar = true; }
   cancelarEnvio(){ this.confirmEnviar = false; }
   confirmarEnvio(){
-    const pid = this.editing?.processoId;
+    const pid = this.editing?.orcamentoId;
     if(!pid) return;
     this.s.update(pid, { aprovadoCliente: false, status: 'Em aprovação' });
     this.confirmEnviar = false;

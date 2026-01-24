@@ -13,23 +13,7 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'planilhas'
-      },
-      {
-        path: 'planilhas',
-        loadComponent: () => import('./features/planilhas/planilhas.component').then(m => m.PlanilhasComponent)
-      },
-      {
-        path: 'processos',
-        loadComponent: () => import('./features/planilhas/planilhas.component').then(m => m.PlanilhasComponent)
-      },
-      {
-        path: 'processos/:id/versoes',
-        loadComponent: () => import('./features/processos/versoes.component').then(m => m.VersoesProcessoComponent)
-      },
-      {
-        path: 'processos/:id/comparar',
-        loadComponent: () => import('./features/processos/comparar.component').then(m => m.CompararVersoesComponent)
+        redirectTo: 'aliquotas'
       },
       {
         path: 'aliquotas',
@@ -48,52 +32,15 @@ export const routes: Routes = [
         loadComponent: () => import('./features/despachantes/despachantes.component').then(m => m.DespachantesComponent)
       },
       {
-        path: 'importacao',
-        loadComponent: () => import('./features/planilha/planilha.component').then(m => m.PlanilhaComponent)
-      },
-      {
-        path: 'fechamento',
-        loadComponent: () => import('./features/fechamento/fechamento.component').then(m => m.FechamentoComponent),
-        canActivate: [() => import('./core/auth/role.guard').then(m => m.roleGuard)],
-        data: { roles: ['admin','despachante'] }
-      },
-      {
-        path: 'numerario',
-        loadComponent: () => import('./features/numerario/numerario.component').then(m => m.NumerarioComponent),
-        canActivate: [() => import('./core/auth/role.guard').then(m => m.roleGuard)],
-        data: { roles: ['admin','despachante'] }
-      },
-      {
-        path: 'processos/:id/numerario',
-        loadComponent: () => import('./features/numerario/numerario.component').then(m => m.NumerarioComponent)
-      },
-      {
-        path: 'venda',
-        loadComponent: () => import('./features/venda/venda.component').then(m => m.VendaComponent),
-        canActivate: [() => import('./core/auth/role.guard').then(m => m.roleGuard)],
-        data: { roles: ['admin','cliente'] }
-      },
-      {
-        path: 'anexos',
-        loadComponent: () => import('./features/anexos/anexos.component').then(m => m.AnexosComponent),
-        canActivate: [() => import('./core/auth/role.guard').then(m => m.roleGuard)],
-        data: { roles: ['admin','despachante','cliente'] }
-      },
-      {
         path: 'nova',
         loadComponent: () => import('./nova-versao/shell-nova.component').then(m => m.ShellNovaComponent),
         children: [
-          { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
-          { path: 'dashboard', loadComponent: () => import('./nova-versao/pages').then(m => m.DashboardNovaComponent) },
-          { path: 'processo/criar', loadComponent: () => import('./nova-versao/processo/criar-processo.component').then(m => m.CriarProcessoNovaComponent) },
+          { path: '', pathMatch: 'full', redirectTo: 'processo/novo' },
           { path: 'processo/novo', loadComponent: () => import('./nova-versao/processo/novo-processo.component').then(m => m.NovoProcessoNovaComponent) },
           { path: 'processo/packlist', loadComponent: () => import('./nova-versao/processo/packlist.component').then(m => m.PacklistNovaComponent) },
           { path: 'processo/custo', loadComponent: () => import('./nova-versao/processo/custo.component').then(m => m.CustoNovaComponent) },
           { path: 'processo/venda', loadComponent: () => import('./nova-versao/processo/venda.component').then(m => m.VendaNovaComponent) },
           { path: 'processo/aduana', loadComponent: () => import('./nova-versao/processo/aduana.component').then(m => m.AduanaNovaComponent) },
-          { path: 'processo/jornada', loadComponent: () => import('./nova-versao/processo/jornada-aduaneira.component').then(m => m.JornadaAduaneiraNovaComponent) },
-          { path: 'processo/jornada2', loadComponent: () => import('./nova-versao/processo/jornada-aduaneira2.component').then(m => m.JornadaAduaneiraNova2Component) },
-          { path: 'processo/jornada3', loadComponent: () => import('./nova-versao/processo/jornada-aduaneira3.component').then(m => m.JornadaAduaneiraNova3Component) },
           { path: 'processo/aduana/atualizar', loadComponent: () => import('./nova-versao/processo/aduana-atualizar.component').then(m => m.AduanaAtualizarNovaComponent) },
           { path: 'processo/numerario', loadComponent: () => import('./nova-versao/processo/numerario.component').then(m => m.NumerarioNovaComponent) },
           { path: 'processo/numerario/historico', loadComponent: () => import('./nova-versao/processo/numerario-historico.component').then(m => m.NumerarioHistoricoNovaComponent) },

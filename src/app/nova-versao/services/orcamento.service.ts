@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { readJSON, writeJSON, randomId, keys } from '../data/storage.helper';
-import { ProcessoStore, ProcessoMeta } from '../state/processo.store';
+import { OrcamentoStore, OrcamentoMeta } from '../state/orcamento.store';
 
-export interface ProcessoListItem {
+export interface OrcamentoListItem {
   id: string;
   cliente?: string;
   despachante?: string;
@@ -31,26 +31,26 @@ export interface PacklistSummary {
   items: number;
 }
 
-export interface CustoListItem { id: string; processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string; }
+export interface CustoListItem { id: string; orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string; }
 
 @Injectable({ providedIn: 'root' })
-export class ProcessoServiceNova {
-  private subj = new BehaviorSubject<ProcessoListItem[]>(this.loadIndex());
-  private store = inject(ProcessoStore);
+export class OrcamentoService {
+  private subj = new BehaviorSubject<OrcamentoListItem[]>(this.loadIndex());
+  private store = inject(OrcamentoStore);
 
-  list$(): Observable<ProcessoListItem[]> { return this.subj.asObservable(); }
+  list$(): Observable<OrcamentoListItem[]> { return this.subj.asObservable(); }
 
-  private loadIndex(): ProcessoListItem[] {
-    return readJSON<ProcessoListItem[]>(keys.processosIndex()) || [];
+  private loadIndex(): OrcamentoListItem[] {
+    return readJSON<OrcamentoListItem[]>(keys.orcamentosIndex()) || [];
   }
-  private saveIndex(items: ProcessoListItem[]){ writeJSON(keys.processosIndex(), items); }
+  private saveIndex(items: OrcamentoListItem[]){ writeJSON(keys.orcamentosIndex(), items); }
 
   criar(cliente?: string, despachante?: string, codigo?: string, data?: string, clienteId?: string, despachanteId?: string){
     const id = randomId();
     const createdAt = data ? new Date(data).toISOString() : new Date().toISOString();
-    const meta: ProcessoMeta = { id, title: cliente ? `${cliente} • ${codigo || ''}`.trim() : 'Novo Processo', faseAtual: 'Orcamento', createdAt, aprovado: false, oficializado: false, numerarioPago: false, fechado: false, clienteId, despachanteId };
-    writeJSON(keys.processo(id), meta);
-    const item: ProcessoListItem = { id, cliente, despachante, clienteId, despachanteId, codigo, data: meta.createdAt, status: 'CRIADO' as const };
+    const meta: OrcamentoMeta = { id, title: cliente ? `${cliente} • ${codigo || ''}`.trim() : 'Novo Orçamento', faseAtual: 'Orcamento', createdAt, aprovado: false, oficializado: false, numerarioPago: false, fechado: false, clienteId, despachanteId };
+    writeJSON(keys.orcamento(id), meta);
+    const item: OrcamentoListItem = { id, cliente, despachante, clienteId, despachanteId, codigo, data: meta.createdAt, status: 'CRIADO' as const };
     const next = [item, ...this.loadIndex()];
     this.saveIndex(next);
     this.subj.next(next);
@@ -71,20 +71,20 @@ export class ProcessoServiceNova {
     this.store.load(id);
   }
 
-  getMeta(id: string): ProcessoMeta | null {
-    return readJSON<ProcessoMeta>(keys.processo(id)) || null;
+  getMeta(id: string): OrcamentoMeta | null {
+    return readJSON<OrcamentoMeta>(keys.orcamento(id)) || null;
   }
 
-  getListItem(id: string): ProcessoListItem | null {
+  getListItem(id: string): OrcamentoListItem | null {
     const list = this.loadIndex();
     return list.find(x => x.id === id) || null;
   }
 
-  update(id: string, data: Partial<ProcessoMeta & ProcessoListItem>): void {
+  update(id: string, data: Partial<OrcamentoMeta & OrcamentoListItem>): void {
     const meta = this.getMeta(id);
     if(meta){
-      const nextMeta: ProcessoMeta = { ...meta, ...data, id };
-      writeJSON(keys.processo(id), nextMeta);
+      const nextMeta: OrcamentoMeta = { ...meta, ...data, id };
+      writeJSON(keys.orcamento(id), nextMeta);
       this.logHistory(id, { meta, item: this.getListItem(id) }, { meta: nextMeta, item: { ...(this.getListItem(id) || {}), ...data, id } as any });
     }
     const list = this.loadIndex();
@@ -93,7 +93,7 @@ export class ProcessoServiceNova {
     this.subj.next(nextList);
   }
 
-  private logHistory(id: string, before: { meta: ProcessoMeta | null; item: ProcessoListItem | null }, after: { meta: ProcessoMeta | null; item: ProcessoListItem | null }){
+  private logHistory(id: string, before: { meta: OrcamentoMeta | null; item: OrcamentoListItem | null }, after: { meta: OrcamentoMeta | null; item: OrcamentoListItem | null }){
     const arr = readJSON<any[]>(keys.history(id)) || [];
     arr.push({ at: new Date().toISOString(), before, after });
     writeJSON(keys.history(id), arr);
@@ -114,7 +114,7 @@ export class ProcessoServiceNova {
       this.subj.next(nextList);
       const meta = this.getMeta(id);
       if(meta){ this.logHistory(id, { meta, item: before || null }, { meta, item: this.getListItem(id) }); }
-      this.ensureCustoForProcess(id);
+      this.ensureCustoForOrcamento(id);
     }
   }
 
@@ -130,13 +130,13 @@ export class ProcessoServiceNova {
     return def;
   }
 
-  importMockToProcess(id: string): void {
+  importMockToOrcamento(id: string): void {
     const items = this.loadMockPacklist();
     this.savePacklist(id, items);
   }
 
   listPacklists(): PacklistSummary[] {
-    const list = readJSON<ProcessoListItem[]>(keys.processosIndex()) || [];
+    const list = readJSON<OrcamentoListItem[]>(keys.orcamentosIndex()) || [];
     return list
       .map(it => ({ ...it, items: this.getPacklist(it.id).length }))
       .filter(it => it.items > 0)
@@ -144,16 +144,16 @@ export class ProcessoServiceNova {
   }
 
   // Custo (Planilha de Custo)
-  ensureCustoForProcess(id: string): void {
+  ensureCustoForOrcamento(id: string): void {
     const idx = (readJSON<any[]>(keys.custosIndex()) || []) as CustoListItem[];
-    if(idx.some(x => x.processoId === id)) return;
+    if(idx.some(x => x.orcamentoId === id)) return;
     const proc = this.getListItem(id);
     const createdAt = new Date().toISOString();
-    const novo: CustoListItem = { id: randomId(), processoId: id, codigo: proc?.codigo, cliente: proc?.cliente, despachante: proc?.despachante, createdAt };
+    const novo: CustoListItem = { id: randomId(), orcamentoId: id, codigo: proc?.codigo, cliente: proc?.cliente, despachante: proc?.despachante, createdAt };
     const next = [novo, ...idx];
     writeJSON(keys.custosIndex(), next);
   }
-  listCustos(): { processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] {
+  listCustos(): { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] {
     return (readJSON<any[]>(keys.custosIndex()) || []) as any[];
   }
 
@@ -175,17 +175,17 @@ export class ProcessoServiceNova {
     writeJSON(keys.history(id), arr);
   }
 
-  ensureVendaForProcess(id: string): void {
-    const idx = (readJSON<any[]>(keys.vendasIndex()) || []) as Array<{ id: string; processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }>;
-    if(idx.some(x => x.processoId === id)) return;
+  ensureVendaForOrcamento(id: string): void {
+    const idx = (readJSON<any[]>(keys.vendasIndex()) || []) as Array<{ id: string; orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }>;
+    if(idx.some(x => x.orcamentoId === id)) return;
     const proc = this.getListItem(id);
     const createdAt = new Date().toISOString();
-    const novo = { id: randomId(), processoId: id, codigo: proc?.codigo, cliente: proc?.cliente, despachante: proc?.despachante, createdAt };
+    const novo = { id: randomId(), orcamentoId: id, codigo: proc?.codigo, cliente: proc?.cliente, despachante: proc?.despachante, createdAt };
     const next = [novo, ...idx];
     writeJSON(keys.vendasIndex(), next);
   }
 
-  listVendas(): { processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] {
+  listVendas(): { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] {
     return (readJSON<any[]>(keys.vendasIndex()) || []) as any[];
   }
 
@@ -205,21 +205,21 @@ export class ProcessoServiceNova {
     const arr = readJSON<any[]>(keys.history(id)) || [];
     arr.push({ at: new Date().toISOString(), type: 'VENDA', before: { item: beforeItem, snapshot: before }, after: { item: this.getListItem(id), snapshot: data } });
     writeJSON(keys.history(id), arr);
-    this.ensureVendaForProcess(id);
+    this.ensureVendaForOrcamento(id);
   }
 
   // Aduana (Fase de Embarque)
-  ensureAduanaForProcess(id: string): void {
-    const idx = (readJSON<any[]>(keys.aduanaIndex()) || []) as Array<{ id: string; processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }>;
-    if(idx.some(x => x.processoId === id)) return;
+  ensureAduanaForOrcamento(id: string): void {
+    const idx = (readJSON<any[]>(keys.aduanaIndex()) || []) as Array<{ id: string; orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }>;
+    if(idx.some(x => x.orcamentoId === id)) return;
     const proc = this.getListItem(id);
     const createdAt = new Date().toISOString();
-    const novo = { id: randomId(), processoId: id, codigo: proc?.codigo, cliente: proc?.cliente, despachante: proc?.despachante, createdAt };
+    const novo = { id: randomId(), orcamentoId: id, codigo: proc?.codigo, cliente: proc?.cliente, despachante: proc?.despachante, createdAt };
     const next = [novo, ...idx];
     writeJSON(keys.aduanaIndex(), next);
   }
 
-  listAduanas(): Array<{ processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }>{
+  listAduanas(): Array<{ orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }>{
     return (readJSON<any[]>(keys.aduanaIndex()) || []) as any[];
   }
 }

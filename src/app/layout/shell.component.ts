@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
 import { Router } from '@angular/router';
-import { PlanilhasService } from '../features/planilhas/planilhas.service';
 
 @Component({
   selector: 'app-shell',
@@ -31,10 +30,6 @@ import { PlanilhasService } from '../features/planilhas/planilhas.service';
         </div>
         <nav class="menu">
           <div class="menu-group">
-            <div class="menu-title">Processos</div>
-            <a routerLink="/processos" routerLinkActive="active"><span class="icon">📁</span><span>Listagem</span></a>
-          </div>
-          <div class="menu-group">
             <div class="menu-title">Cadastros</div>
             <a routerLink="/aliquotas" routerLinkActive="active"><span class="icon">🧮</span><span>Alíquotas</span></a>
             <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
@@ -42,12 +37,8 @@ import { PlanilhasService } from '../features/planilhas/planilhas.service';
           <a routerLink="/despachantes" routerLinkActive="active"><span class="icon">🧭</span><span>Despachantes</span></a>
           </div>
           <div class="menu-group">
-            <div class="menu-title">Nova Versão</div>
-            <a routerLink="/nova/processo/jornada" routerLinkActive="active"><span class="icon">🗺️</span><span>Jornada Aduaneira</span></a>
-            <a routerLink="/nova/processo/jornada2" routerLinkActive="active"><span class="icon">🗺️</span><span>Jornada Aduaneira 2</span></a>
-            <a routerLink="/nova/processo/jornada3" routerLinkActive="active"><span class="icon">🗺️</span><span>Jornada Aduaneira 3</span></a>
-            <a routerLink="/nova" routerLinkActive="active"><span class="icon">🧭</span><span>Versão Completa</span></a>
-            <a routerLink="/nova/processo/novo" routerLinkActive="active"><span class="icon">🧩</span><span>Processos</span></a>
+            <div class="menu-title">Orçamentos</div>
+            <a routerLink="/nova/processo/novo" routerLinkActive="active"><span class="icon">🧩</span><span>Lista</span></a>
             <a routerLink="/nova/processo/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
             <a routerLink="/nova/processo/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
             <a routerLink="/nova/processo/venda" routerLinkActive="active"><span class="icon">💼</span><span>Planilha de Venda</span></a>
@@ -56,7 +47,7 @@ import { PlanilhasService } from '../features/planilhas/planilhas.service';
             <a routerLink="/nova/processo/numerario" routerLinkActive="active"><span class="icon">💵</span><span>Numerário</span></a>
             <a routerLink="/nova/processo/numerario/historico" routerLinkActive="active"><span class="icon">🗂️</span><span>Histórico Numerário</span></a>
             <a routerLink="/nova/processo/fechamento" routerLinkActive="active"><span class="icon">✅</span><span>Fechamento</span></a>
-            <a routerLink="/nova/processo/historico" routerLinkActive="active"><span class="icon">🕑</span><span>Histórico do Processo</span></a>
+            <a routerLink="/nova/processo/historico" routerLinkActive="active"><span class="icon">🕑</span><span>Histórico</span></a>
           </div>
         </nav>
       </aside>
@@ -109,9 +100,9 @@ import { PlanilhasService } from '../features/planilhas/planilhas.service';
 export class ShellComponent {
   collapsed = false;
   year = new Date().getFullYear();
-  headerTitle = 'Planilhas';
-  headerSubtitle = 'Gestão de Custos';
-  constructor(public auth: AuthService, private router: Router, private planilhas: PlanilhasService){
+  headerTitle = 'Cadastros';
+  headerSubtitle = 'Gerenciamento';
+  constructor(public auth: AuthService, private router: Router){
     this.updateHeader(this.router.url);
     this.router.events.subscribe(() => this.updateHeader(this.router.url));
   }
@@ -119,7 +110,12 @@ export class ShellComponent {
   logout(){ this.auth.logout(); location.href = '/login'; }
   // criação de processos acontece pela listagem
   private updateHeader(url: string){
-    if(url.includes('/importacao')){ this.headerTitle = 'Editor'; this.headerSubtitle = 'Planilha de Importação'; }
-    else { this.headerTitle = 'Planilhas'; this.headerSubtitle = 'Listagem e Ações'; }
+    if(url.includes('/nova/processo')){
+      this.headerTitle = 'Orçamentos';
+      this.headerSubtitle = 'Fluxo por etapa';
+    } else {
+      this.headerTitle = 'Cadastros';
+      this.headerSubtitle = 'Dados mestres';
+    }
   }
 }

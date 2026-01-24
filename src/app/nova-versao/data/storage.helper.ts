@@ -13,10 +13,14 @@ export function randomId(): string {
 }
 
 export const keys = {
-  processo: (id: string) => `nova_processo_${id}`,
-  currentId: () => `nova_current_processo_id`,
+  // Compatibilidade com nomenclatura antiga
+  processo: (id: string) => `nova_orcamento_${id}`,
+  processosIndex: () => `nova_orcamentos_index`,
+  // Nova nomenclatura (Orçamento como core)
+  orcamento: (id: string) => `nova_orcamento_${id}`,
+  orcamentosIndex: () => `nova_orcamentos_index`,
+  currentId: () => `nova_current_orcamento_id`,
   versions: (id: string) => `nova_versions_${id}`,
-  processosIndex: () => `nova_processos_index`,
   packlist: (id: string) => `nova_packlist_${id}`,
   packlistMock: () => `nova_packlist_mock`,
   history: (id: string) => `nova_history_${id}`,

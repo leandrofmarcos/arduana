@@ -4,9 +4,6 @@ import { PlanilhaCatalogRepository } from '../domain/planilha.catalog';
 import { PortoRepository } from '../domain/porto.repository';
 import { AliquotaRepository } from '../domain/aliquota.repository';
 import { NumerarioRepository } from '../domain/numerario.repository';
-import { FechamentoRepository } from '../domain/fechamento.repository';
-import { VendaRepository } from '../domain/venda.repository';
-import { AnexoRepository } from '../domain/anexo.repository';
 import { ClienteRepository } from '../domain/cliente.repository';
 import { DespachanteRepository } from '../domain/despachante.repository';
 
@@ -15,8 +12,5 @@ export const PLANILHA_CATALOG_REPOSITORY = new InjectionToken<PlanilhaCatalogRep
 export const PORTO_REPOSITORY = new InjectionToken<PortoRepository>('PORTO_REPOSITORY');
 export const ALIQUOTA_REPOSITORY = new InjectionToken<AliquotaRepository>('ALIQUOTA_REPOSITORY');
 export const NUMERARIO_REPOSITORY = new InjectionToken<NumerarioRepository>('NUMERARIO_REPOSITORY');
-export const FECHAMENTO_REPOSITORY = new InjectionToken<FechamentoRepository>('FECHAMENTO_REPOSITORY');
-export const VENDA_REPOSITORY = new InjectionToken<VendaRepository>('VENDA_REPOSITORY');
-export const ANEXO_REPOSITORY = new InjectionToken<AnexoRepository>('ANEXO_REPOSITORY');
 export const CLIENTE_REPOSITORY = new InjectionToken<ClienteRepository>('CLIENTE_REPOSITORY');
 export const DESPACHANTE_REPOSITORY = new InjectionToken<DespachanteRepository>('DESPACHANTE_REPOSITORY');

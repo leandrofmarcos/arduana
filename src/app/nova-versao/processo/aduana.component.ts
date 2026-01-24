@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { ProcessoServiceNova } from '../services/processo.service';
+import { OrcamentoService } from '../services/orcamento.service';
 
 @Component({
   standalone: true,
@@ -23,7 +23,7 @@ import { ProcessoServiceNova } from '../services/processo.service';
         <tbody>
           <tr *ngIf="items.length === 0"><td colspan="4">Nenhum registro</td></tr>
           <tr *ngFor="let it of items">
-            <td>{{it.codigo || it.processoId}}</td>
+            <td>{{it.codigo || it.orcamentoId}}</td>
             <td>{{it.cliente || '-'}} </td>
             <td>{{it.despachante || '-'}} </td>
             <td>{{it.createdAt | date:'short'}}</td>
@@ -40,8 +40,8 @@ import { ProcessoServiceNova } from '../services/processo.service';
   ]
 })
 export class AduanaNovaComponent {
-  items: Array<{ processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }> = [];
-  constructor(private s: ProcessoServiceNova){
+  items: Array<{ orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }> = [];
+  constructor(private s: OrcamentoService){
     this.items = this.s.listAduanas();
   }
 }

@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-import { ProcessoServiceNova, ProcessoListItem } from '../services/processo.service';
+import { OrcamentoService, OrcamentoListItem } from '../services/orcamento.service';
 
 @Component({
   standalone: true,
@@ -67,14 +67,14 @@ import { ProcessoServiceNova, ProcessoListItem } from '../services/processo.serv
   ]
 })
 export class NovoProcessoNovaComponent {
-  list!: import('rxjs').Observable<ProcessoListItem[]>;
+  list!: import('rxjs').Observable<OrcamentoListItem[]>;
   confirmId: string | null = null;
-  constructor(private s: ProcessoServiceNova, private router: Router){
+  constructor(private s: OrcamentoService, private router: Router){
     this.list = this.s.list$();
   }
-  criarNovo(){ try{ const ls = (globalThis as any).localStorage as Storage | undefined; ls?.removeItem('nova_current_processo_id'); }catch{} this.router.navigateByUrl('/nova/processo/criar'); }
-  abrir(p: ProcessoListItem){ this.s.abrir(p.id); this.router.navigateByUrl('/nova/processo/criar'); }
-  confirmExcluir(p: ProcessoListItem){ this.confirmId = p.id; }
-  removerConfirmado(){ if(this.confirmId){ try{ const ls = (globalThis as any).localStorage as Storage | undefined; const cur = ls?.getItem('nova_current_processo_id'); if(cur === this.confirmId){ ls?.removeItem('nova_current_processo_id'); } }catch{} this.s.remover(this.confirmId); this.confirmId = null; } }
+  criarNovo(){ try{ const ls = (globalThis as any).localStorage as Storage | undefined; ls?.removeItem('nova_current_orcamento_id'); }catch{} this.router.navigateByUrl('/nova/orcamento/criar'); }
+  abrir(p: OrcamentoListItem){ this.s.abrir(p.id); this.router.navigateByUrl('/nova/orcamento/criar'); }
+  confirmExcluir(p: OrcamentoListItem){ this.confirmId = p.id; }
+  removerConfirmado(){ if(this.confirmId){ try{ const ls = (globalThis as any).localStorage as Storage | undefined; const cur = ls?.getItem('nova_current_orcamento_id'); if(cur === this.confirmId){ ls?.removeItem('nova_current_orcamento_id'); } }catch{} this.s.remover(this.confirmId); this.confirmId = null; } }
   cancelarExclusao(){ this.confirmId = null; }
 }

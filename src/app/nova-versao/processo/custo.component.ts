@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ProcessoServiceNova } from '../services/processo.service';
+import { OrcamentoService } from '../services/orcamento.service';
 import { Despesa, CategoriaDespesa } from '../../domain/planilha.models';
 import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
 
@@ -30,7 +30,7 @@ import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
         <tbody>
           <tr *ngIf="custos.length === 0"><td colspan="5">Nenhum registro</td></tr>
           <tr *ngFor="let c of custos">
-            <td>{{c.codigo || c.processoId}}</td>
+            <td>{{c.codigo || c.orcamentoId}}</td>
             <td>{{c.cliente || '-'}} </td>
             <td>{{c.despachante || '-'}} </td>
             <td>{{c.createdAt | date:'short'}}</td>
@@ -58,8 +58,8 @@ import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
             <div class="meta-value">{{editing.codigo || '-'}}</div>
           </div>
           <div class="meta-box">
-            <div class="meta-label">Processo</div>
-            <div class="meta-value">{{editing.processoId}}</div>
+            <div class="meta-label">Orçamento</div>
+            <div class="meta-value">{{editing.orcamentoId}}</div>
           </div>
           <div class="meta-box">
             <div class="meta-label">Cliente</div>
@@ -216,8 +216,8 @@ import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
   ]
 })
 export class CustoNovaComponent {
-  custos: { processoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] = [];
-  editing: { processoId: string; codigo?: string; cliente?: string; despachante?: string; produto?: string; data?: string; origem?: string } | null = null;
+  custos: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] = [];
+  editing: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; produto?: string; data?: string; origem?: string } | null = null;
   form: any = { fobUsd: 0, freteUsd: 0, seguroUsd: 0, taxaUsd: 5, ncm: '', pesoLiquido: 0, quantProdutos: 0, txUtilizacao: 0, servicoDesp: 0, armazenagem: 0 };
   statusAtual: string | null = null;
   errors: Record<string,string> = {};
@@ -244,15 +244,15 @@ export class CustoNovaComponent {
     this.errors = this.runValidation(this.form, this.premissasRules);
     return Object.keys(this.errors).length === 0;
   }
-  constructor(private s: ProcessoServiceNova){
+  constructor(private s: OrcamentoService){
     this.custos = this.s.listCustos();
   }
-  editar(c: { processoId: string; codigo?: string; cliente?: string; despachante?: string }){
+  editar(c: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string }){
     this.editing = c;
-    const item = this.s.getListItem(c.processoId);
+    const item = this.s.getListItem(c.orcamentoId);
     this.statusAtual = item?.status || null;
     this.readOnly = !(this.statusAtual === 'Orçamento');
-    const snap = this.s.getCustoSnapshot(c.processoId);
+    const snap = this.s.getCustoSnapshot(c.orcamentoId);
     if(snap){
       this.form = { ...this.form, ...(snap.premissas || {}) };
       this.despesas = Array.isArray(snap.despesas) ? (snap.despesas as any) : [];
@@ -262,7 +262,7 @@ export class CustoNovaComponent {
   salvarEdicao(){
     if(this.statusAtual !== 'Orçamento') return;
     if(!this.validarPremissas()) return;
-    const pid = this.editing?.processoId;
+    const pid = this.editing?.orcamentoId;
     if(pid){
       this.s.saveCustoSnapshot(pid, { premissas: this.form, despesas: this.despesas });
       this.showSaved = true;
@@ -271,7 +271,7 @@ export class CustoNovaComponent {
   gerarPlanilhaVenda(){
     if(this.statusAtual !== 'Orçamento') return;
     if(!this.validarPremissas()) return;
-    const pid = this.editing?.processoId;
+    const pid = this.editing?.orcamentoId;
     if(pid){
       const vendaExistente = this.s.getVendaSnapshot(pid);
       if(vendaExistente) return;
