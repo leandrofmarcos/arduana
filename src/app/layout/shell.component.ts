@@ -39,16 +39,16 @@ import { Router } from '@angular/router';
           <div class="menu-group">
             <div class="menu-title">Orçamentos</div>
             <button class="menu-btn" (click)="criarNovoOrcamento()"><span class="icon">➕</span><span>Novo Orçamento</span></button>
-            <a routerLink="/nova/processo/novo" routerLinkActive="active"><span class="icon">🧩</span><span>Lista</span></a>
-            <a routerLink="/nova/processo/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
-            <a routerLink="/nova/processo/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
-            <a routerLink="/nova/processo/venda" routerLinkActive="active"><span class="icon">💼</span><span>Planilha de Venda</span></a>
-            <a routerLink="/nova/processo/aduana" routerLinkActive="active"><span class="icon">🛃</span><span>Aduana</span></a>
-            <a routerLink="/nova/processo/aduana/atualizar" routerLinkActive="active"><span class="icon">📝</span><span>Atualização Aduana</span></a>
-            <a routerLink="/nova/processo/numerario" routerLinkActive="active"><span class="icon">💵</span><span>Numerário</span></a>
-            <a routerLink="/nova/processo/numerario/historico" routerLinkActive="active"><span class="icon">🗂️</span><span>Histórico Numerário</span></a>
-            <a routerLink="/nova/processo/fechamento" routerLinkActive="active"><span class="icon">✅</span><span>Fechamento</span></a>
-            <a routerLink="/nova/processo/historico" routerLinkActive="active"><span class="icon">🕑</span><span>Histórico</span></a>
+            <a routerLink="/orcamento/lista" routerLinkActive="active"><span class="icon">🧩</span><span>Lista</span></a>
+            <a routerLink="/orcamento/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
+            <a routerLink="/orcamento/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
+            <a routerLink="/orcamento/venda" routerLinkActive="active"><span class="icon">💼</span><span>Planilha de Venda</span></a>
+            <a routerLink="/orcamento/aduana" routerLinkActive="active"><span class="icon">🛃</span><span>Aduana</span></a>
+            <a routerLink="/orcamento/aduana/atualizar" routerLinkActive="active"><span class="icon">📝</span><span>Atualização Aduana</span></a>
+            <a routerLink="/orcamento/numerario" routerLinkActive="active"><span class="icon">💵</span><span>Numerário</span></a>
+            <a routerLink="/orcamento/numerario/historico" routerLinkActive="active"><span class="icon">🗂️</span><span>Histórico Numerário</span></a>
+            <a routerLink="/orcamento/fechamento" routerLinkActive="active"><span class="icon">✅</span><span>Fechamento</span></a>
+            <a routerLink="/orcamento/historico" routerLinkActive="active"><span class="icon">🕑</span><span>Histórico</span></a>
           </div>
         </nav>
       </aside>
@@ -112,10 +112,10 @@ export class ShellComponent {
   toggleSidebar(){ this.collapsed = !this.collapsed; }
   logout(){ this.auth.logout(); location.href = '/login'; }
   criarNovoOrcamento(){
-    this.router.navigateByUrl('/nova/orcamento/criar');
+    this.router.navigateByUrl('/orcamento/criar');
   }
   private updateHeader(url: string){
-    if(url.includes('/nova/processo')){
+    if(url.includes('/orcamento')){
       this.headerTitle = 'Orçamentos';
       this.headerSubtitle = 'Fluxo por etapa';
     } else {

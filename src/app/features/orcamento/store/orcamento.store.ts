@@ -1,21 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { readJSON, writeJSON, randomId, keys } from '../data/storage.helper';
-
-export type Fase = 'Orcamento' | 'Aduana' | 'Numerario' | 'Fechamento';
-export interface OrcamentoMeta {
-  id: string;
-  title?: string;
-  faseAtual: Fase;
-  aprovado?: boolean;
-  aprovadoCliente?: boolean;
-  oficializado?: boolean;
-  numerarioPago?: boolean;
-  fechado?: boolean;
-  createdAt: string;
-  clienteId?: string;
-  despachanteId?: string;
-}
+import { OrcamentoMeta, Fase } from '../models/orcamento.models';
 
 @Injectable({ providedIn: 'root' })
 export class OrcamentoStore {

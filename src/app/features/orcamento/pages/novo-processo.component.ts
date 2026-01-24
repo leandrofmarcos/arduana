@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-import { OrcamentoService, OrcamentoListItem } from '../services/orcamento.service';
+import { OrcamentoService } from '../services/orcamento.service';
+import { OrcamentoListItem } from '../models/orcamento.models';
 
 @Component({
   standalone: true,
@@ -73,15 +74,15 @@ export class NovoProcessoNovaComponent {
     this.list = this.s.list$();
   }
   criarNovo(){
-    try{ const ls = (globalThis as any).localStorage as Storage | undefined; ls?.removeItem('nova_current_orcamento_id'); }catch{}
+    try{ const ls = (globalThis as any).localStorage as Storage | undefined; ls?.removeItem('current_orcamento_id'); }catch{}
     const id = this.s.criar();
     this.s.ensureCustoForOrcamento(id);
-    this.router.navigateByUrl('/nova/processo/custo');
+    this.router.navigateByUrl('/orcamento/custo');
   }
   abrir(p: OrcamentoListItem){
     this.s.abrir(p.id);
     this.s.ensureCustoForOrcamento(p.id);
-    this.router.navigateByUrl('/nova/processo/custo');
+    this.router.navigateByUrl('/orcamento/custo');
   }
   confirmExcluir(p: OrcamentoListItem){ this.confirmId = p.id; }
   removerConfirmado(){ if(this.confirmId){ try{ const ls = (globalThis as any).localStorage as Storage | undefined; const cur = ls?.getItem('nova_current_orcamento_id'); if(cur === this.confirmId){ ls?.removeItem('nova_current_orcamento_id'); } }catch{} this.s.remover(this.confirmId); this.confirmId = null; } }

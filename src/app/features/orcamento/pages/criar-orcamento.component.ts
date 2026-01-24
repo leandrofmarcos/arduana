@@ -71,10 +71,10 @@ export class CriarOrcamentoComponent {
     if(!this.form.cliente || !this.form.despachante) return;
     const id = this.s.criar(this.form.cliente, this.form.despachante, this.form.codigo, this.form.data);
     this.s.ensureCustoForOrcamento(id);
-    this.router.navigateByUrl('/nova/processo/custo');
+    this.router.navigateByUrl('/orcamento/custo');
   }
 
   cancelar(){
-    this.router.navigateByUrl('/nova/processo/novo');
+    this.router.navigateByUrl('/orcamento/lista');
   }
 }

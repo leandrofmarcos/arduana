@@ -1,37 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { readJSON, writeJSON, randomId, keys } from '../data/storage.helper';
-import { OrcamentoStore, OrcamentoMeta } from '../state/orcamento.store';
-
-export interface OrcamentoListItem {
-  id: string;
-  cliente?: string;
-  despachante?: string;
-  clienteId?: string;
-  despachanteId?: string;
-  codigo?: string;
-  data: string;
-  status: 'CRIADO' | 'Orçamento' | 'Em aprovação' | 'Aprovado' | 'Reprovado' | 'Aduana' | 'Numerário' | 'Fechamento' | 'Fechado';
-}
-
-export interface PacklistItem {
-  codigo: string;
-  descricao: string;
-  quantidade: number;
-  pesoKg: number;
-  valorUSD: number;
-  volumeM3?: number;
-}
-
-export interface PacklistSummary {
-  id: string;
-  cliente?: string;
-  despachante?: string;
-  codigo?: string;
-  items: number;
-}
-
-export interface CustoListItem { id: string; orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string; }
+import { OrcamentoStore } from '../store/orcamento.store';
+import { OrcamentoMeta, OrcamentoListItem, PacklistItem, PacklistSummary, CustoListItem } from '../models/orcamento.models';
 
 @Injectable({ providedIn: 'root' })
 export class OrcamentoService {
@@ -143,7 +114,6 @@ export class OrcamentoService {
       .map(it => ({ id: it.id, cliente: it.cliente, despachante: it.despachante, codigo: it.codigo, items: it.items }));
   }
 
-  // Custo (Planilha de Custo)
   ensureCustoForOrcamento(id: string): void {
     const idx = (readJSON<any[]>(keys.custosIndex()) || []) as CustoListItem[];
     if(idx.some(x => x.orcamentoId === id)) return;
@@ -153,6 +123,7 @@ export class OrcamentoService {
     const next = [novo, ...idx];
     writeJSON(keys.custosIndex(), next);
   }
+
   listCustos(): { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] {
     return (readJSON<any[]>(keys.custosIndex()) || []) as any[];
   }
@@ -169,7 +140,6 @@ export class OrcamentoService {
     const nextList = list.map(it => it.id === id ? { ...it, status: 'Orçamento' as const } : it);
     this.saveIndex(nextList);
     this.subj.next(nextList);
-    const meta = this.getMeta(id);
     const arr = readJSON<any[]>(keys.history(id)) || [];
     arr.push({ at: new Date().toISOString(), type: 'CUSTO', before: { item: beforeItem, snapshot: before }, after: { item: this.getListItem(id), snapshot: data } });
     writeJSON(keys.history(id), arr);
@@ -201,14 +171,12 @@ export class OrcamentoService {
     const nextList = list.map(it => it.id === id ? { ...it, status: 'Em aprovação' as const } : it);
     this.saveIndex(nextList);
     this.subj.next(nextList);
-    const meta = this.getMeta(id);
     const arr = readJSON<any[]>(keys.history(id)) || [];
     arr.push({ at: new Date().toISOString(), type: 'VENDA', before: { item: beforeItem, snapshot: before }, after: { item: this.getListItem(id), snapshot: data } });
     writeJSON(keys.history(id), arr);
     this.ensureVendaForOrcamento(id);
   }
 
-  // Aduana (Fase de Embarque)
   ensureAduanaForOrcamento(id: string): void {
     const idx = (readJSON<any[]>(keys.aduanaIndex()) || []) as Array<{ id: string; orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }>;
     if(idx.some(x => x.orcamentoId === id)) return;

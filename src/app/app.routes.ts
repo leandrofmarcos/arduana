@@ -32,23 +32,8 @@ export const routes: Routes = [
         loadComponent: () => import('./features/despachantes/despachantes.component').then(m => m.DespachantesComponent)
       },
       {
-        path: 'nova',
-        loadComponent: () => import('./nova-versao/shell-nova.component').then(m => m.ShellNovaComponent),
-        children: [
-          { path: '', pathMatch: 'full', redirectTo: 'processo/novo' },
-          { path: 'processo', pathMatch: 'full', redirectTo: 'processo/novo' },
-          { path: 'orcamento/criar', loadComponent: () => import('./nova-versao/processo/criar-orcamento.component').then(m => m.CriarOrcamentoComponent) },
-          { path: 'processo/novo', loadComponent: () => import('./nova-versao/processo/novo-processo.component').then(m => m.NovoProcessoNovaComponent) },
-          { path: 'processo/packlist', loadComponent: () => import('./nova-versao/processo/packlist.component').then(m => m.PacklistNovaComponent) },
-          { path: 'processo/custo', loadComponent: () => import('./nova-versao/processo/custo.component').then(m => m.CustoNovaComponent) },
-          { path: 'processo/venda', loadComponent: () => import('./nova-versao/processo/venda.component').then(m => m.VendaNovaComponent) },
-          { path: 'processo/aduana', loadComponent: () => import('./nova-versao/processo/aduana.component').then(m => m.AduanaNovaComponent) },
-          { path: 'processo/aduana/atualizar', loadComponent: () => import('./nova-versao/processo/aduana-atualizar.component').then(m => m.AduanaAtualizarNovaComponent) },
-          { path: 'processo/numerario', loadComponent: () => import('./nova-versao/processo/numerario.component').then(m => m.NumerarioNovaComponent) },
-          { path: 'processo/numerario/historico', loadComponent: () => import('./nova-versao/processo/numerario-historico.component').then(m => m.NumerarioHistoricoNovaComponent) },
-          { path: 'processo/fechamento', loadComponent: () => import('./nova-versao/processo/fechamento.component').then(m => m.FechamentoNovaComponent) },
-          { path: 'processo/historico', loadComponent: () => import('./nova-versao/processo/historico.component').then(m => m.HistoricoNovaComponent) }
-        ]
+        path: 'orcamento',
+        loadChildren: () => import('./features/orcamento/orcamento.routes').then(m => m.ORCAMENTO_ROUTES)
       }
     ]
   },

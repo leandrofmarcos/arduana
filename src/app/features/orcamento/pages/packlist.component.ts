@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { OrcamentoService, PacklistItem, PacklistSummary } from '../services/orcamento.service';
+import { OrcamentoService } from '../services/orcamento.service';
+import { PacklistItem, PacklistSummary } from '../models/orcamento.models';
 
 @Component({
   standalone: true,

@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { OrcamentoService } from '../services/orcamento.service';
-import { Despesa, CategoriaDespesa } from '../../domain/planilha.models';
+import { Despesa, CategoriaDespesa } from '../models/orcamento.models';
 import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
 
 @Component({
@@ -255,7 +255,7 @@ export class VendaNovaComponent {
     if(!pid) return;
     this.s.update(pid, { aprovadoCliente: false, status: 'Em aprovação' });
     this.confirmEnviar = false;
-    this.router.navigateByUrl('/nova/processo/novo');
+    this.router.navigateByUrl('/orcamento/lista');
   }
 
 }
