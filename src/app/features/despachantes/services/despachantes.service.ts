@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { DESPACHANTE_REPOSITORY } from '../../core/repository.tokens';
-import { DespachanteRepository } from '../../domain/despachante.repository';
+import { DESPACHANTE_REPOSITORY } from '../../../core/repository.tokens';
+import { DespachanteRepository } from '../../../domain/despachante.repository';
 import { Observable } from 'rxjs';
-import { Despachante } from '../../domain/despachante.models';
+import { Despachante } from '../models/despachante.models';
 
 @Injectable({ providedIn: 'root' })
 export class DespachantesService {

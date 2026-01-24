@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { PORTO_REPOSITORY } from '../../core/repository.tokens';
-import { PortoRepository } from '../../domain/porto.repository';
+import { PORTO_REPOSITORY } from '../../../core/repository.tokens';
+import { PortoRepository } from '../../../domain/porto.repository';
 import { Observable } from 'rxjs';
-import { Porto } from '../../domain/porto.models';
+import { Porto } from '../models/porto.models';
 
 @Injectable({ providedIn: 'root' })
 export class PortosService {

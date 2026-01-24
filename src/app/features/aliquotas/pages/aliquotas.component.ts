@@ -1,7 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AliquotasService } from './aliquotas.service';
+import { AliquotasService } from '../services/aliquotas.service';
+import { AliquotaPerfil } from '../models/aliquota.models';
 
 @Component({
   selector: 'app-aliquotas',

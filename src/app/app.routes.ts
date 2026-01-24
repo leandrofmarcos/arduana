@@ -3,12 +3,12 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: 'login',
-    loadComponent: () => import('./features/auth/login.component').then(m => m.LoginComponent)
+    loadComponent: () => import('./core/auth/login.component').then(m => m.LoginComponent)
   },
   {
     path: '',
     canActivate: [() => import('./core/auth/auth.guard').then(m => m.authGuard)],
-    loadComponent: () => import('./layout/shell.component').then(m => m.ShellComponent),
+    loadComponent: () => import('./core/layout/shell.component').then(m => m.ShellComponent),
     children: [
       {
         path: '',
@@ -17,19 +17,19 @@ export const routes: Routes = [
       },
       {
         path: 'aliquotas',
-        loadComponent: () => import('./features/aliquotas/aliquotas.component').then(m => m.AliquotasComponent)
+        loadComponent: () => import('./features/aliquotas/pages/aliquotas.component').then(m => m.AliquotasComponent)
       },
       {
         path: 'portos',
-        loadComponent: () => import('./features/portos/portos.component').then(m => m.PortosComponent)
+        loadComponent: () => import('./features/portos/pages/portos.component').then(m => m.PortosComponent)
       },
       {
         path: 'clientes',
-        loadComponent: () => import('./features/clientes/clientes.component').then(m => m.ClientesComponent)
+        loadComponent: () => import('./features/clientes/pages/clientes.component').then(m => m.ClientesComponent)
       },
       {
         path: 'despachantes',
-        loadComponent: () => import('./features/despachantes/despachantes.component').then(m => m.DespachantesComponent)
+        loadComponent: () => import('./features/despachantes/pages/despachantes.component').then(m => m.DespachantesComponent)
       },
       {
         path: 'orcamento',

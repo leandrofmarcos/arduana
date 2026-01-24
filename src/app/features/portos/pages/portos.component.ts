@@ -1,8 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { PortosService } from './portos.service';
+import { PortosService } from '../services/portos.service';
 import { Pipe, PipeTransform } from '@angular/core';
+import { Porto } from '../models/porto.models';
 @Pipe({name:'portoFilter', standalone: true})
 export class PortoFilterPipe implements PipeTransform {
   transform(list: any[] | null, q: string){

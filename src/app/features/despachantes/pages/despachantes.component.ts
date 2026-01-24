@@ -2,8 +2,8 @@ import { Component, inject, Pipe, PipeTransform } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { DespachantesService } from './despachantes.service';
-import { Despachante } from '../../domain/despachante.models';
+import { DespachantesService } from '../services/despachantes.service';
+import { Despachante } from '../models/despachante.models';
 
 @Pipe({name:'despFilter', standalone: true})
 export class DespFilterPipe implements PipeTransform {

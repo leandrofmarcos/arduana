@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { ALIQUOTA_REPOSITORY } from '../../core/repository.tokens';
-import { AliquotaRepository } from '../../domain/aliquota.repository';
-import { Observable, map } from 'rxjs';
-import { AliquotaPerfil } from '../../domain/aliquota.models';
+import { ALIQUOTA_REPOSITORY } from '../../../core/repository.tokens';
+import { AliquotaRepository } from '../../../domain/aliquota.repository';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { AliquotaPerfil } from '../models/aliquota.models';
 
 @Injectable({ providedIn: 'root' })
 export class AliquotasService {
@@ -12,5 +13,5 @@ export class AliquotasService {
   update(id: string, data: Partial<Omit<AliquotaPerfil,'id'>>){ this.repo.update(id, data); }
   remove(id: string){ this.repo.remove(id); }
   setPadrao(id: string){ this.repo.setPadrao(id); }
-  default$(): Observable<AliquotaPerfil | undefined> { return this.list$().pipe(map(list => list.find(x => x.padrao))); }
+  default$(): Observable<AliquotaPerfil | undefined> { return this.list$().pipe(map((list: AliquotaPerfil[]) => list.find((x: AliquotaPerfil) => x.padrao))); }
 }

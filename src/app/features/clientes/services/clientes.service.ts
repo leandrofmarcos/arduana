@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { CLIENTE_REPOSITORY } from '../../core/repository.tokens';
-import { ClienteRepository } from '../../domain/cliente.repository';
+import { CLIENTE_REPOSITORY } from '../../../core/repository.tokens';
+import { ClienteRepository } from '../../../domain/cliente.repository';
 import { Observable } from 'rxjs';
-import { Cliente } from '../../domain/cliente.models';
+import { Cliente } from '../models/cliente.models';
 
 @Injectable({ providedIn: 'root' })
 export class ClientesService {

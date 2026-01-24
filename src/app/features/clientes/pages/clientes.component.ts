@@ -2,8 +2,8 @@ import { Component, inject, Pipe, PipeTransform } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ClientesService } from './clientes.service';
-import { Cliente } from '../../domain/cliente.models';
+import { ClientesService } from '../services/clientes.service';
+import { Cliente } from '../models/cliente.models';
 
 @Pipe({name:'clienteFilter', standalone: true})
 export class ClienteFilterPipe implements PipeTransform {
