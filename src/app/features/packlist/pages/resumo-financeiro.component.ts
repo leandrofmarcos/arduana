@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Despesa } from '../models/orcamento.models';
+import { Despesa } from '../../custo/models/custo.models';
 
 @Component({
   standalone: true,

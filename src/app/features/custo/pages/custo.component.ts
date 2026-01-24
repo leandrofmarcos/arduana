@@ -2,9 +2,9 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { OrcamentoService } from '../services/orcamento.service';
-import { Despesa, CategoriaDespesa } from '../models/orcamento.models';
-import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
+import { CustoService } from '../services/custo.service';
+import { Despesa, CategoriaDespesa } from '../models/custo.models';
+import { ResumoFinanceiroComponent } from '../../packlist/pages/resumo-financeiro.component';
 
 @Component({
   standalone: true,
@@ -244,7 +244,7 @@ export class CustoNovaComponent {
     this.errors = this.runValidation(this.form, this.premissasRules);
     return Object.keys(this.errors).length === 0;
   }
-  constructor(private s: OrcamentoService){
+  constructor(private s: CustoService) {
     this.custos = this.s.listCustos();
   }
   editar(c: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string }){

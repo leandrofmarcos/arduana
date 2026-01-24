@@ -1,8 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { OrcamentoService } from '../services/orcamento.service';
-import { PacklistItem, PacklistSummary } from '../models/orcamento.models';
+import { PacklistService } from '../services/packlist.service';
+import { PacklistItem, PacklistSummary } from '../models/packlist.models';
 
 @Component({
   standalone: true,
@@ -77,7 +77,7 @@ import { PacklistItem, PacklistSummary } from '../models/orcamento.models';
 export class PacklistNovaComponent {
   items: PacklistItem[] = [];
   summaries: PacklistSummary[] = [];
-  constructor(private s: OrcamentoService){
+  constructor(private s: PacklistService){
     this.summaries = this.s.listPacklists();
   }
 }

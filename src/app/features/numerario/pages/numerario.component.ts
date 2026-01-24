@@ -1,18 +1,18 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { OrcamentoService } from '../services/orcamento.service';
+import { NumerarioService } from '../services/numerario.service';
 
 @Component({
   standalone: true,
-  selector: 'app-numerario-historico-nova',
+  selector: 'app-numerario-nova',
   imports: [CommonModule, RouterModule],
   template: `
     <div class="card">
-      <h2>Histórico de Numerário</h2>
-      <p>Rastreamento das solicitações e pagamentos de numerário</p>
+      <h2>Numerário</h2>
+      <p>Solicitação e acompanhamento de provisões para execução das despesas</p>
       <div class="empty-state">
-        <p>Nenhum histórico de numerário registrado.</p>
+        <p>Nenhum processo na fase de Numerário no momento.</p>
       </div>
     </div>
   `,
@@ -22,6 +22,6 @@ import { OrcamentoService } from '../services/orcamento.service';
     `.empty-state p{margin:0}`
   ]
 })
-export class NumerarioHistoricoNovaComponent {
-  constructor(private s: OrcamentoService){}
+export class NumerarioNovaComponent {
+  constructor(private s: NumerarioService){}
 }

@@ -3,9 +3,10 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { OrcamentoService } from '../services/orcamento.service';
-import { Despesa, CategoriaDespesa } from '../models/orcamento.models';
-import { ResumoFinanceiroComponent } from './resumo-financeiro.component';
+import { VendaService } from '../services/venda.service';
+import { PlanilhaVenda } from '../models/venda.models';
+import { ResumoFinanceiroComponent } from '../../packlist/pages/resumo-financeiro.component';
+import { Despesa, CategoriaDespesa } from '../../custo/models/custo.models';
 
 @Component({
   standalone: true,
@@ -222,7 +223,7 @@ export class VendaNovaComponent {
   toggle(k: 'premissas'|'despachante'|'itens'){ this.acc[k] = !this.acc[k]; }
   novaDespesa: { categoria: CategoriaDespesa; item: string; fornecedor?: string; valor: number; observacao?: string } = { categoria: 'Agência Marítima', item: '', fornecedor: '', valor: 0, observacao: '' };
   editId: string | null = null;
-  constructor(private s: OrcamentoService, private router: Router){ this.vendas = this.s.listVendas(); }
+  constructor(private s: VendaService, private router: Router){ this.vendas = this.s.listVendas(); }
   editar(v: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string }){
     this.editing = v;
     const item = this.s.getListItem(v.orcamentoId);

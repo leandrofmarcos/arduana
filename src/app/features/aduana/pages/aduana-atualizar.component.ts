@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { OrcamentoService } from '../services/orcamento.service';
+import { AduanaService } from '../services/aduana.service';
 
 @Component({
   standalone: true,
@@ -23,5 +23,5 @@ import { OrcamentoService } from '../services/orcamento.service';
   ]
 })
 export class AduanaAtualizarNovaComponent {
-  constructor(private s: OrcamentoService){}
+  constructor(private s: AduanaService){}
 }

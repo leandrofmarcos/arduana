@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { readJSON, writeJSON, randomId, keys } from '../data/storage.helper';
 import { OrcamentoStore } from '../store/orcamento.store';
-import { OrcamentoMeta, OrcamentoListItem, PacklistItem, PacklistSummary, CustoListItem } from '../models/orcamento.models';
+import { OrcamentoMeta, OrcamentoListItem } from '../models/orcamento.models';
 
 @Injectable({ providedIn: 'root' })
 export class OrcamentoService {
@@ -70,11 +70,11 @@ export class OrcamentoService {
     writeJSON(keys.history(id), arr);
   }
 
-  getPacklist(id: string): PacklistItem[] {
-    return readJSON<PacklistItem[]>(keys.packlist(id)) || [];
+  getPacklist(id: string): any[] {
+    return readJSON<any[]>(keys.packlist(id)) || [];
   }
 
-  savePacklist(id: string, items: PacklistItem[]): void {
+  savePacklist(id: string, items: any[]): void {
     writeJSON(keys.packlist(id), items);
     const hasItems = items && items.length > 0;
     if(hasItems){
@@ -89,10 +89,10 @@ export class OrcamentoService {
     }
   }
 
-  loadMockPacklist(): PacklistItem[] {
-    const existing = readJSON<PacklistItem[]>(keys.packlistMock());
+  loadMockPacklist(): any[] {
+    const existing = readJSON<any[]>(keys.packlistMock());
     if (existing && existing.length) return existing;
-    const def: PacklistItem[] = [
+    const def: any[] = [
       { codigo: 'PROD-001', descricao: 'Produto A', quantidade: 10, pesoKg: 120, valorUSD: 2500, volumeM3: 1.2 },
       { codigo: 'PROD-002', descricao: 'Produto B', quantidade: 5, pesoKg: 80, valorUSD: 1800, volumeM3: 0.8 },
       { codigo: 'PROD-003', descricao: 'Produto C', quantidade: 20, pesoKg: 200, valorUSD: 3200, volumeM3: 1.8 }
@@ -106,7 +106,7 @@ export class OrcamentoService {
     this.savePacklist(id, items);
   }
 
-  listPacklists(): PacklistSummary[] {
+  listPacklists(): any[] {
     const list = readJSON<OrcamentoListItem[]>(keys.orcamentosIndex()) || [];
     return list
       .map(it => ({ ...it, items: this.getPacklist(it.id).length }))
@@ -115,11 +115,11 @@ export class OrcamentoService {
   }
 
   ensureCustoForOrcamento(id: string): void {
-    const idx = (readJSON<any[]>(keys.custosIndex()) || []) as CustoListItem[];
+    const idx = (readJSON<any[]>(keys.custosIndex()) || []) as any[];
     if(idx.some(x => x.orcamentoId === id)) return;
     const proc = this.getListItem(id);
     const createdAt = new Date().toISOString();
-    const novo: CustoListItem = { id: randomId(), orcamentoId: id, codigo: proc?.codigo, cliente: proc?.cliente, despachante: proc?.despachante, createdAt };
+    const novo = { id: randomId(), orcamentoId: id, codigo: proc?.codigo, cliente: proc?.cliente, despachante: proc?.despachante, createdAt };
     const next = [novo, ...idx];
     writeJSON(keys.custosIndex(), next);
   }

@@ -39,16 +39,16 @@ import { Router } from '@angular/router';
           <div class="menu-group">
             <div class="menu-title">Orçamentos</div>
             <button class="menu-btn" (click)="criarNovoOrcamento()"><span class="icon">➕</span><span>Novo Orçamento</span></button>
-            <a routerLink="/orcamento/lista" routerLinkActive="active"><span class="icon">🧩</span><span>Lista</span></a>
-            <a routerLink="/orcamento/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
-            <a routerLink="/orcamento/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
-            <a routerLink="/orcamento/venda" routerLinkActive="active"><span class="icon">💼</span><span>Planilha de Venda</span></a>
-            <a routerLink="/orcamento/aduana" routerLinkActive="active"><span class="icon">🛃</span><span>Aduana</span></a>
-            <a routerLink="/orcamento/aduana/atualizar" routerLinkActive="active"><span class="icon">📝</span><span>Atualização Aduana</span></a>
-            <a routerLink="/orcamento/numerario" routerLinkActive="active"><span class="icon">💵</span><span>Numerário</span></a>
-            <a routerLink="/orcamento/numerario/historico" routerLinkActive="active"><span class="icon">🗂️</span><span>Histórico Numerário</span></a>
-            <a routerLink="/orcamento/fechamento" routerLinkActive="active"><span class="icon">✅</span><span>Fechamento</span></a>
-            <a routerLink="/orcamento/historico" routerLinkActive="active"><span class="icon">🕑</span><span>Histórico</span></a>
+            <a routerLink="/orcamento" routerLinkActive="active"><span class="icon">🧩</span><span>Orçamento</span></a>
+            <a routerLink="/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
+            <a routerLink="/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
+            <a routerLink="/venda" routerLinkActive="active"><span class="icon">💼</span><span>Planilha de Venda</span></a>
+            <a routerLink="/aduana" routerLinkActive="active"><span class="icon">🛃</span><span>Aduana</span></a>
+            <a routerLink="/aduana/atualizar" routerLinkActive="active"><span class="icon">📝</span><span>Atualização Aduana</span></a>
+            <a routerLink="/numerario" routerLinkActive="active"><span class="icon">💵</span><span>Numerário</span></a>
+            <a routerLink="/numerario/historico" routerLinkActive="active"><span class="icon">🗂️</span><span>Histórico Numerário</span></a>
+            <a routerLink="/fechamento" routerLinkActive="active"><span class="icon">✅</span><span>Fechamento</span></a>
+            <a routerLink="/historico" routerLinkActive="active"><span class="icon">🕑</span><span>Histórico</span></a>
           </div>
         </nav>
       </aside>
@@ -117,7 +117,28 @@ export class ShellComponent {
   private updateHeader(url: string){
     if(url.includes('/orcamento')){
       this.headerTitle = 'Orçamentos';
-      this.headerSubtitle = 'Fluxo por etapa';
+      this.headerSubtitle = 'Lista e gerenciamento de orçamentos';
+    } else if(url.includes('/packlist')){
+      this.headerTitle = 'Packlist';
+      this.headerSubtitle = 'Gerenciamento de itens';
+    } else if(url.includes('/custo')){
+      this.headerTitle = 'Planilha de Custo';
+      this.headerSubtitle = 'Gestão de despesas';
+    } else if(url.includes('/venda')){
+      this.headerTitle = 'Planilha de Venda';
+      this.headerSubtitle = 'Gestão de vendas';
+    } else if(url.includes('/aduana')){
+      this.headerTitle = 'Aduana';
+      this.headerSubtitle = 'Gerenciamento aduaneiro';
+    } else if(url.includes('/numerario')){
+      this.headerTitle = 'Numerário';
+      this.headerSubtitle = 'Gestão de provisões';
+    } else if(url.includes('/fechamento')){
+      this.headerTitle = 'Fechamento';
+      this.headerSubtitle = 'Consolidação final';
+    } else if(url.includes('/historico')){
+      this.headerTitle = 'Histórico';
+      this.headerSubtitle = 'Rastreamento de alterações';
     } else {
       this.headerTitle = 'Cadastros';
       this.headerSubtitle = 'Dados mestres';

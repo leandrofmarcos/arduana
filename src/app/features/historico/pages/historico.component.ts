@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { OrcamentoService } from '../services/orcamento.service';
+import { HistoricoService } from '../services/historico.service';
 
 @Component({
   standalone: true,
@@ -23,5 +23,5 @@ import { OrcamentoService } from '../services/orcamento.service';
   ]
 })
 export class HistoricoNovaComponent {
-  constructor(private s: OrcamentoService){}
+  constructor(private s: HistoricoService){}
 }

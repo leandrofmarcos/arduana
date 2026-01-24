@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { OrcamentoService } from '../services/orcamento.service';
+import { AduanaService } from '../services/aduana.service';
 
 @Component({
   standalone: true,
@@ -40,8 +40,8 @@ import { OrcamentoService } from '../services/orcamento.service';
   ]
 })
 export class AduanaNovaComponent {
-  items: Array<{ orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }> = [];
-  constructor(private s: OrcamentoService){
+  items: any[] = [];
+  constructor(private s: AduanaService){
     this.items = this.s.listAduanas();
   }
 }
