@@ -38,7 +38,6 @@ import { Router } from '@angular/router';
           </div>
           <div class="menu-group">
             <div class="menu-title">Orçamentos</div>
-            <button class="menu-btn" (click)="criarNovoOrcamento()"><span class="icon">➕</span><span>Novo Orçamento</span></button>
             <a routerLink="/orcamento" routerLinkActive="active"><span class="icon">🧩</span><span>Orçamento</span></a>
             <a routerLink="/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
             <a routerLink="/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
@@ -111,9 +110,6 @@ export class ShellComponent {
   }
   toggleSidebar(){ this.collapsed = !this.collapsed; }
   logout(){ this.auth.logout(); location.href = '/login'; }
-  criarNovoOrcamento(){
-    this.router.navigateByUrl('/orcamento/criar');
-  }
   private updateHeader(url: string){
     if(url.includes('/orcamento')){
       this.headerTitle = 'Orçamentos';
