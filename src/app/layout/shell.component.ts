@@ -38,6 +38,7 @@ import { Router } from '@angular/router';
           </div>
           <div class="menu-group">
             <div class="menu-title">Orçamentos</div>
+            <button class="menu-btn" (click)="criarNovoOrcamento()"><span class="icon">➕</span><span>Novo Orçamento</span></button>
             <a routerLink="/nova/processo/novo" routerLinkActive="active"><span class="icon">🧩</span><span>Lista</span></a>
             <a routerLink="/nova/processo/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
             <a routerLink="/nova/processo/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
@@ -81,6 +82,8 @@ import { Router } from '@angular/router';
     `.menu-group{display:flex;flex-direction:column;margin-bottom:10px}`,
     `.menu-title{font-size:11px;color:var(--color-muted);text-transform:uppercase;letter-spacing:.8px;margin:6px 12px}`,
     `.menu a{display:flex;align-items:center;gap:8px;color:var(--color-sidebar-text);text-decoration:none;padding:10px 12px;border-radius:8px}`,
+    `.menu-btn{display:flex;align-items:center;gap:8px;color:var(--color-sidebar-text);background:none;border:none;padding:10px 12px;border-radius:8px;cursor:pointer;width:100%;text-align:left;transition:.2s}`,
+    `.menu-btn:hover{background:var(--color-header-bg)}`,
     `.menu a.active, .menu a:hover{background:var(--color-header-bg)}`,
     `.menu .create{margin-top:8px;display:flex;align-items:center;gap:8px;color:#fff;background:var(--gradient-primary);border:none;border-radius:8px;padding:10px 12px;cursor:pointer;text-decoration:none}`,
     `.content-wrapper{background:var(--color-bg);overflow:auto}`,
@@ -108,7 +111,9 @@ export class ShellComponent {
   }
   toggleSidebar(){ this.collapsed = !this.collapsed; }
   logout(){ this.auth.logout(); location.href = '/login'; }
-  // criação de processos acontece pela listagem
+  criarNovoOrcamento(){
+    this.router.navigateByUrl('/nova/orcamento/criar');
+  }
   private updateHeader(url: string){
     if(url.includes('/nova/processo')){
       this.headerTitle = 'Orçamentos';

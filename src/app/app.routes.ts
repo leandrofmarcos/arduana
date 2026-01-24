@@ -36,6 +36,8 @@ export const routes: Routes = [
         loadComponent: () => import('./nova-versao/shell-nova.component').then(m => m.ShellNovaComponent),
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'processo/novo' },
+          { path: 'processo', pathMatch: 'full', redirectTo: 'processo/novo' },
+          { path: 'orcamento/criar', loadComponent: () => import('./nova-versao/processo/criar-orcamento.component').then(m => m.CriarOrcamentoComponent) },
           { path: 'processo/novo', loadComponent: () => import('./nova-versao/processo/novo-processo.component').then(m => m.NovoProcessoNovaComponent) },
           { path: 'processo/packlist', loadComponent: () => import('./nova-versao/processo/packlist.component').then(m => m.PacklistNovaComponent) },
           { path: 'processo/custo', loadComponent: () => import('./nova-versao/processo/custo.component').then(m => m.CustoNovaComponent) },

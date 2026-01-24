@@ -13,7 +13,7 @@ import { OrcamentoService, OrcamentoListItem } from '../services/orcamento.servi
       <h2>Processos</h2>
       <p>Lista e gerenciamento de processos</p>
       <div class="actions">
-        <button class="btn btn-primary" (click)="criarNovo()">Criar novo processo</button>
+        <button class="btn btn-primary" (click)="criarNovo()">Criar novo orçamento</button>
       </div>
       <table class="table">
         <thead>
@@ -72,8 +72,17 @@ export class NovoProcessoNovaComponent {
   constructor(private s: OrcamentoService, private router: Router){
     this.list = this.s.list$();
   }
-  criarNovo(){ try{ const ls = (globalThis as any).localStorage as Storage | undefined; ls?.removeItem('nova_current_orcamento_id'); }catch{} this.router.navigateByUrl('/nova/orcamento/criar'); }
-  abrir(p: OrcamentoListItem){ this.s.abrir(p.id); this.router.navigateByUrl('/nova/orcamento/criar'); }
+  criarNovo(){
+    try{ const ls = (globalThis as any).localStorage as Storage | undefined; ls?.removeItem('nova_current_orcamento_id'); }catch{}
+    const id = this.s.criar();
+    this.s.ensureCustoForOrcamento(id);
+    this.router.navigateByUrl('/nova/processo/custo');
+  }
+  abrir(p: OrcamentoListItem){
+    this.s.abrir(p.id);
+    this.s.ensureCustoForOrcamento(p.id);
+    this.router.navigateByUrl('/nova/processo/custo');
+  }
   confirmExcluir(p: OrcamentoListItem){ this.confirmId = p.id; }
   removerConfirmado(){ if(this.confirmId){ try{ const ls = (globalThis as any).localStorage as Storage | undefined; const cur = ls?.getItem('nova_current_orcamento_id'); if(cur === this.confirmId){ ls?.removeItem('nova_current_orcamento_id'); } }catch{} this.s.remover(this.confirmId); this.confirmId = null; } }
   cancelarExclusao(){ this.confirmId = null; }

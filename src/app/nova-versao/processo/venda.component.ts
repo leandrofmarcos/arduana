@@ -257,4 +257,5 @@ export class VendaNovaComponent {
     this.confirmEnviar = false;
     this.router.navigateByUrl('/nova/processo/novo');
   }
+
 }
