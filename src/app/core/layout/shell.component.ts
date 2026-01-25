@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { AuthService } from '../auth/auth.service';
+import { AuthService } from '../../features/auth/auth.providers';
 import { Router } from '@angular/router';
 
 @Component({
@@ -16,7 +16,7 @@ import { Router } from '@angular/router';
           <span class="brand">Importação</span>
         </div>
         <div class="nav-actions">
-          <span class="user-name">{{auth.currentUser?.username}}</span>
+          <a routerLink="/profile" class="profile-link" title="Meu Perfil">{{auth.currentUser?.username}}</a>
           <button class="logout" (click)="logout()">Sair</button>
         </div>
       </header>
@@ -25,7 +25,7 @@ import { Router } from '@angular/router';
           <div class="avatar">👤</div>
           <div class="info">
             <div class="name">{{auth.currentUser?.username}}</div>
-            <div class="role">Usuário</div>
+            <a routerLink="/profile" class="role-link">{{auth.currentUser?.role}}</a>
           </div>
         </div>
         <nav class="menu">
@@ -73,9 +73,13 @@ import { Router } from '@angular/router';
     `.sidebar-toggle{background:var(--color-secondary);color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer}`,
     `.brand{font-weight:800}`,
     `.nav-actions{display:flex;align-items:center;gap:10px}`,
+    `.profile-link{color:#fff;text-decoration:none;padding:6px 10px;cursor:pointer;border-radius:6px;transition:.2s}`,
+    `.profile-link:hover{background:var(--color-secondary)}`,
     `.logout{background:var(--color-danger);color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer}`,
     `.main-sidebar{grid-row:2/span 1;background:var(--color-sidebar-bg);color:var(--color-sidebar-text);display:flex;flex-direction:column;border-right:1px solid var(--color-sidebar-bg)}`,
-    `.user-panel{display:flex;gap:10px;align-items:center;padding:16px;border-bottom:1px solid var(--color-sidebar-bg)}`,
+    `.user-panel{display:flex;gap:10px;align-items:center;padding:16px;border-bottom:1px solid var(--color-sidebar-bg);cursor:pointer}`,
+    `.role-link{color:var(--color-muted);text-decoration:none;font-size:12px;transition:.2s}`,
+    `.role-link:hover{color:var(--color-sidebar-text)}`,
     `.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--color-header-bg)}`,
     `.menu{display:flex;flex-direction:column;padding:8px}`,
     `.menu-group{display:flex;flex-direction:column;margin-bottom:10px}`,
@@ -109,9 +113,16 @@ export class ShellComponent {
     this.router.events.subscribe(() => this.updateHeader(this.router.url));
   }
   toggleSidebar(){ this.collapsed = !this.collapsed; }
-  logout(){ this.auth.logout(); location.href = '/login'; }
+  logout(){ 
+    this.auth.logout().subscribe(() => {
+      this.router.navigateByUrl('/login');
+    });
+  }
   private updateHeader(url: string){
-    if(url.includes('/orcamento')){
+    if(url.includes('/profile')){
+      this.headerTitle = 'Meu Perfil';
+      this.headerSubtitle = 'Gerenciamento de conta';
+    } else if(url.includes('/orcamento')){
       this.headerTitle = 'Orçamentos';
       this.headerSubtitle = 'Lista e gerenciamento de orçamentos';
     } else if(url.includes('/packlist')){

@@ -1,13 +1,15 @@
 import { Routes } from '@angular/router';
+import { authGuard, guestGuard } from './features/auth/auth.providers';
 
 export const routes: Routes = [
   {
     path: 'login',
-    loadComponent: () => import('./core/auth/login.component').then(m => m.LoginComponent)
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/auth/pages/login.component').then(m => m.LoginComponent)
   },
   {
     path: '',
-    canActivate: [() => import('./core/auth/auth.guard').then(m => m.authGuard)],
+    canActivate: [authGuard],
     loadComponent: () => import('./core/layout/shell.component').then(m => m.ShellComponent),
     children: [
       {
@@ -70,6 +72,10 @@ export const routes: Routes = [
       {
         path: 'historico',
         loadComponent: () => import('./features/historico/pages/historico.component').then(m => m.HistoricoNovaComponent)
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./features/auth/pages/profile.component').then(m => m.ProfileComponent)
       }
     ]
   },
