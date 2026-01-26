@@ -31,12 +31,7 @@
           <tr *ngFor="let template of filteredTemplates">
             <td class="template-name">{{ template.nome }}</td>
             <td class="template-descricao" [title]="template.descricao || ''">{{ template.descricao || '—' }}</td>
-            <td class="template-arquivo">
-              <span class="arquivo-nome">{{ template.nomeArquivo }}</span>
-              <button class="btn-download" (click)="downloadTemplate(template)" title="Baixar arquivo">
-                📥
-              </button>
-            </td>
+            <td class="template-arquivo">{{ template.nomeArquivo }}</td>
             <td class="template-data">{{ template.dataCriacao | date:'dd/MM/yyyy' }}</td>
             <td class="template-actions">
               <button class="btn-edit" (click)="selectTemplate(template)">Editar</button>

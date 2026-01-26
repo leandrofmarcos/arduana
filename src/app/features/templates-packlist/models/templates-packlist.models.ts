@@ -20,8 +20,7 @@ export interface TemplatePacklist {
   id: string;
   nome: string;
   descricao?: string;
-  nomeArquivo: string;
-  fileContent?: string; // Base64 do arquivo para download
+  nomeArquivo: string; // Nome/path do arquivo de referência
   config: TemplatePacklistConfig;
   dataCriacao: Date;
   dataAtualizacao: Date;
@@ -32,6 +31,6 @@ export interface TemplatePacklistListItem {
   nome: string;
   descricao?: string;
   nomeArquivo: string;
-  fileContent?: string;
   dataCriacao: Date;
+  dataAtualizacao: Date;
 }

@@ -1,6 +1,9 @@
 import { Injectable } from '@angular/core';
 import { FilePreviewData, TemplatePacklist, TemplatePacklistConfig } from '../models/templates-packlist.models';
 
+// Declaração do XLSX se estiver disponível globalmente
+declare const XLSX: any;
+
 @Injectable({ providedIn: 'root' })
 export class TemplatesPacklistParserService {
   
@@ -44,27 +47,73 @@ export class TemplatesPacklistParserService {
 
   private parseXLSX(file: File): Promise<FilePreviewData> {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      
-      reader.onload = async (e) => {
-        try {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          const view = new Uint8Array(arrayBuffer);
-          const text = this.uint8ArrayToString(view);
-          
-          if (text.charCodeAt(0) === 0x50 && text.charCodeAt(1) === 0x4B) {
-            return this.parseXLSXManual(text, resolve, reject);
+      // Tenta usar XLSX do Node.js se disponível
+      if (typeof XLSX !== 'undefined') {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            // Pega primeira sheet
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Converte para array de arrays
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+              header: 1, 
+              defval: '',
+              raw: false 
+            });
+            
+            const lines = jsonData.map((row: any) => {
+              if (Array.isArray(row)) {
+                return row.map(cell => String(cell || ''));
+              }
+              return [];
+            });
+            
+            const preview = lines.slice(0, 20);
+            const maxCols = Math.max(...preview.map((l: string[]) => l.length), 1);
+            
+            resolve({
+              lines: preview,
+              columnCount: maxCols
+            });
+          } catch (error) {
+            reject(new Error('Erro ao processar XLSX com biblioteca: ' + (error as any).message));
           }
-          
-          reject(new Error('Arquivo XLSX inválido ou corrompido'));
-        } catch (error) {
-          reject(new Error('Erro ao ler arquivo XLSX: ' + (error as any).message));
-        }
-      };
-      
-      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
-      reader.readAsArrayBuffer(file);
+        };
+        reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+        reader.readAsArrayBuffer(file);
+      } else {
+        // Fallback para parser manual
+        this.parseXLSXManual(file, resolve, reject);
+      }
     });
+  }
+
+  private parseXLSXManual(file: File, resolve: any, reject: any): void {
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        const view = new Uint8Array(arrayBuffer);
+        const text = this.uint8ArrayToString(view);
+        
+        if (text.charCodeAt(0) === 0x50 && text.charCodeAt(1) === 0x4B) {
+          return this.extractFromZip(text, resolve, reject);
+        }
+        
+        reject(new Error('Arquivo XLSX inválido ou corrompido'));
+      } catch (error) {
+        reject(new Error('Erro ao ler arquivo XLSX: ' + (error as any).message));
+      }
+    };
+    
+    reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+    reader.readAsArrayBuffer(file);
   }
 
   private uint8ArrayToString(uint8Array: Uint8Array): string {
@@ -87,32 +136,42 @@ export class TemplatesPacklistParserService {
     return result;
   }
 
-  private parseXLSXManual(
+  private extractFromZip(
     zipContent: string,
     resolve: (value: FilePreviewData) => void,
     reject: (error: any) => void
   ): void {
     try {
-      let sheetStart = zipContent.indexOf('<worksheet');
-      if (sheetStart === -1) {
-        sheetStart = zipContent.indexOf('<sheetData');
+      // Procurar por worksheet XML
+      const sheetDataPattern = /<sheetData[^>]*>([\s\S]*?)<\/sheetData>/i;
+      const sheetDataMatch = zipContent.match(sheetDataPattern);
+      
+      if (!sheetDataMatch) {
+        // Tenta buscar todo o conteúdo da worksheet
+        const worksheetPattern = /<worksheet[^>]*>([\s\S]*?)<\/worksheet>/i;
+        const worksheetMatch = zipContent.match(worksheetPattern);
+        
+        if (!worksheetMatch) {
+          throw new Error('Arquivo XLSX não contém dados de worksheet. Tente usar CSV ou instale suporte completo a XLSX.');
+        }
+        
+        const rows = this.extractRowsFromXML(worksheetMatch[1]);
+        
+        if (rows.length === 0) {
+          throw new Error('Nenhuma linha encontrada no XLSX');
+        }
+        
+        const preview = rows.slice(0, 20);
+        const maxCols = Math.max(...preview.map(r => r.length), 1);
+        
+        resolve({
+          lines: preview,
+          columnCount: maxCols
+        });
+        return;
       }
       
-      if (sheetStart === -1) {
-        throw new Error('Arquivo XLSX não contém dados de worksheet');
-      }
-      
-      let sheetEnd = zipContent.indexOf('</worksheet>', sheetStart);
-      if (sheetEnd === -1) {
-        sheetEnd = zipContent.indexOf('</sheetData', sheetStart);
-      }
-      
-      if (sheetEnd === -1) {
-        throw new Error('Estrutura de XLSX inválida');
-      }
-      
-      const xmlContent = zipContent.substring(sheetStart, sheetEnd + 20);
-      const rows = this.extractRowsFromXML(xmlContent);
+      const rows = this.extractRowsFromXML(sheetDataMatch[1]);
       
       if (rows.length === 0) {
         throw new Error('Nenhuma linha encontrada no XLSX');

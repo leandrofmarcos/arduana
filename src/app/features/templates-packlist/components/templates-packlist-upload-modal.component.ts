@@ -125,25 +125,18 @@ export class TemplatesPacklistUploadModalComponent implements OnInit {
       fieldMapping: this.fieldMapping
     };
 
-    // Converter arquivo para base64
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result as string;
-      
-      const template: TemplatePacklist = {
-        id: this.templateToEdit?.id || '',
-        nome: this.templateToEdit?.nome || '', // Deixa vazio para preencher no formulário
-        descricao: this.templateToEdit?.descricao,
-        nomeArquivo: this.selectedFile!.name,
-        fileContent: base64,
-        config: config,
-        dataCriacao: this.templateToEdit?.dataCriacao || new Date(),
-        dataAtualizacao: new Date()
-      };
-
-      this.complete.emit(template);
+    // Emite apenas metadados (não o conteúdo do arquivo)
+    const template: TemplatePacklist = {
+      id: this.templateToEdit?.id || '',
+      nome: this.templateToEdit?.nome || '', // Deixa vazio para preencher no formulário
+      descricao: this.templateToEdit?.descricao || '',
+      nomeArquivo: this.selectedFile!.name,
+      config: config,
+      dataCriacao: this.templateToEdit?.dataCriacao || new Date(),
+      dataAtualizacao: new Date()
     };
-    reader.readAsDataURL(this.selectedFile);
+
+    this.complete.emit(template);
   }
 
   cancel(): void {

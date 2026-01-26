@@ -26,6 +26,8 @@ export class TemplatesPacklistComponent implements OnInit {
 
   loadTemplates(): void {
     this.templates = this.service.getAll();
+    console.log('Templates carregados:', this.templates);
+    console.log('LocalStorage raw:', localStorage.getItem('templates_packlist'));
   }
 
   newTemplate(): void {
@@ -53,19 +55,6 @@ export class TemplatesPacklistComponent implements OnInit {
       this.service.delete(id);
       this.loadTemplates();
     }
-  }
-
-  downloadTemplate(template: TemplatePacklistListItem): void {
-    if (!template.fileContent) {
-      alert('Arquivo não disponível para download');
-      return;
-    }
-
-    // Criar link temporário para download
-    const link = document.createElement('a');
-    link.href = template.fileContent;
-    link.download = template.nomeArquivo;
-    link.click();
   }
 
   get filteredTemplates(): TemplatePacklistListItem[] {

@@ -16,8 +16,8 @@ export class TemplatesPacklistService {
         nome: t.nome,
         descricao: t.descricao,
         nomeArquivo: t.nomeArquivo,
-        fileContent: t.fileContent,
-        dataCriacao: new Date(t.dataCriacao)
+        dataCriacao: new Date(t.dataCriacao),
+        dataAtualizacao: new Date(t.dataAtualizacao)
       }));
     } catch (error) {
       console.error('Erro ao buscar templates:', error);
@@ -47,16 +47,15 @@ export class TemplatesPacklistService {
 
   save(template: TemplatePacklist): TemplatePacklist {
     try {
-      const templates = this.getAll();
-      const existingIndex = templates.findIndex(t => t.id === template.id);
+      const allTemplates = this.getAllTemplates();
+      const existingIndex = allTemplates.findIndex(t => t.id === template.id);
       
       template.dataAtualizacao = new Date();
-      if (!template.id) {
+      if (!template.id || template.id === '') {
         template.id = this.generateId();
         template.dataCriacao = new Date();
       }
       
-      const allTemplates = this.getAllTemplates();
       if (existingIndex >= 0) {
         allTemplates[existingIndex] = template;
       } else {
@@ -64,6 +63,7 @@ export class TemplatesPacklistService {
       }
       
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allTemplates));
+      console.log('Template salvo com sucesso:', template);
       return template;
     } catch (error) {
       console.error('Erro ao salvar template:', error);

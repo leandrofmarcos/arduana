@@ -68,11 +68,19 @@ export class TemplatesPacklistDetailComponent implements OnInit {
     }
 
     const toSave: TemplatePacklist = {
-      ...this.template,
-      nome: this.form.nome,
-      descricao: this.form.descricao
+      id: this.template.id || '',
+      nome: this.form.nome.trim(),
+      descricao: this.form.descricao?.trim() || '',
+      nomeArquivo: this.template.nomeArquivo,
+      config: {
+        linhaInicio: this.template.config.linhaInicio,
+        fieldMapping: { ...this.template.config.fieldMapping }
+      },
+      dataCriacao: this.template.dataCriacao || new Date(),
+      dataAtualizacao: new Date()
     };
 
+    console.log('Salvando template (apenas metadados):', toSave);
     this.storageService.save(toSave);
     this.saved.emit();
   }
