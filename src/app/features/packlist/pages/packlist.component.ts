@@ -38,29 +38,29 @@ import { PacklistItem, PacklistSummary } from '../models/packlist.models';
     </div>
     <div class="card" style="margin-top:12px">
       <h2>Packlists</h2>
-      <p>Listagem de todos os packlists enviados via criação/edição de processo</p>
+      <p>Um packlist por orçamento. Mostramos apenas o que foi salvo pelo usuário.</p>
       <table class="table">
         <thead>
           <tr>
             <th>Processo</th>
             <th>Cliente</th>
             <th>Despachante</th>
+            <th>Status</th>
+            <th>Enviado em</th>
+            <th>Arquivo</th>
             <th>Itens</th>
-            <th style="width:120px">Ações</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngIf="summaries.length === 0"><td colspan="5">Nenhum packlist encontrado</td></tr>
+          <tr *ngIf="summaries.length === 0"><td colspan="7">Nenhum packlist encontrado</td></tr>
           <tr *ngFor="let s of summaries">
-            <td>{{s.codigo || s.id}}</td>
+            <td>{{s.codigo || s.orcamentoId}}</td>
             <td>{{s.cliente || '-'}} </td>
             <td>{{s.despachante || '-'}} </td>
+            <td>{{ formatStatus(s.status) }}</td>
+            <td>{{ s.enviadoEm | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td>{{ s.arquivoNome || '-' }}</td>
             <td>{{s.items}}</td>
-            <td>
-              <div class="row-actions">
-                <button class="btn-icon" title="Download CSV">⬇️</button>
-              </div>
-            </td>
           </tr>
         </tbody>
       </table>
@@ -79,5 +79,14 @@ export class PacklistNovaComponent {
   summaries: PacklistSummary[] = [];
   constructor(private s: PacklistService){
     this.summaries = this.s.listPacklists();
+  }
+
+  formatStatus(status: string): string {
+    const map: Record<string, string> = {
+      'concluido': 'Concluído',
+      'em-andamento': 'Em Andamento',
+      'pendente': 'Pendente'
+    };
+    return map[status] || status;
   }
 }

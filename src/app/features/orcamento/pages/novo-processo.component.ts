@@ -185,46 +185,10 @@ export class NovoProcessoNovaComponent implements OnInit {
   }
 
   ngOnInit() {
-    // Carrega clientes
+    // Carrega clientes (sem criar fake data)
     this.clientesService.list$().subscribe(clientes => {
       this.clientes = clientes;
-      // Se não houver clientes, criar dados fake
-      if (clientes.length === 0) {
-        this.criarClientesFake();
-      }
     });
-
-    // Gerar dados fake iniciais se não houver orçamentos
-    this.list.subscribe(items => {
-      if (items.length === 0) {
-        this.criarDadosFake();
-      }
-    });
-  }
-
-  private criarClientesFake() {
-    const dados = [
-      { nome: 'Empresa Importadora XYZ', documento: 'CNPJ: 12.345.678/0001-90', contato: 'João Silva' },
-      { nome: 'Comércio Global LTDA', documento: 'CNPJ: 98.765.432/0001-10', contato: 'Maria Costa' },
-      { nome: 'Importações Premium', documento: 'CNPJ: 55.555.555/0001-55', contato: 'Pedro Santos' },
-      { nome: 'Logística Internacional SA', documento: 'CNPJ: 11.111.111/0001-11', contato: 'Ana Oliveira' },
-      { nome: 'Distribuidora Brasil', documento: 'CNPJ: 22.222.222/0001-22', contato: 'Carlos Mendes' }
-    ];
-    dados.forEach(d => {
-      this.clientesService.create(d.nome, d.documento, d.contato);
-    });
-  }
-
-  private criarDadosFake() {
-    // Criar dados fake com os primeiros clientes
-    if (this.clientes.length > 0) {
-      for (let i = 0; i < 5; i++) {
-        const cliente = this.clientes[i % this.clientes.length];
-        const dias = 7 - i;
-        // Código será gerado no serviço
-        this.s.criar(cliente.id, cliente.nome, undefined, new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString());
-      }
-    }
   }
 
   buscarClientes(termo: string) {

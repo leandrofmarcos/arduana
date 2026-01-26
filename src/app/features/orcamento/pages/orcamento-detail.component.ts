@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { PacklistService } from '../../packlist/services/packlist.service';
 
 interface OrçamentoDetalhe {
   id: string;
@@ -496,7 +497,8 @@ export class OrçamentoDetailComponentV2 implements OnInit {
 
   constructor(
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private packlistService: PacklistService
   ) {}
 
   ngOnInit(): void {
@@ -540,9 +542,19 @@ export class OrçamentoDetailComponentV2 implements OnInit {
       ]
     };
 
+    const packlist = this.packlistService.getByOrcamentoId(id);
+    if (packlist) {
+      this.orcamento.fases.packlist = {
+        status: packlist.status,
+        itens: packlist.itens?.length || 0,
+        data: packlist.enviadoEm,
+        arquivoNome: packlist.arquivoNome,
+        arquivoCaminho: packlist.arquivoCaminho
+      };
+    }
+
     this.historicoResumido = this.orcamento.historico.slice(0, 5);
 
-    // Atualizar status das fases baseado em dados reais
     this.fases = this.fases.map(f => {
       if (this.orcamento?.fases[f.key as keyof typeof this.orcamento.fases]) {
         f.status = this.orcamento.fases[f.key as keyof typeof this.orcamento.fases].status;
