@@ -35,5 +35,6 @@ export interface PacklistSummary {
   status: PacklistStatus;
   enviadoEm: string;
   arquivoNome?: string;
+  arquivoCaminho?: string;
   items: number;
 }

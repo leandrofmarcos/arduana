@@ -49,10 +49,11 @@ import { PacklistItem, PacklistSummary } from '../models/packlist.models';
             <th>Enviado em</th>
             <th>Arquivo</th>
             <th>Itens</th>
+            <th style="width:60px">Ações</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngIf="summaries.length === 0"><td colspan="7">Nenhum packlist encontrado</td></tr>
+          <tr *ngIf="summaries.length === 0"><td colspan="8">Nenhum packlist encontrado</td></tr>
           <tr *ngFor="let s of summaries">
             <td>{{s.codigo || s.orcamentoId}}</td>
             <td>{{s.cliente || '-'}} </td>
@@ -61,6 +62,9 @@ import { PacklistItem, PacklistSummary } from '../models/packlist.models';
             <td>{{ s.enviadoEm | date:'dd/MM/yyyy HH:mm' }}</td>
             <td>{{ s.arquivoNome || '-' }}</td>
             <td>{{s.items}}</td>
+            <td>
+              <button class="btn-download" (click)="downloadPacklist(s)" title="Download" *ngIf="s.arquivoNome">⬇️</button>
+            </td>
           </tr>
         </tbody>
       </table>
@@ -71,7 +75,9 @@ import { PacklistItem, PacklistSummary } from '../models/packlist.models';
     `.table{width:100%;border-collapse:collapse;margin-top:12px}`,
     `.table th,.table td{border-bottom:1px solid var(--color-border);padding:10px;text-align:left}`,
     `.row-actions{display:flex;gap:8px}`,
-    `.btn-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid var(--color-border);border-radius:8px;background:var(--color-surface);cursor:pointer}`
+    `.btn-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid var(--color-border);border-radius:8px;background:var(--color-surface);cursor:pointer}`,
+    `.btn-download{width:36px;height:36px;border:none;border-radius:8px;background:#2563eb;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s}`,
+    `.btn-download:hover{background:#1d4ed8}`
   ]
 })
 export class PacklistNovaComponent {
@@ -88,5 +94,18 @@ export class PacklistNovaComponent {
       'pendente': 'Pendente'
     };
     return map[status] || status;
+  }
+
+  downloadPacklist(packlist: PacklistSummary): void {
+    const caminho = packlist.arquivoCaminho || packlist.arquivoNome;
+    if (!caminho) return;
+
+    // Se for uma URL ou caminho público, abre em nova aba; caso contrário, mostra caminho local para referência
+    const isPublic = caminho.startsWith('http') || caminho.startsWith('/') || caminho.startsWith('file:');
+    if (isPublic) {
+      window.open(caminho, '_blank');
+    } else {
+      alert(`Arquivo armazenado localmente em: ${caminho}`);
+    }
   }
 }

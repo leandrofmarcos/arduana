@@ -39,7 +39,7 @@ export class PacklistService {
       cliente: record.cliente,
       despachante: record.despachante,
       arquivoNome: record.arquivoNome,
-      arquivoCaminho: record.arquivoCaminho,
+      arquivoCaminho: record.arquivoCaminho || existing?.arquivoCaminho || '',
       status: record.status,
       enviadoEm: record.enviadoEm || existing?.enviadoEm || now,
       enviadoPor: record.enviadoPor || existing?.enviadoPor,
