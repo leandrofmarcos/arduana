@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -159,9 +159,10 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
 })
 export class PacklistDetalheComponent implements OnInit {
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
+  @Input() orcamentoId = '';
+  @Output() voltarClicked = new EventEmitter<void>();
   
   detalhe: PacklistRecord | null = null;
-  orcamentoId = '';
   cliente?: string;
   codigo?: string;
   clienteId?: string;
@@ -185,7 +186,9 @@ export class PacklistDetalheComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params.subscribe(p => {
-      this.orcamentoId = p['id'] || '';
+      if (!this.orcamentoId) {
+        this.orcamentoId = p['id'] || '';
+      }
       this.loadMeta();
       this.loadPacklist();
     });
@@ -402,7 +405,11 @@ export class PacklistDetalheComponent implements OnInit {
   }
 
   voltar(): void {
-    this.router.navigate(['/orcamento']);
+    if (this.voltarClicked.observed) {
+      this.voltarClicked.emit();
+    } else {
+      this.router.navigate(['/orcamento', this.orcamentoId]);
+    }
   }
 
   showErrors(msgs: string[]): void {

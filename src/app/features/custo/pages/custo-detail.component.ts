@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -170,6 +170,9 @@ import { keys, readJSON, writeJSON } from '../data/storage.helper';
   ]
 })
 export class CustoDetailComponent implements OnInit {
+  @Input() orcamentoIdInput = '';
+  @Output() voltarClicked = new EventEmitter<void>();
+
   orcamentoId = '';
   codigo?: string;
   cliente?: string;
@@ -196,7 +199,7 @@ export class CustoDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params.subscribe(p => {
-      this.orcamentoId = p['id'] || '';
+      this.orcamentoId = this.orcamentoIdInput || p['id'] || '';
       this.loadMeta();
       this.loadCusto();
     });
@@ -308,6 +311,10 @@ export class CustoDetailComponent implements OnInit {
   }
 
   voltar(): void {
-    this.router.navigate(['/orcamento', this.orcamentoId]);
+    if (this.voltarClicked.observed) {
+      this.voltarClicked.emit();
+    } else {
+      this.router.navigate(['/orcamento', this.orcamentoId]);
+    }
   }
 }

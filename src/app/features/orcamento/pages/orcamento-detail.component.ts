@@ -1,7 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { PacklistService } from '../../packlist/services/packlist.service';
+import { PacklistDetalheComponent } from '../../packlist/pages/packlist-detail-new.component';
+import { CustoDetailComponent } from '../../custo/pages/custo-detail.component';
 
 interface OrçamentoDetalhe {
   id: string;
@@ -33,9 +36,9 @@ interface OrçamentoDetalhe {
 @Component({
   standalone: true,
   selector: 'app-orcamento-detail-v2',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule, PacklistDetalheComponent, CustoDetailComponent],
   template: `
-    <div class="detail-container">
+    <div class="detail-container" *ngIf="modo === 'overview'">
       <!-- Header -->
       <div class="detail-header">
         <div class="header-info">
@@ -138,6 +141,16 @@ interface OrçamentoDetalhe {
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Modo Packlist -->
+    <div *ngIf="modo === 'packlist'">
+      <app-packlist-detalhe [orcamentoId]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-packlist-detalhe>
+    </div>
+
+    <!-- Modo Custo -->
+    <div *ngIf="modo === 'custo'">
+      <app-custo-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-custo-detail>
     </div>
   `,
   styles: [`
@@ -498,6 +511,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   orcamento: OrçamentoDetalhe | null = null;
   historicoResumido: any[] = [];
   interacoes: Array<{ id: string; titulo: string; descricao: string; nivel: 'info' | 'warning' | 'danger'; acao?: { label: string; rota: any[]; query?: Record<string, any> } }> = [];
+  modo: 'overview' | 'packlist' | 'custo' = 'overview';
 
   fases = [
     { key: 'criacao', label: 'Criação', status: 'concluido' },
@@ -643,14 +657,21 @@ export class OrçamentoDetailComponentV2 implements OnInit {
 
   navigarParaPacklist(): void {
     if (!this.orcamento?.id) return;
-    this.router.navigate(['/packlist', this.orcamento.id]);
+    this.modo = 'packlist';
   }
 
   navigarParaCusto(): void {
     if (!this.orcamento?.id) return;
     const packlistItens = this.orcamento.fases.packlist?.itens || 0;
     if (packlistItens <= 0) return; // bloquear se não houver packlist
-    this.router.navigate(['/custo', this.orcamento.id]);
+    this.modo = 'custo';
+  }
+
+  voltarParaOverview(): void {
+    this.modo = 'overview';
+    if (this.orcamento?.id) {
+      this.carregarOrçamento(this.orcamento.id);
+    }
   }
 
   onAlertAction(alerta: { acao?: { rota: any[]; query?: Record<string, any> } }): void {
