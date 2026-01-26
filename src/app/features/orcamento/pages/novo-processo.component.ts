@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -22,7 +22,7 @@ import { OrcamentoListItem } from '../models/orcamento.models';
         </thead>
         <tbody>
           <tr *ngIf="(list|async)?.length === 0"><td colspan="6">Nenhum orçamento</td></tr>
-          <tr *ngFor="let p of (list|async)">
+          <tr *ngFor="let p of (list|async)" style="cursor: pointer;" (click)="visualizar(p)" class="row-clickable">
             <td>{{p.data | date:'short'}}</td>
             <td>{{p.cliente || '-'}}</td>
             <td>{{p.despachante || '-'}}</td>
@@ -30,8 +30,9 @@ import { OrcamentoListItem } from '../models/orcamento.models';
             <td>{{p.status}}</td>
             <td>
               <div class="row-actions">
-                <button class="btn-icon" title="Abrir para edição" (click)="abrir(p)">✏️</button>
-                <button class="btn-icon danger" title="Excluir orçamento" (click)="confirmExcluir(p)">🗑️</button>
+                <button class="btn-icon info" title="Visualizar detalhes do orçamento" (click)="visualizar(p); $event.stopPropagation()">👁️</button>
+                <button class="btn-icon" title="Abrir para edição" (click)="abrir(p); $event.stopPropagation()">✏️</button>
+                <button class="btn-icon danger" title="Excluir orçamento" (click)="confirmExcluir(p); $event.stopPropagation()">🗑️</button>
               </div>
             </td>
           </tr>
@@ -94,8 +95,10 @@ import { OrcamentoListItem } from '../models/orcamento.models';
     `.btn-secondary:hover{background:var(--color-border)}`,
     `.btn-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid var(--color-border);border-radius:8px;background:var(--color-surface);cursor:pointer}`,
     `.btn-icon.danger{border-color:var(--color-danger);color:var(--color-danger)}`,
+    `.btn-icon.info{border-color:#3b82f6;color:#3b82f6}`,
     `.table{width:100%;border-collapse:collapse;margin-top:12px}`,
     `.table th,.table td{border-bottom:1px solid var(--color-border);padding:10px;text-align:left}`,
+    `.row-clickable:hover{background-color:var(--color-bg);transition:.15s}`,
     `.row-actions{display:flex;gap:8px}`,
     `.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000}`,
     `.modal{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;overflow:hidden;box-shadow:0 10px 20px rgba(0,0,0,.2)}`,
@@ -113,7 +116,7 @@ import { OrcamentoListItem } from '../models/orcamento.models';
     `.field input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`
   ]
 })
-export class NovoProcessoNovaComponent {
+export class NovoProcessoNovaComponent implements OnInit {
   list!: import('rxjs').Observable<OrcamentoListItem[]>;
   confirmId: string | null = null;
   showModalCriar = false;
@@ -121,6 +124,28 @@ export class NovoProcessoNovaComponent {
 
   constructor(private s: OrcamentoService, private router: Router) {
     this.list = this.s.list$();
+  }
+
+  ngOnInit() {
+    // Gerar dados fake iniciais se não houver orçamentos
+    this.list.subscribe(items => {
+      if (items.length === 0) {
+        this.criarDadosFake();
+      }
+    });
+  }
+
+  private criarDadosFake() {
+    const dados = [
+      { cliente: 'Empresa Importadora XYZ', despachante: 'Despacho Brasil LTDA', codigo: 'ORC-2025-0001', data: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+      { cliente: 'Comércio Global LTDA', despachante: 'Despachante Sul', codigo: 'ORC-2025-0002', data: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+      { cliente: 'Importações Premium', despachante: 'Despacho Brasil LTDA', codigo: 'ORC-2025-0003', data: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+      { cliente: 'Logística Internacional SA', despachante: 'Despachante Norte', codigo: 'ORC-2025-0004', data: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] },
+      { cliente: 'Distribuidora Brasil', despachante: 'Despacho Brasil LTDA', codigo: 'ORC-2025-0005', data: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] }
+    ];
+    dados.forEach(d => {
+      this.s.criar(d.cliente, d.despachante, d.codigo, d.data);
+    });
   }
 
   abrirModalCriar() {
@@ -145,6 +170,10 @@ export class NovoProcessoNovaComponent {
     this.s.abrir(p.id);
     this.s.ensureCustoForOrcamento(p.id);
     this.router.navigateByUrl('/custo');
+  }
+
+  visualizar(p: OrcamentoListItem) {
+    this.router.navigateByUrl(`/orcamento/${p.id}`);
   }
 
   confirmExcluir(p: OrcamentoListItem) { this.confirmId = p.id; }
