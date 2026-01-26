@@ -14,7 +14,7 @@ interface OrçamentoDetalhe {
   atualizadoEm: string;
   fases: {
     criacao: { status: 'concluido' | 'em-andamento' | 'pendente'; data: string };
-    packlist: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; itens?: number };
+    packlist: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; itens?: number; arquivoNome?: string; arquivoCaminho?: string };
     custo: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; valor?: number };
     venda: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string };
     aduana: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string };
@@ -78,6 +78,15 @@ interface OrçamentoDetalhe {
         </div>
       </div>
 
+      <!-- Interações e alertas -->
+      <div class="alerts-panel" *ngIf="interacoes.length">
+        <div class="alert-card" *ngFor="let alerta of interacoes" [ngClass]="'level-' + alerta.nivel">
+          <div class="alert-title">{{ alerta.titulo }}</div>
+          <div class="alert-desc">{{ alerta.descricao }}</div>
+          <button *ngIf="alerta.acao" class="alert-action" (click)="onAlertAction(alerta)">{{ alerta.acao.label }}</button>
+        </div>
+      </div>
+
       <!-- Phase Cards Grid -->
       <div class="phases-grid">
         <div class="phase-card" (click)="navigarParaPacklist()">
@@ -86,6 +95,7 @@ interface OrçamentoDetalhe {
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.packlist?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.packlist?.status) }}
           </div>
+          <div class="card-note" *ngIf="orcamento?.fases?.packlist?.arquivoNome">Arquivo: {{ orcamento?.fases?.packlist?.arquivoNome }}</div>
         </div>
 
         <div class="phase-card" (click)="navigarParaCusto()">
@@ -281,6 +291,42 @@ interface OrçamentoDetalhe {
       font-weight: 600;
     }
 
+    /* Alerts */
+    .alerts-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      margin: 12px 0 20px;
+    }
+
+    .alert-card {
+      border-radius: 10px;
+      padding: 14px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .alert-card.level-warning { background: #fff7ed; border-color: #fdba74; }
+    .alert-card.level-danger { background: #fef2f2; border-color: #fecdd3; }
+    .alert-card.level-info { background: #eff6ff; border-color: #bfdbfe; }
+
+    .alert-title { font-weight: 700; color: #1f2937; margin-bottom: 6px; }
+    .alert-desc { color: #4b5563; font-size: 13px; margin-bottom: 8px; }
+
+    .alert-action {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background .2s;
+    }
+
+    .alert-action:hover { background: #1d4ed8; }
+
     /* Phase Cards Grid */
     .phases-grid {
       display: grid;
@@ -316,6 +362,12 @@ interface OrçamentoDetalhe {
       font-weight: 700;
       color: #1a1a1a;
       margin-bottom: 12px;
+    }
+
+    .card-note {
+      font-size: 12px;
+      color: #4b5563;
+      margin-top: 6px;
     }
 
     .card-status {
@@ -431,6 +483,7 @@ interface OrçamentoDetalhe {
 export class OrçamentoDetailComponentV2 implements OnInit {
   orcamento: OrçamentoDetalhe | null = null;
   historicoResumido: any[] = [];
+  interacoes: Array<{ id: string; titulo: string; descricao: string; nivel: 'info' | 'warning' | 'danger'; acao?: { label: string; rota: any[]; query?: Record<string, any> } }> = [];
 
   fases = [
     { key: 'criacao', label: 'Criação', status: 'concluido' },
@@ -472,7 +525,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
       atualizadoEm: menos2.toISOString(),
       fases: {
         criacao: { status: 'concluido', data: menos7.toISOString() },
-        packlist: { status: 'concluido', itens: 24, data: menos5.toISOString() },
+        packlist: { status: 'concluido', itens: 24, data: menos5.toISOString(), arquivoNome: 'packlist-ORC-' + id + '.xlsx', arquivoCaminho: '/uploads/packlists/ORC-' + id + '/packlist.xlsx' },
         custo: { status: 'em-andamento', valor: 45750.50, data: menos2.toISOString() },
         venda: { status: 'pendente' },
         aduana: { status: 'pendente' },
@@ -519,6 +572,30 @@ export class OrçamentoDetailComponentV2 implements OnInit {
 
     this.historicoResumido = this.orcamento.historico.slice(0, 5);
 
+    this.interacoes = [
+      {
+        id: 'custo-aprovacao',
+        titulo: 'Aprovar custo estimado',
+        descricao: 'Custo em andamento aguardando aprovação há 1 dia.',
+        nivel: 'warning',
+        acao: { label: 'Abrir custo', rota: ['/custo'], query: { orcamento: id } }
+      },
+      {
+        id: 'venda-preparar',
+        titulo: 'Preparar planilha de venda',
+        descricao: 'Após aprovação do custo, preencha a planilha de venda para enviar ao cliente.',
+        nivel: 'info',
+        acao: { label: 'Ir para venda', rota: ['/venda'], query: { orcamento: id } }
+      },
+      {
+        id: 'numerario-solicitar',
+        titulo: 'Solicitar numerário',
+        descricao: 'Solicite numerário assim que o cliente aprovar o orçamento.',
+        nivel: 'info',
+        acao: { label: 'Abrir numerário', rota: ['/numerario'], query: { orcamento: id } }
+      }
+    ];
+
     // Atualizar status das fases baseado no tempo
     this.fases = this.fases.map(f => {
       if (this.orcamento?.fases[f.key as keyof typeof this.orcamento.fases]) {
@@ -563,11 +640,17 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   }
 
   navigarParaPacklist(): void {
-    this.router.navigate(['/packlist'], { queryParams: { orcamento: this.orcamento?.id } });
+    if (!this.orcamento?.id) return;
+    this.router.navigate(['/packlist', this.orcamento.id]);
   }
 
   navigarParaCusto(): void {
     this.router.navigate(['/custo'], { queryParams: { orcamento: this.orcamento?.id } });
+  }
+
+  onAlertAction(alerta: { acao?: { rota: any[]; query?: Record<string, any> } }): void {
+    if (!alerta.acao) return;
+    this.router.navigate(alerta.acao.rota, { queryParams: alerta.acao.query });
   }
 
   voltar(): void {

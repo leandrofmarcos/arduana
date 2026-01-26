@@ -15,7 +15,7 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'aliquotas'
+        redirectTo: 'orcamento'
       },
       {
         path: 'aliquotas',
@@ -40,6 +40,10 @@ export const routes: Routes = [
       {
         path: 'packlist',
         loadComponent: () => import('./features/packlist/pages/packlist.component').then(m => m.PacklistNovaComponent)
+      },
+      {
+        path: 'packlist/:id',
+        loadComponent: () => import('./features/packlist/pages/packlist-detail.component').then(m => m.PacklistDetalheComponent)
       },
       {
         path: 'custo',

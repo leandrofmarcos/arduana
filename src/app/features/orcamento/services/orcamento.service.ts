@@ -1,13 +1,11 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { readJSON, writeJSON, randomId, keys } from '../data/storage.helper';
-import { OrcamentoStore } from '../store/orcamento.store';
 import { OrcamentoMeta, OrcamentoListItem } from '../models/orcamento.models';
 
 @Injectable({ providedIn: 'root' })
 export class OrcamentoService {
   private subj = new BehaviorSubject<OrcamentoListItem[]>(this.loadIndex());
-  private store = inject(OrcamentoStore);
 
   list$(): Observable<OrcamentoListItem[]> { return this.subj.asObservable(); }
 
@@ -27,7 +25,6 @@ export class OrcamentoService {
     this.subj.next(next);
     this.logHistory(id, { meta: null, item: null }, { meta, item });
     (globalThis as any).localStorage?.setItem(keys.currentId(), id);
-    this.store.load(id);
     return id;
   }
 
@@ -39,7 +36,6 @@ export class OrcamentoService {
 
   abrir(id: string){
     (globalThis as any).localStorage?.setItem(keys.currentId(), id);
-    this.store.load(id);
   }
 
   getMeta(id: string): OrcamentoMeta | null {
@@ -109,9 +105,9 @@ export class OrcamentoService {
   listPacklists(): any[] {
     const list = readJSON<OrcamentoListItem[]>(keys.orcamentosIndex()) || [];
     return list
-      .map(it => ({ ...it, items: this.getPacklist(it.id).length }))
-      .filter(it => it.items > 0)
-      .map(it => ({ id: it.id, cliente: it.cliente, despachante: it.despachante, codigo: it.codigo, items: it.items }));
+      .map((it: OrcamentoListItem) => ({ ...it, items: this.getPacklist(it.id).length }))
+      .filter((it: any) => it.items > 0)
+      .map((it: any) => ({ id: it.id, cliente: it.cliente, despachante: it.despachante, codigo: it.codigo, items: it.items }));
   }
 
   ensureCustoForOrcamento(id: string): void {

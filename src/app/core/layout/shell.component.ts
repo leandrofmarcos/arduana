@@ -30,13 +30,6 @@ import { Router } from '@angular/router';
         </div>
         <nav class="menu">
           <div class="menu-group">
-            <div class="menu-title">Cadastros</div>
-            <a routerLink="/aliquotas" routerLinkActive="active"><span class="icon">🧮</span><span>Alíquotas</span></a>
-            <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
-          <a routerLink="/clientes" routerLinkActive="active"><span class="icon">👥</span><span>Clientes</span></a>
-          <a routerLink="/despachantes" routerLinkActive="active"><span class="icon">🧭</span><span>Despachantes</span></a>
-          </div>
-          <div class="menu-group">
             <div class="menu-title">Orçamentos</div>
             <a routerLink="/orcamento" routerLinkActive="active"><span class="icon">🧩</span><span>Orçamento</span></a>
             <a routerLink="/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
@@ -48,6 +41,13 @@ import { Router } from '@angular/router';
             <a routerLink="/numerario/historico" routerLinkActive="active"><span class="icon">🗂️</span><span>Histórico Numerário</span></a>
             <a routerLink="/fechamento" routerLinkActive="active"><span class="icon">✅</span><span>Fechamento</span></a>
             <a routerLink="/historico" routerLinkActive="active"><span class="icon">🕑</span><span>Histórico</span></a>
+          </div>
+          <div class="menu-group">
+            <div class="menu-title">Cadastros</div>
+            <a routerLink="/aliquotas" routerLinkActive="active"><span class="icon">🧮</span><span>Alíquotas</span></a>
+            <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
+            <a routerLink="/clientes" routerLinkActive="active"><span class="icon">👥</span><span>Clientes</span></a>
+            <a routerLink="/despachantes" routerLinkActive="active"><span class="icon">🧭</span><span>Despachantes</span></a>
           </div>
         </nav>
       </aside>
@@ -106,8 +106,8 @@ import { Router } from '@angular/router';
 export class ShellComponent {
   collapsed = false;
   year = new Date().getFullYear();
-  headerTitle = 'Cadastros';
-  headerSubtitle = 'Gerenciamento';
+  headerTitle = 'Orçamentos';
+  headerSubtitle = 'Lista e gerenciamento de orçamentos';
   constructor(public auth: AuthService, private router: Router){
     this.updateHeader(this.router.url);
     this.router.events.subscribe(() => this.updateHeader(this.router.url));
