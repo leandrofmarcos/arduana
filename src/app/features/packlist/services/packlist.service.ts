@@ -20,7 +20,7 @@ export class PacklistService {
         status: rec!.status,
         enviadoEm: rec!.enviadoEm,
         arquivoNome: rec!.arquivoNome,
-        items: rec!.itens?.length || 0
+        items: (rec!.previewItems?.length || rec!.itens?.length || 0)
       }));
   }
 
@@ -43,7 +43,9 @@ export class PacklistService {
       status: record.status,
       enviadoEm: record.enviadoEm || existing?.enviadoEm || now,
       enviadoPor: record.enviadoPor || existing?.enviadoPor,
-      itens: record.itens || existing?.itens
+      itens: record.itens || existing?.itens,
+      previewItems: record.previewItems || existing?.previewItems,
+      mappingConfig: record.mappingConfig || existing?.mappingConfig
     };
 
     writeJSON(keys.packlist(record.orcamentoId), next);

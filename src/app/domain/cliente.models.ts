@@ -3,4 +3,5 @@ export interface Cliente {
   nome: string;
   documento: string;
   contato: string;
+  templatePacklistId?: string;
 }

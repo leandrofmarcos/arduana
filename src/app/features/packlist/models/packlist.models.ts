@@ -24,6 +24,8 @@ export interface PacklistRecord extends PacklistFileInfo {
   cliente?: string;
   despachante?: string;
   itens?: PacklistItem[];
+  previewItems?: any[];   // items no formato importado para reexibir preview
+  mappingConfig?: any;    // configuração usada na importação
 }
 
 export interface PacklistSummary {

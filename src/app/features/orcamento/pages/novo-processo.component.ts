@@ -4,8 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { OrcamentoService } from '../services/orcamento.service';
 import { ClientesService } from '../../clientes/services/clientes.service';
+import { TemplatesPacklistService } from '../../templates-packlist/services/templates-packlist.service';
 import { OrcamentoListItem } from '../models/orcamento.models';
 import { Cliente } from '../../clientes/models/cliente.models';
+import { TemplatePacklist } from '../../templates-packlist/models/templates-packlist.models';
 
 @Component({
   standalone: true,
@@ -105,6 +107,56 @@ import { Cliente } from '../../clientes/models/cliente.models';
                   <input type="text" [value]="formCriar.clienteSelecionado.contato" readonly class="readonly-input">
                 </div>
               </div>
+
+              <div class="template-info" *ngIf="templateAssociado">
+                <h4 style="margin: 20px 0 12px 0; color: var(--color-text);">📋 Template Packlist Associado</h4>
+                <div class="template-card">
+                  <div class="template-header">
+                    <div class="template-nome">{{ templateAssociado.nome }}</div>
+                    <span class="template-badge">Template Configurado</span>
+                  </div>
+                  <div class="template-details-grid">
+                    <div class="template-field">
+                      <label>Arquivo Referência</label>
+                      <div class="template-value">{{ templateAssociado.nomeArquivo }}</div>
+                    </div>
+                    <div class="template-field">
+                      <label>Linha de Início</label>
+                      <div class="template-value">Linha {{ templateAssociado.config.linhaInicio }}</div>
+                    </div>
+                    <div class="template-field">
+                      <label>Descrição</label>
+                      <div class="template-value">{{ templateAssociado.descricao || '—' }}</div>
+                    </div>
+                  </div>
+                  <div class="template-mapping">
+                    <div class="mapping-title">Mapeamento de Campos:</div>
+                    <div class="mapping-tags">
+                      <span class="mapping-tag" *ngIf="templateAssociado.config.fieldMapping?.numeroSequencial">
+                        🔢 Nº Seq: Col {{ templateAssociado.config.fieldMapping.numeroSequencial }}
+                      </span>
+                      <span class="mapping-tag" *ngIf="templateAssociado.config.fieldMapping?.volumes">
+                        📦 Volumes: Col {{ templateAssociado.config.fieldMapping.volumes }}
+                      </span>
+                      <span class="mapping-tag" *ngIf="templateAssociado.config.fieldMapping?.peso">
+                        ⚖️ Peso: Col {{ templateAssociado.config.fieldMapping.peso }}
+                      </span>
+                      <span class="mapping-tag" *ngIf="templateAssociado.config.fieldMapping?.cbm">
+                        📏 CBM: Col {{ templateAssociado.config.fieldMapping.cbm }}
+                      </span>
+                      <span class="mapping-tag" *ngIf="templateAssociado.config.fieldMapping?.descricaoComercial">
+                        📝 Descrição: Col {{ templateAssociado.config.fieldMapping.descricaoComercial }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="no-template-info" *ngIf="!templateAssociado && formCriar.clienteSelecionado">
+                <div class="no-template-message">
+                  ℹ️ Este cliente não possui template de packlist associado
+                </div>
+              </div>
             </div>
           </div>
           <div class="modal-actions">
@@ -159,7 +211,22 @@ import { Cliente } from '../../clientes/models/cliente.models';
     `.details-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}`,
     `.detail-field{display:flex;flex-direction:column;gap:4px}`,
     `.detail-field label{font-size:12px;font-weight:600;color:var(--color-text);text-transform:uppercase}`,
-    `.readonly-input{width:100%;padding:8px 10px;border:1px solid var(--color-border);border-radius:6px;font-size:13px;background:var(--color-surface);color:var(--color-text);cursor:default}`
+    `.readonly-input{width:100%;padding:8px 10px;border:1px solid var(--color-border);border-radius:6px;font-size:13px;background:var(--color-surface);color:var(--color-text);cursor:default}`,
+    `.template-info{margin-top:20px}`,
+    `.template-card{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:16px;border-radius:10px;color:#fff}`,
+    `.template-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}`,
+    `.template-nome{font-size:16px;font-weight:700}`,
+    `.template-badge{background:rgba(255,255,255,0.25);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600}`,
+    `.template-details-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}`,
+    `.template-field{display:flex;flex-direction:column;gap:4px}`,
+    `.template-field label{font-size:11px;font-weight:600;text-transform:uppercase;opacity:0.8}`,
+    `.template-value{font-size:13px;font-weight:500}`,
+    `.template-mapping{border-top:1px solid rgba(255,255,255,0.2);padding-top:12px}`,
+    `.mapping-title{font-size:12px;font-weight:600;margin-bottom:8px;opacity:0.9}`,
+    `.mapping-tags{display:flex;flex-wrap:wrap;gap:6px}`,
+    `.mapping-tag{background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500}`,
+    `.no-template-info{margin-top:16px}`,
+    `.no-template-message{background:#f8f9fa;border:2px dashed #dee2e6;padding:12px;border-radius:8px;text-align:center;color:#6c757d;font-size:13px}`
   ]
 })
 export class NovoProcessoNovaComponent implements OnInit {
@@ -170,6 +237,7 @@ export class NovoProcessoNovaComponent implements OnInit {
   showModalCriar = false;
   showDropdown = false;
   dataHoraAtual = new Date();
+  templateAssociado: TemplatePacklist | null = null;
 
   formCriar = {
     clienteBusca: '',
@@ -179,6 +247,7 @@ export class NovoProcessoNovaComponent implements OnInit {
   constructor(
     private s: OrcamentoService,
     private clientesService: ClientesService,
+    private templatesService: TemplatesPacklistService,
     private router: Router
   ) {
     this.list = this.s.list$();
@@ -188,6 +257,11 @@ export class NovoProcessoNovaComponent implements OnInit {
     // Carrega clientes (sem criar fake data)
     this.clientesService.list$().subscribe(clientes => {
       this.clientes = clientes;
+      console.log('Clientes carregados no orçamento:', clientes);
+      console.log('Verificando templatePacklistId dos clientes:', clientes.map(c => ({ 
+        nome: c.nome, 
+        templateId: c.templatePacklistId 
+      })));
     });
   }
 
@@ -209,10 +283,27 @@ export class NovoProcessoNovaComponent implements OnInit {
   }
 
   selecionarCliente(cliente: Cliente) {
+    console.log('Cliente selecionado:', cliente);
+    console.log('Template ID associado:', cliente.templatePacklistId);
+    
     this.formCriar.clienteSelecionado = cliente;
     this.formCriar.clienteBusca = '';
     this.clientesFiltrados = [];
     this.showDropdown = false;
+    
+    // Buscar template associado ao cliente
+    this.carregarTemplateAssociado(cliente);
+  }
+
+  carregarTemplateAssociado(cliente: Cliente): void {
+    if (cliente.templatePacklistId) {
+      const template = this.templatesService.getById(cliente.templatePacklistId);
+      this.templateAssociado = template;
+      console.log('Template encontrado:', template);
+    } else {
+      this.templateAssociado = null;
+      console.log('Cliente não possui template associado');
+    }
   }
 
   abrirModalCriar() {

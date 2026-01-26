@@ -1,0 +1,66 @@
+<div class="detail-container">
+  <div class="detail-header">
+    <h2>{{ cliente ? 'Editar Cliente' : 'Novo Cliente' }}</h2>
+    <p>{{ cliente ? 'Atualize as informações do cliente' : 'Preencha os dados do novo cliente' }}</p>
+  </div>
+
+  <div class="card">
+    <div class="form-grid">
+      <div class="field wide-2">
+        <label>Nome do Cliente <span class="required">*</span></label>
+        <input 
+          type="text" 
+          [(ngModel)]="form.nome" 
+          placeholder="Empresa XYZ Ltda"
+          [class.error]="showErrors && !form.nome"
+        />
+        <span class="error-message" *ngIf="showErrors && !form.nome">Nome é obrigatório</span>
+      </div>
+
+      <div class="field">
+        <label>Documento (CNPJ/CPF) <span class="required">*</span></label>
+        <input 
+          type="text" 
+          [(ngModel)]="form.documento" 
+          placeholder="00.000.000/0001-00"
+          [class.error]="showErrors && !form.documento"
+        />
+        <span class="error-message" *ngIf="showErrors && !form.documento">Documento é obrigatório</span>
+      </div>
+
+      <div class="field">
+        <label>Contato</label>
+        <input 
+          type="text" 
+          [(ngModel)]="form.contato" 
+          placeholder="(11) 90000-0000"
+        />
+      </div>
+
+      <div class="field wide-3">
+        <label>
+          Template Packlist Associado
+          <span class="optional-badge">Opcional</span>
+        </label>
+        <select [(ngModel)]="form.templatePacklistId" class="select-template">
+          <option value="">Nenhum template selecionado</option>
+          <option *ngFor="let template of templates" [value]="template.id">
+            {{ template.nome }} - {{ template.nomeArquivo }}
+          </option>
+        </select>
+        <span class="help-text">
+          📋 Selecione um template para facilitar a importação de packlists deste cliente
+        </span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" (click)="save()">
+        💾 Salvar
+      </button>
+      <button class="btn btn-secondary" (click)="cancel()">
+        ✖️ Cancelar
+      </button>
+    </div>
+  </div>
+</div>

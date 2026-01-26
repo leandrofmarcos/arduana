@@ -1,0 +1,64 @@
+<div class="content">
+  <div class="header">
+    <div>
+      <h1>👥 Cadastro de Clientes</h1>
+      <p>Gerencie clientes para uso nos processos</p>
+    </div>
+    <button class="btn-new" (click)="createNew()">
+      <span class="icon">➕</span>
+      Novo Cliente
+    </button>
+  </div>
+
+  <ng-container *ngIf="!isCreating && !selectedCliente">
+    <div class="card">
+      <div class="toolbar">
+        <input 
+          class="search" 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          placeholder="🔎 Buscar por nome ou documento" 
+        />
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Documento</th>
+            <th>Contato</th>
+            <th>Template Packlist</th>
+            <th style="width: 120px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="filteredClientes.length === 0">
+            <td colspan="5" class="empty-state">Nenhum cliente encontrado</td>
+          </tr>
+          <tr *ngFor="let cliente of filteredClientes">
+            <td class="cliente-name">{{ cliente.nome }}</td>
+            <td>{{ cliente.documento }}</td>
+            <td>{{ cliente.contato || '—' }}</td>
+            <td>
+              <span *ngIf="cliente.templatePacklistId" class="badge-template" [title]="getTemplateName(cliente.templatePacklistId)">
+                📋 {{ getTemplateName(cliente.templatePacklistId) }}
+              </span>
+              <span *ngIf="!cliente.templatePacklistId" class="no-template">—</span>
+            </td>
+            <td class="cliente-actions">
+              <button class="btn-edit" (click)="selectCliente(cliente)">Editar</button>
+              <button class="btn-delete" (click)="deleteCliente(cliente.id)">Deletar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+
+  <app-cliente-detail
+    *ngIf="isCreating || selectedCliente"
+    [cliente]="selectedCliente"
+    (saved)="onSaved()"
+    (cancelled)="onCancelled()"
+  ></app-cliente-detail>
+</div>

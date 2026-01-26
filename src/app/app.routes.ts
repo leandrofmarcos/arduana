@@ -27,7 +27,7 @@ export const routes: Routes = [
       },
       {
         path: 'clientes',
-        loadComponent: () => import('./features/clientes/pages/clientes.component').then(m => m.ClientesComponent)
+        loadComponent: () => import('./features/clientes/components/clientes-list.component').then(m => m.ClientesListComponent)
       },
       {
         path: 'despachantes',
@@ -36,6 +36,10 @@ export const routes: Routes = [
       {
         path: 'templates-packlist',
         loadComponent: () => import('./features/templates-packlist/components/templates-packlist.component').then(m => m.TemplatesPacklistComponent)
+      },
+      {
+        path: 'packlist/:id',
+        loadComponent: () => import('./features/packlist/pages/packlist-detail-new.component').then(m => m.PacklistDetalheComponent)
       },
       {
         path: 'orcamento',
