@@ -508,25 +508,23 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   }
 
   carregarOrçamento(id: string): void {
+    const meta = this.getMockMetaData(id);
     const hoje = new Date();
-    const menos7 = new Date(hoje.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const menos5 = new Date(hoje.getTime() - 5 * 24 * 60 * 60 * 1000);
-    const menos2 = new Date(hoje.getTime() - 2 * 24 * 60 * 60 * 1000);
 
     this.orcamento = {
       id,
-      numero: `ORC-2025-${String(Math.floor(Math.random() * 10000)).padStart(5, '0')}`,
-      cliente: 'Empresa Importadora XYZ',
-      despachante: 'João Silva Despachante',
-      codigo: `IMPORT-${id}`,
-      data: hoje.toISOString(),
+      numero: meta.codigo || `ORC-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      cliente: meta.cliente || 'Cliente não informado',
+      despachante: meta.despachante || '-',
+      codigo: meta.codigo || '-',
+      data: meta.createdAt || hoje.toISOString(),
       status: 'em-andamento',
-      criadoEm: menos7.toISOString(),
-      atualizadoEm: menos2.toISOString(),
+      criadoEm: meta.createdAt || hoje.toISOString(),
+      atualizadoEm: hoje.toISOString(),
       fases: {
-        criacao: { status: 'concluido', data: menos7.toISOString() },
-        packlist: { status: 'concluido', itens: 24, data: menos5.toISOString(), arquivoNome: 'packlist-ORC-' + id + '.xlsx', arquivoCaminho: '/uploads/packlists/ORC-' + id + '/packlist.xlsx' },
-        custo: { status: 'em-andamento', valor: 45750.50, data: menos2.toISOString() },
+        criacao: { status: 'concluido', data: meta.createdAt || hoje.toISOString() },
+        packlist: { status: 'pendente', itens: 0, data: undefined },
+        custo: { status: 'pendente', valor: 0, data: undefined },
         venda: { status: 'pendente' },
         aduana: { status: 'pendente' },
         fechamento: { status: 'pendente' }
@@ -535,74 +533,48 @@ export class OrçamentoDetailComponentV2 implements OnInit {
         {
           id: '1',
           acao: 'CREATE',
-          usuario: 'João Silva',
-          data: menos7.toISOString(),
-          descricao: 'Orçamento criado'
-        },
-        {
-          id: '2',
-          acao: 'UPDATE',
-          usuario: 'João Silva',
-          data: menos5.toISOString(),
-          descricao: 'Packlist finalizado com 24 itens'
-        },
-        {
-          id: '3',
-          acao: 'CHANGE',
-          usuario: 'Maria Costa',
-          data: menos2.toISOString(),
-          descricao: 'Custo atualizado para R$ 45.750,50'
-        },
-        {
-          id: '4',
-          acao: 'UPDATE',
-          usuario: 'João Silva',
-          data: new Date(hoje.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          descricao: 'Aguardando aprovação de custo'
-        },
-        {
-          id: '5',
-          acao: 'CREATE',
           usuario: 'Sistema',
-          data: hoje.toISOString(),
-          descricao: 'Notificação enviada ao cliente'
+          data: meta.createdAt || hoje.toISOString(),
+          descricao: `Orçamento criado para ${meta.cliente || 'cliente'}`
         }
       ]
     };
 
     this.historicoResumido = this.orcamento.historico.slice(0, 5);
 
-    this.interacoes = [
-      {
-        id: 'custo-aprovacao',
-        titulo: 'Aprovar custo estimado',
-        descricao: 'Custo em andamento aguardando aprovação há 1 dia.',
-        nivel: 'warning',
-        acao: { label: 'Abrir custo', rota: ['/custo'], query: { orcamento: id } }
-      },
-      {
-        id: 'venda-preparar',
-        titulo: 'Preparar planilha de venda',
-        descricao: 'Após aprovação do custo, preencha a planilha de venda para enviar ao cliente.',
-        nivel: 'info',
-        acao: { label: 'Ir para venda', rota: ['/venda'], query: { orcamento: id } }
-      },
-      {
-        id: 'numerario-solicitar',
-        titulo: 'Solicitar numerário',
-        descricao: 'Solicite numerário assim que o cliente aprovar o orçamento.',
-        nivel: 'info',
-        acao: { label: 'Abrir numerário', rota: ['/numerario'], query: { orcamento: id } }
-      }
-    ];
-
-    // Atualizar status das fases baseado no tempo
+    // Atualizar status das fases baseado em dados reais
     this.fases = this.fases.map(f => {
       if (this.orcamento?.fases[f.key as keyof typeof this.orcamento.fases]) {
         f.status = this.orcamento.fases[f.key as keyof typeof this.orcamento.fases].status;
       }
       return f;
     });
+
+    this.interacoes = this.gerarInteracoes(id);
+  }
+
+  private getMockMetaData(id: string): any {
+    try {
+      const data = (globalThis as any).localStorage?.getItem(`orcamento_${id}`);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch { }
+    return { cliente: 'Novo cliente', codigo: `ORC-${id.substring(0, 8)}`, createdAt: new Date().toISOString() };
+  }
+
+  private gerarInteracoes(id: string): any[] {
+    const interacoes = [];
+    if (this.orcamento?.fases.packlist.status === 'pendente') {
+      interacoes.push({
+        id: 'packlist-pendente',
+        titulo: 'Enviar packlist',
+        descricao: 'Inicie enviando o packlist do cliente com os itens a importar.',
+        nivel: 'warning',
+        acao: { label: 'Ir para packlist', rota: ['/packlist', id] }
+      });
+    }
+    return interacoes;
   }
 
   getPhaseIcon(status: string): string {

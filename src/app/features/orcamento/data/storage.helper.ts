@@ -8,6 +8,14 @@ export function writeJSON(key: string, value: any): void {
   try { const ls = (globalThis as any).localStorage as Storage | undefined; if (!ls) return; ls.setItem(key, JSON.stringify(value)); } catch { /* noop */ }
 }
 
+export function deleteJSON(key: string): void {
+  try { const ls = (globalThis as any).localStorage as Storage | undefined; if (!ls) return; ls.removeItem(key); } catch { /* noop */ }
+}
+
+export function clearOrcamentos(): void {
+  try { const ls = (globalThis as any).localStorage as Storage | undefined; if (!ls) return; const index = readJSON<any[]>(keys.orcamentosIndex()) || []; index.forEach(item => { ls.removeItem(keys.orcamento(item.id)); ls.removeItem(keys.history(item.id)); }); ls.removeItem(keys.orcamentosIndex()); ls.removeItem(keys.currentId()); } catch { /* noop */ }
+}
+
 export function randomId(): string {
   const c = (globalThis as any).crypto; return typeof c?.randomUUID === 'function' ? c.randomUUID() : Math.random().toString(36).slice(2) + Date.now();
 }

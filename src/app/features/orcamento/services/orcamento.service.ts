@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { readJSON, writeJSON, randomId, keys } from '../data/storage.helper';
+import { readJSON, writeJSON, randomId, keys, clearOrcamentos, deleteJSON } from '../data/storage.helper';
 import { OrcamentoMeta, OrcamentoListItem } from '../models/orcamento.models';
 
 @Injectable({ providedIn: 'root' })
@@ -14,18 +14,33 @@ export class OrcamentoService {
   }
   private saveIndex(items: OrcamentoListItem[]){ writeJSON(keys.orcamentosIndex(), items); }
 
-  criar(cliente?: string, despachante?: string, codigo?: string, data?: string, clienteId?: string, despachanteId?: string){
+  criar(clienteId: string, cliente?: string, codigo?: string, data?: string){
     const id = randomId();
     const createdAt = data ? new Date(data).toISOString() : new Date().toISOString();
-    const meta: OrcamentoMeta = { id, title: cliente ? `${cliente} • ${codigo || ''}`.trim() : 'Novo Orçamento', faseAtual: 'Orcamento', createdAt, aprovado: false, oficializado: false, numerarioPago: false, fechado: false, clienteId, despachanteId };
+    
+    // Se código não foi fornecido, gerar automaticamente
+    const codigoFinal = codigo || this.gerarCodigoOrcamento();
+    
+    const meta: OrcamentoMeta = { id, title: cliente ? `${cliente} • ${codigoFinal}`.trim() : 'Novo Orçamento', faseAtual: 'Orcamento', createdAt, aprovado: false, oficializado: false, numerarioPago: false, fechado: false, clienteId, despachanteId: undefined };
     writeJSON(keys.orcamento(id), meta);
-    const item: OrcamentoListItem = { id, cliente, despachante, clienteId, despachanteId, codigo, data: meta.createdAt, status: 'CRIADO' as const };
+    const item: OrcamentoListItem = { id, cliente, despachante: undefined, clienteId, despachanteId: undefined, codigo: codigoFinal, data: meta.createdAt, status: 'CRIADO' as const };
     const next = [item, ...this.loadIndex()];
     this.saveIndex(next);
     this.subj.next(next);
     this.logHistory(id, { meta: null, item: null }, { meta, item });
     (globalThis as any).localStorage?.setItem(keys.currentId(), id);
     return id;
+  }
+
+  private gerarCodigoOrcamento(): string {
+    // Gera código no formato: ORC-DDMMYY-XXXX
+    // Exemplo: ORC-250125-A7F2
+    const hoje = new Date();
+    const dd = String(hoje.getDate()).padStart(2, '0');
+    const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+    const yy = String(hoje.getFullYear()).slice(-2);
+    const sufixo = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `ORC-${dd}${mm}${yy}-${sufixo}`;
   }
 
   remover(id: string){
@@ -185,5 +200,10 @@ export class OrcamentoService {
 
   listAduanas(): Array<{ orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }>{
     return (readJSON<any[]>(keys.aduanaIndex()) || []) as any[];
+  }
+
+  limparTodos(): void {
+    clearOrcamentos();
+    this.subj.next([]);
   }
 }
