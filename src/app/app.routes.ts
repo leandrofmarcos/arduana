@@ -34,16 +34,12 @@ export const routes: Routes = [
         loadComponent: () => import('./features/despachantes/pages/despachantes.component').then(m => m.DespachantesComponent)
       },
       {
+        path: 'templates-packlist',
+        loadComponent: () => import('./features/templates-packlist/components/templates-packlist.component').then(m => m.TemplatesPacklistComponent)
+      },
+      {
         path: 'orcamento',
         loadChildren: () => import('./features/orcamento/orcamento.routes').then(m => m.ORCAMENTO_ROUTES)
-      },
-      {
-        path: 'packlist',
-        loadComponent: () => import('./features/packlist/pages/packlist.component').then(m => m.PacklistNovaComponent)
-      },
-      {
-        path: 'packlist/:id',
-        loadComponent: () => import('./features/packlist/pages/packlist-detail.component').then(m => m.PacklistDetalheComponent)
       },
       {
         path: 'custo',

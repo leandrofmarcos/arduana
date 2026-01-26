@@ -25,8 +25,8 @@ import { keys, readJSON, writeJSON } from '../data/storage.helper';
 
       <!-- Mapping Modal -->
       <app-packlist-mapping-modal
-        *ngIf="showMappingModal && selectedFile"
-        [file]="selectedFile"
+        *ngIf="showMappingModal"
+        [file]="selectedFile!"
         (onMappingComplete)="onMappingComplete($event)"
         (onMappingCancelled)="onMappingCancelled()"
       ></app-packlist-mapping-modal>
@@ -118,17 +118,9 @@ import { keys, readJSON, writeJSON } from '../data/storage.helper';
     `.file-text{display:flex;flex-direction:column;gap:4px}`,
     `.file-main{font-weight:600;color:#111;font-size:15px}`,
     `.file-sub{color:#9ca3af;font-size:13px}`,
-    `.info-section{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}`,
-    `.info-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0}`,
-    `.label{color:#6b7280;font-size:13px;font-weight:500}`,
-    `.value{color:#111;font-weight:600;font-size:14px}`,
     `.upload-actions{display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid #f3f4f6}`,
     `.upload-actions .btn{flex:1}`,
     `.preview-info{color:#6b7280;font-size:13px;margin-bottom:16px;padding:12px;background:#f9fafb;border-radius:8px;border-left:3px solid #3b82f6}`,
-    `.preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:16px}`,
-    `.preview-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:20px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;text-align:center}`,
-    `.preview-icon{font-size:32px}`,
-    `.preview-text{font-size:12px;color:#6b7280;font-weight:500}`,
     `.items-table{margin-top:12px}`,
     `.table{width:100%;border-collapse:collapse;font-size:13px}`,
     `.table th{background:#f3f4f6;font-weight:600;padding:10px;text-align:left;border-bottom:2px solid #e5e7eb}`,
@@ -270,7 +262,7 @@ export class PacklistDetalheComponent implements OnInit {
       itens: this.importedItems as any
     });
     
-    this.updateOrcamentoHistory(nome, caminho, now, this.mappingConfig || undefined);
+    this.updateOrcamentoHistory(nome, caminho, now, this.mappingConfig);
     
     this.detalhe = saved;
     this.loadPacklist();

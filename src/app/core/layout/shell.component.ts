@@ -32,7 +32,6 @@ import { Router } from '@angular/router';
           <div class="menu-group">
             <div class="menu-title">Orçamentos</div>
             <a routerLink="/orcamento" routerLinkActive="active"><span class="icon">🧩</span><span>Orçamento</span></a>
-            <a routerLink="/packlist" routerLinkActive="active"><span class="icon">📦</span><span>Packlist</span></a>
             <a routerLink="/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
             <a routerLink="/venda" routerLinkActive="active"><span class="icon">💼</span><span>Planilha de Venda</span></a>
             <a routerLink="/aduana" routerLinkActive="active"><span class="icon">🛃</span><span>Aduana</span></a>
@@ -48,6 +47,7 @@ import { Router } from '@angular/router';
             <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
             <a routerLink="/clientes" routerLinkActive="active"><span class="icon">👥</span><span>Clientes</span></a>
             <a routerLink="/despachantes" routerLinkActive="active"><span class="icon">🧭</span><span>Despachantes</span></a>
+            <a routerLink="/templates-packlist" routerLinkActive="active"><span class="icon">📋</span><span>Templates Packlist</span></a>
           </div>
         </nav>
       </aside>
@@ -125,9 +125,9 @@ export class ShellComponent {
     } else if(url.includes('/orcamento')){
       this.headerTitle = 'Orçamentos';
       this.headerSubtitle = 'Lista e gerenciamento de orçamentos';
-    } else if(url.includes('/packlist')){
-      this.headerTitle = 'Packlist';
-      this.headerSubtitle = 'Gerenciamento de itens';
+    } else if(url.includes('/templates-packlist')){
+      this.headerTitle = 'Templates Packlist';
+      this.headerSubtitle = 'Configuração de modelos de packlist';
     } else if(url.includes('/custo')){
       this.headerTitle = 'Planilha de Custo';
       this.headerSubtitle = 'Gestão de despesas';

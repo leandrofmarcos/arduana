@@ -1,0 +1,58 @@
+<div class="templates-container">
+  <div class="templates-header">
+    <h2>Templates Packlist</h2>
+    <button class="btn-primary" (click)="newTemplate()">+ Novo Template</button>
+  </div>
+
+  <ng-container *ngIf="!isCreating && !selectedTemplate">
+    <div class="search-box">
+      <input 
+        type="text" 
+        placeholder="Buscar templates..." 
+        [(ngModel)]="searchTerm"
+        class="search-input">
+    </div>
+
+    <div class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nome do Template</th>
+            <th>Descrição</th>
+            <th>Arquivo</th>
+            <th>Data Criação</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="filteredTemplates.length === 0">
+            <td colspan="5" class="empty-state">Nenhum template encontrado</td>
+          </tr>
+          <tr *ngFor="let template of filteredTemplates">
+            <td class="template-name">{{ template.nome }}</td>
+            <td class="template-descricao" [title]="template.descricao || ''">{{ template.descricao || '—' }}</td>
+            <td class="template-arquivo">
+              <span class="arquivo-nome">{{ template.nomeArquivo }}</span>
+              <button class="btn-download" (click)="downloadTemplate(template)" title="Baixar arquivo">
+                📥
+              </button>
+            </td>
+            <td class="template-data">{{ template.dataCriacao | date:'dd/MM/yyyy' }}</td>
+            <td class="template-actions">
+              <button class="btn-edit" (click)="selectTemplate(template)">Editar</button>
+              <button class="btn-delete" (click)="deleteTemplate(template.id)">Deletar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+
+  <ng-container *ngIf="isCreating || selectedTemplate">
+    <app-templates-packlist-detail 
+      [template]="selectedTemplate"
+      (saved)="onSaveTemplate()"
+      (cancelled)="onCancelTemplate()">
+    </app-templates-packlist-detail>
+  </ng-container>
+</div>
