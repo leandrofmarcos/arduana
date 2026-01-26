@@ -8,9 +8,16 @@ export class TemplatesPacklistService {
   getAll(): TemplatePacklistListItem[] {
     try {
       const data = localStorage.getItem(this.STORAGE_KEY);
-      if (!data) return [];
+      console.log('📋 TemplatesPacklistService.getAll() - Raw storage data:', data);
+      
+      if (!data) {
+        console.log('⚠️ Nenhum template encontrado no storage');
+        return [];
+      }
       
       const templates: TemplatePacklist[] = JSON.parse(data);
+      console.log(`✅ ${templates.length} template(s) carregado(s):`, templates.map(t => ({ id: t.id, nome: t.nome })));
+      
       return templates.map(t => ({
         id: t.id,
         nome: t.nome,
@@ -20,7 +27,7 @@ export class TemplatesPacklistService {
         dataAtualizacao: new Date(t.dataAtualizacao)
       }));
     } catch (error) {
-      console.error('Erro ao buscar templates:', error);
+      console.error('❌ Erro ao buscar templates:', error);
       return [];
     }
   }
@@ -57,16 +64,24 @@ export class TemplatesPacklistService {
       }
       
       if (existingIndex >= 0) {
+        console.log('🔄 Atualizando template existente:', template.id);
         allTemplates[existingIndex] = template;
       } else {
+        console.log('➕ Adicionando novo template:', template.id);
         allTemplates.push(template);
       }
       
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(allTemplates));
-      console.log('Template salvo com sucesso:', template);
+      console.log('💾 Template salvo com sucesso no storage:', template.id, template.nome);
+      console.log('📊 Total de templates após salvar:', allTemplates.length);
+      
+      // Verificar se foi salvo corretamente
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      console.log('🔍 Verificação pós-save - Storage contém:', saved ? JSON.parse(saved).length + ' templates' : 'vazio');
+      
       return template;
     } catch (error) {
-      console.error('Erro ao salvar template:', error);
+      console.error('❌ Erro ao salvar template:', error);
       throw error;
     }
   }

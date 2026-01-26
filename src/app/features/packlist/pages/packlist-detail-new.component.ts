@@ -4,6 +4,8 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PacklistRecord } from '../models/packlist.models';
 import { PacklistService } from '../services/packlist.service';
+import { PacklistParserService } from '../services/packlist-parser.service';
+import { PacklistImportConfig, ImportedPacklistItem, PacklistImportResult } from '../models/packlist-mapping.models';
 import { keys, readJSON, writeJSON } from '../data/storage.helper';
 import { ClientesService } from '../../clientes/services/clientes.service';
 import { TemplatesPacklistService } from '../../templates-packlist/services/templates-packlist.service';
@@ -72,6 +74,38 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
             </div>
           </div>
         </div>
+
+        <!-- Preview Section (apenas quando há template e itens processados) -->
+        <div class="preview-section" *ngIf="importedItems.length > 0 && templateAssociado">
+          <div class="card">
+            <div class="card-header">
+              <span>📋 Preview dos dados importados</span>
+              <span class="preview-count">{{ importedItems.length }} itens (amostra)</span>
+            </div>
+            <div class="preview-table-wrapper">
+              <table class="preview-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Volumes</th>
+                    <th>Peso (KG)</th>
+                    <th>CBM (M³)</th>
+                    <th>Descrição</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of importedItems; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td>{{ item.volumes || '-' }}</td>
+                    <td>{{ item.peso || '-' }}</td>
+                    <td>{{ item.cbm || '-' }}</td>
+                    <td>{{ item.descricao || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `,
@@ -110,7 +144,17 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
     `.alert{position:relative;border-radius:12px;padding:14px 16px 14px 16px;margin-bottom:16px;border:1px solid #fecdd3;background:linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%);color:#7f1d1d;box-shadow:0 6px 20px rgba(255,76,96,0.1)}`,
     `.alert-title{font-weight:700;margin-bottom:6px;font-size:14px;color:#991b1b}`,
     `.alert ul{margin:0;padding-left:18px;line-height:1.4}`,
-    `.alert-close{position:absolute;top:10px;right:10px;background:transparent;border:none;color:#991b1b;font-size:14px;cursor:pointer;padding:4px}`
+    `.alert-close{position:absolute;top:10px;right:10px;background:transparent;border:none;color:#991b1b;font-size:14px;cursor:pointer;padding:4px}`,
+    `.preview-section{margin-top:24px}`,
+    `.preview-count{font-size:12px;color:#6b7280;font-weight:400}`,
+    `.preview-table-wrapper{overflow-x:auto;margin-top:12px}`,
+    `.preview-table{width:100%;border-collapse:collapse;font-size:13px}`,
+    `.preview-table thead{background:#f9fafb;border-bottom:2px solid #e5e7eb}`,
+    `.preview-table th{padding:10px 12px;text-align:left;font-weight:600;color:#374151}`,
+    `.preview-table tbody tr{border-bottom:1px solid #f3f4f6}`,
+    `.preview-table tbody tr:hover{background:#f9fafb}`,
+    `.preview-table td{padding:10px 12px;color:#6b7280}`,
+    `.preview-table td:first-child{color:#111;font-weight:600}`
   ]
 })
 export class PacklistDetalheComponent implements OnInit {
@@ -126,13 +170,17 @@ export class PacklistDetalheComponent implements OnInit {
   selectedFileName = '';
   selectedFilePath = '';
   errorMessages: string[] = [];
+  importedItems: ImportedPacklistItem[] = [];
+  mappingConfig?: PacklistImportConfig;
+  totalItems = 0;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private service: PacklistService,
     private clientesService: ClientesService,
-    private templatesService: TemplatesPacklistService
+    private templatesService: TemplatesPacklistService,
+    private parser: PacklistParserService
   ) {}
 
   ngOnInit(): void {
@@ -191,6 +239,17 @@ export class PacklistDetalheComponent implements OnInit {
       this.codigo = this.detalhe.codigo || this.codigo;
       this.selectedFileName = this.detalhe.arquivoNome || '';
       this.selectedFilePath = this.detalhe.arquivoCaminho || '';
+      
+      // Restaurar preview e mapping se existirem
+      if (this.detalhe.previewItems && this.detalhe.previewItems.length > 0) {
+        this.importedItems = this.detalhe.previewItems;
+      }
+      if (this.detalhe.mappingConfig) {
+        this.mappingConfig = this.detalhe.mappingConfig;
+      }
+      if (typeof this.detalhe.totalItems === 'number') {
+        this.totalItems = this.detalhe.totalItems;
+      }
     }
   }
 
@@ -217,7 +276,52 @@ export class PacklistDetalheComponent implements OnInit {
       this.selectedFile = file;
       this.selectedFileName = file.name;
       this.selectedFilePath = input.value || file.name;
+      
+      // Se existe template associado, processar automaticamente
+      if (this.templateAssociado) {
+        this.processarComTemplate(file);
+      }
     }
+  }
+
+  private processarComTemplate(file: File): void {
+    if (!this.templateAssociado) return;
+    
+    // Converter config do template para formato de importação
+    const config: PacklistImportConfig = {
+      headerLine: this.templateAssociado.config.linhaInicio || 2,
+      fieldMapping: {
+        volumes: this.templateAssociado.config.fieldMapping.volumes || 'A',
+        peso: this.templateAssociado.config.fieldMapping.peso || 'B',
+        cbm: this.templateAssociado.config.fieldMapping.cbm || 'C',
+        descricao: this.templateAssociado.config.fieldMapping.descricaoComercial || 'D'
+      }
+    };
+    
+    console.log('🔄 Processando arquivo com template:', this.templateAssociado.nome);
+    console.log('Config de mapeamento:', config);
+    
+    this.parser.processFile(file, config).then((result: PacklistImportResult) => {
+      console.log('✅ Processamento concluído:', result);
+      
+      if (result.errors.length > 0) {
+        this.showErrors(result.errors.map((e: { line: number; message: string }) => `Linha ${e.line}: ${e.message}`));
+        this.importedItems = [];
+        this.mappingConfig = undefined;
+        this.totalItems = 0;
+      } else {
+        this.importedItems = result.items.slice(0, 10); // Preview de 10 itens
+        this.mappingConfig = config;
+        this.totalItems = result.items.length;
+        console.log(`📋 Preview com ${this.importedItems.length} itens carregado`);
+      }
+    }).catch((err: Error) => {
+      console.error('❌ Erro ao processar arquivo:', err);
+      this.showErrors([`Erro ao processar arquivo: ${err.message || 'Erro desconhecido'}`]);
+      this.importedItems = [];
+      this.mappingConfig = undefined;
+      this.totalItems = 0;
+    });
   }
 
   salvar(): void {
@@ -247,8 +351,9 @@ export class PacklistDetalheComponent implements OnInit {
       enviadoEm: now,
       enviadoPor: undefined,
       itens: undefined,
-      previewItems: undefined,
-      mappingConfig: undefined
+      previewItems: this.importedItems.length > 0 ? this.importedItems : undefined,
+      mappingConfig: this.mappingConfig,
+      totalItems: this.totalItems || (this.importedItems?.length || 0)
     });
     
     this.updateOrcamentoHistory(nome, caminho, now);
@@ -282,7 +387,7 @@ export class PacklistDetalheComponent implements OnInit {
       descricao: `Packlist enviado: ${nomeArquivo}`,
       arquivo: nomeArquivo,
       caminho: caminhoArquivo,
-      itemsCount: 0
+      itemsCount: this.totalItems
     });
     writeJSON(keys.history(this.orcamentoId), historico);
   }

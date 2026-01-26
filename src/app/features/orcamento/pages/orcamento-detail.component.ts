@@ -544,9 +544,10 @@ export class OrçamentoDetailComponentV2 implements OnInit {
 
     const packlist = this.packlistService.getByOrcamentoId(id);
     if (packlist) {
+      const itemCount = packlist.totalItems ?? packlist.previewItems?.length ?? packlist.itens?.length ?? 0;
       this.orcamento.fases.packlist = {
         status: packlist.status,
-        itens: packlist.itens?.length || 0,
+        itens: itemCount,
         data: packlist.enviadoEm,
         arquivoNome: packlist.arquivoNome,
         arquivoCaminho: packlist.arquivoCaminho

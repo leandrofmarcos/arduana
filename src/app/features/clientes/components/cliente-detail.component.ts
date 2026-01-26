@@ -34,20 +34,27 @@ export class ClienteDetailComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    console.log('🔧 ClienteDetailComponent.ngOnInit() - Iniciando componente');
     this.loadTemplates();
     
     if (this.cliente) {
+      console.log('📝 Editando cliente existente:', this.cliente);
       this.form = {
         nome: this.cliente.nome || '',
         documento: this.cliente.documento || '',
         contato: this.cliente.contato || '',
         templatePacklistId: this.cliente.templatePacklistId || ''
       };
+      console.log('📋 Template ID do cliente:', this.cliente.templatePacklistId);
+    } else {
+      console.log('➕ Criando novo cliente');
     }
   }
 
   loadTemplates(): void {
+    console.log('🔄 ClienteDetailComponent.loadTemplates() - Carregando templates...');
     this.templates = this.templatesService.getAll();
+    console.log('📋 Templates carregados no componente:', this.templates.length, this.templates);
   }
 
   save(): void {

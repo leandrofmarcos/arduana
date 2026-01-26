@@ -50,6 +50,10 @@
         </select>
         <span class="help-text">
           📋 Selecione um template para facilitar a importação de packlists deste cliente
+          <button type="button" (click)="loadTemplates()" class="btn-refresh">🔄 Recarregar</button>
+        </span>
+        <span class="help-text" *ngIf="templates.length === 0" style="color: #e11d48; font-weight: bold;">
+          ⚠️ Nenhum template cadastrado! Crie um template em "Templates Packlist" primeiro.
         </span>
       </div>
     </div>

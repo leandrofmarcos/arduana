@@ -117,6 +117,30 @@
     color: var(--color-muted);
     margin-top: 6px;
     font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-refresh {
+    padding: 4px 8px;
+    font-size: 11px;
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
   }
 }
 

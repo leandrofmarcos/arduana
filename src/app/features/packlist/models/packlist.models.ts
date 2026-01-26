@@ -26,6 +26,7 @@ export interface PacklistRecord extends PacklistFileInfo {
   itens?: PacklistItem[];
   previewItems?: any[];   // items no formato importado para reexibir preview
   mappingConfig?: any;    // configuração usada na importação
+  totalItems?: number;    // total de linhas importadas (full planilha)
 }
 
 export interface PacklistSummary {

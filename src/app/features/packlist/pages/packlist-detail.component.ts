@@ -216,7 +216,7 @@ export class PacklistDetalheComponent implements OnInit {
       const result = await this.parser.processFile(this.selectedFile, config);
       
       if (result.errors.length > 0) {
-        const errorMsg = result.errors.map(e => `Linha ${e.line}: ${e.message}`).join('\n');
+        const errorMsg = result.errors.map((e: { line: number; message: string }) => `Linha ${e.line}: ${e.message}`).join('\n');
         alert('Erros na importação:\n' + errorMsg);
       }
       
