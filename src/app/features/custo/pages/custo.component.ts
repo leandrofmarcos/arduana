@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { CustoService } from '../services/custo.service';
 import { Despesa, CategoriaDespesa } from '../models/custo.models';
 import { ResumoFinanceiroComponent } from '../../packlist/pages/resumo-financeiro.component';
@@ -215,8 +216,8 @@ import { ResumoFinanceiroComponent } from '../../packlist/pages/resumo-financeir
     `.modal-actions{display:flex;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--color-border)}`
   ]
 })
-export class CustoNovaComponent {
-  custos: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] = [];
+export class CustoNovaComponent implements OnInit {
+  custos: { id?: string; orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; createdAt: string }[] = [];
   editing: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string; produto?: string; data?: string; origem?: string } | null = null;
   form: any = { fobUsd: 0, freteUsd: 0, seguroUsd: 0, taxaUsd: 5, ncm: '', pesoLiquido: 0, quantProdutos: 0, txUtilizacao: 0, servicoDesp: 0, armazenagem: 0 };
   statusAtual: string | null = null;
@@ -244,8 +245,25 @@ export class CustoNovaComponent {
     this.errors = this.runValidation(this.form, this.premissasRules);
     return Object.keys(this.errors).length === 0;
   }
-  constructor(private s: CustoService) {
+  constructor(private s: CustoService, private route: ActivatedRoute) {}
+
+  ngOnInit(): void {
     this.custos = this.s.listCustos();
+    const target = this.route.snapshot.queryParamMap.get('orcamento');
+    if (target) {
+      // tenta obter meta do orçamento para preencher header
+      let meta: any = null;
+      try {
+        meta = (globalThis as any).localStorage?.getItem(`orcamento_${target}`);
+        meta = meta ? JSON.parse(meta) : null;
+      } catch { meta = null; }
+      this.s.ensureByOrcamento(target, { codigo: meta?.codigo, cliente: meta?.cliente, despachante: meta?.despachante });
+      this.custos = this.s.listCustos();
+      const custo = this.custos.find((c: any) => c.orcamentoId === target || c.id === target);
+      if (custo) {
+        this.editar(custo);
+      }
+    }
   }
   editar(c: { orcamentoId: string; codigo?: string; cliente?: string; despachante?: string }){
     this.editing = c;

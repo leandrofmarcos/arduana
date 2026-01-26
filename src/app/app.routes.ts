@@ -42,6 +42,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/packlist/pages/packlist-detail-new.component').then(m => m.PacklistDetalheComponent)
       },
       {
+        path: 'custo/:id',
+        loadComponent: () => import('./features/custo/pages/custo-detail.component').then(m => m.CustoDetailComponent)
+      },
+      {
         path: 'orcamento',
         loadChildren: () => import('./features/orcamento/orcamento.routes').then(m => m.ORCAMENTO_ROUTES)
       },

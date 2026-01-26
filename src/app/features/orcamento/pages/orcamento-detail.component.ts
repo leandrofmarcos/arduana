@@ -99,9 +99,10 @@ interface OrçamentoDetalhe {
           <div class="card-note" *ngIf="orcamento?.fases?.packlist?.arquivoNome">Arquivo: {{ orcamento?.fases?.packlist?.arquivoNome }}</div>
         </div>
 
-        <div class="phase-card" (click)="navigarParaCusto()">
+        <div class="phase-card" [ngClass]="{'disabled-card': (orcamento?.fases?.packlist?.itens ?? 0) === 0}" (click)="navigarParaCusto()">
           <div class="card-header">💰 Custo</div>
-          <div class="card-value">R$ {{ formatCurrency(orcamento?.fases?.custo?.valor) }}</div>
+            <div class="card-value">R$ {{ formatCurrency(orcamento?.fases?.custo?.valor) }}</div>
+            <div class="card-note warn" *ngIf="(orcamento?.fases?.packlist?.itens ?? 0) === 0">Disponível após importar packlist</div>
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.custo?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.custo?.status) }}
           </div>
@@ -351,6 +352,13 @@ interface OrçamentoDetalhe {
       box-shadow: 0 4px 12px rgba(59,130,246,0.15);
     }
 
+    .phase-card.disabled-card {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+      border-color: #e5e7eb;
+    }
+
     .card-header {
       font-size: 16px;
       font-weight: 600;
@@ -369,6 +377,11 @@ interface OrçamentoDetalhe {
       font-size: 12px;
       color: #4b5563;
       margin-top: 6px;
+    }
+
+    .card-note.warn {
+      color: #b45309;
+      font-weight: 600;
     }
 
     .card-status {
@@ -489,7 +502,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   fases = [
     { key: 'criacao', label: 'Criação', status: 'concluido' },
     { key: 'packlist', label: 'Packlist', status: 'concluido' },
-    { key: 'custo', label: 'Custo', status: 'em-andamento' },
+    { key: 'custo', label: 'Custo', status: 'pendente' },
     { key: 'venda', label: 'Venda', status: 'pendente' },
     { key: 'aduana', label: 'Aduana', status: 'pendente' },
     { key: 'fechamento', label: 'Fechamento', status: 'pendente' }
@@ -545,13 +558,17 @@ export class OrçamentoDetailComponentV2 implements OnInit {
     const packlist = this.packlistService.getByOrcamentoId(id);
     if (packlist) {
       const itemCount = packlist.totalItems ?? packlist.previewItems?.length ?? packlist.itens?.length ?? 0;
+      const packlistStatus = packlist.status || (itemCount > 0 ? 'concluido' : 'pendente');
       this.orcamento.fases.packlist = {
-        status: packlist.status,
+        status: packlistStatus as any,
         itens: itemCount,
         data: packlist.enviadoEm,
         arquivoNome: packlist.arquivoNome,
         arquivoCaminho: packlist.arquivoCaminho
       };
+
+      // habilita custo quando packlist possui itens
+      this.orcamento.fases.custo.status = itemCount > 0 ? 'em-andamento' : 'pendente';
     }
 
     this.historicoResumido = this.orcamento.historico.slice(0, 5);
@@ -630,7 +647,10 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   }
 
   navigarParaCusto(): void {
-    this.router.navigate(['/custo'], { queryParams: { orcamento: this.orcamento?.id } });
+    if (!this.orcamento?.id) return;
+    const packlistItens = this.orcamento.fases.packlist?.itens || 0;
+    if (packlistItens <= 0) return; // bloquear se não houver packlist
+    this.router.navigate(['/custo', this.orcamento.id]);
   }
 
   onAlertAction(alerta: { acao?: { rota: any[]; query?: Record<string, any> } }): void {
