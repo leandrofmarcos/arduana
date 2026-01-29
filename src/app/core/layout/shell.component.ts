@@ -35,11 +35,6 @@ import { Router } from '@angular/router';
             <a routerLink="/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
             <a routerLink="/venda" routerLinkActive="active"><span class="icon">💼</span><span>Planilha de Venda</span></a>
             <a routerLink="/aduana" routerLinkActive="active"><span class="icon">🛃</span><span>Aduana</span></a>
-            <a routerLink="/aduana/atualizar" routerLinkActive="active"><span class="icon">📝</span><span>Atualização Aduana</span></a>
-            <a routerLink="/numerario" routerLinkActive="active"><span class="icon">💵</span><span>Numerário</span></a>
-            <a routerLink="/numerario/historico" routerLinkActive="active"><span class="icon">🗂️</span><span>Histórico Numerário</span></a>
-            <a routerLink="/fechamento" routerLinkActive="active"><span class="icon">✅</span><span>Fechamento</span></a>
-            <a routerLink="/historico" routerLinkActive="active"><span class="icon">🕑</span><span>Histórico</span></a>
           </div>
           <div class="menu-group">
             <div class="menu-title">Cadastros</div>
@@ -137,15 +132,6 @@ export class ShellComponent {
     } else if(url.includes('/aduana')){
       this.headerTitle = 'Aduana';
       this.headerSubtitle = 'Gerenciamento aduaneiro';
-    } else if(url.includes('/numerario')){
-      this.headerTitle = 'Numerário';
-      this.headerSubtitle = 'Gestão de provisões';
-    } else if(url.includes('/fechamento')){
-      this.headerTitle = 'Fechamento';
-      this.headerSubtitle = 'Consolidação final';
-    } else if(url.includes('/historico')){
-      this.headerTitle = 'Histórico';
-      this.headerSubtitle = 'Rastreamento de alterações';
     } else {
       this.headerTitle = 'Cadastros';
       this.headerSubtitle = 'Dados mestres';

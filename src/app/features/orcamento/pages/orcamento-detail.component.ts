@@ -23,7 +23,6 @@ interface OrçamentoDetalhe {
     custo: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; valor?: number };
     venda: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string };
     aduana: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string };
-    fechamento: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string };
   };
   historico: Array<{
     id: string;
@@ -519,8 +518,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
     { key: 'packlist', label: 'Packlist', status: 'concluido' },
     { key: 'custo', label: 'Custo', status: 'pendente' },
     { key: 'venda', label: 'Venda', status: 'pendente' },
-    { key: 'aduana', label: 'Aduana', status: 'pendente' },
-    { key: 'fechamento', label: 'Fechamento', status: 'pendente' }
+    { key: 'aduana', label: 'Aduana', status: 'pendente' }
   ];
 
   constructor(
@@ -556,8 +554,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
         packlist: { status: 'pendente', itens: 0, data: undefined },
         custo: { status: 'pendente', valor: 0, data: undefined },
         venda: { status: 'pendente' },
-        aduana: { status: 'pendente' },
-        fechamento: { status: 'pendente' }
+        aduana: { status: 'pendente' }
       },
       historico: [
         {

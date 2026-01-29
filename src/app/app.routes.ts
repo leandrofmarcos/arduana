@@ -62,22 +62,6 @@ export const routes: Routes = [
         loadComponent: () => import('./features/aduana/pages/aduana.component').then(m => m.AduanaNovaComponent)
       },
       {
-        path: 'aduana/atualizar',
-        loadComponent: () => import('./features/aduana/pages/aduana-atualizar.component').then(m => m.AduanaAtualizarNovaComponent)
-      },
-      {
-        path: 'numerario',
-        loadComponent: () => import('./features/numerario/pages/numerario.component').then(m => m.NumerarioNovaComponent)
-      },
-      {
-        path: 'numerario/historico',
-        loadComponent: () => import('./features/numerario/pages/numerario-historico.component').then(m => m.NumerarioHistoricoNovaComponent)
-      },
-      {
-        path: 'fechamento',
-        loadComponent: () => import('./features/fechamento/pages/fechamento.component').then(m => m.FechamentoNovaComponent)
-      },
-      {
         path: 'historico',
         loadComponent: () => import('./features/historico/pages/historico.component').then(m => m.HistoricoNovaComponent)
       },

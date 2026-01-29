@@ -1,4 +1,4 @@
-export type Fase = 'Orcamento' | 'Aduana' | 'Numerario' | 'Fechamento';
+export type Fase = 'Orcamento' | 'Aduana';
 
 export interface OrcamentoMeta {
   id: string;
@@ -7,8 +7,6 @@ export interface OrcamentoMeta {
   aprovado?: boolean;
   aprovadoCliente?: boolean;
   oficializado?: boolean;
-  numerarioPago?: boolean;
-  fechado?: boolean;
   createdAt: string;
   clienteId?: string;
   despachanteId?: string;
@@ -22,6 +20,6 @@ export interface OrcamentoListItem {
   despachanteId?: string;
   codigo?: string;
   data: string;
-  status: 'CRIADO' | 'Orçamento' | 'Em aprovação' | 'Aprovado' | 'Reprovado' | 'Aduana' | 'Numerário' | 'Fechamento' | 'Fechado';
+  status: 'CRIADO' | 'Orçamento' | 'Em aprovação' | 'Aprovado' | 'Reprovado' | 'Aduana';
 }
 

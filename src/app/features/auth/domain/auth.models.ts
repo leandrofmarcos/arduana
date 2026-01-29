@@ -42,10 +42,6 @@ export type Permission =
   | 'venda:write'
   | 'aduana:read' 
   | 'aduana:write'
-  | 'numerario:read' 
-  | 'numerario:write'
-  | 'fechamento:read' 
-  | 'fechamento:write'
   | 'historico:read'
   | 'clientes:read' 
   | 'clientes:write'
@@ -82,8 +78,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   maritimo: [
     'orcamento:read',
     'packlist:read',
-    'numerario:read',
-    'numerario:write',
-    'fechamento:read'
+    
   ]
 };

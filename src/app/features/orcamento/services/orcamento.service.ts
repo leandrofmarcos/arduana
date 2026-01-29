@@ -21,7 +21,7 @@ export class OrcamentoService {
     // Se código não foi fornecido, gerar automaticamente
     const codigoFinal = codigo || this.gerarCodigoOrcamento();
     
-    const meta: OrcamentoMeta = { id, title: cliente ? `${cliente} • ${codigoFinal}`.trim() : 'Novo Orçamento', faseAtual: 'Orcamento', createdAt, aprovado: false, oficializado: false, numerarioPago: false, fechado: false, clienteId, despachanteId: undefined };
+    const meta: OrcamentoMeta = { id, title: cliente ? `${cliente} • ${codigoFinal}`.trim() : 'Novo Orçamento', faseAtual: 'Orcamento', createdAt, aprovado: false, oficializado: false, clienteId, despachanteId: undefined };
     writeJSON(keys.orcamento(id), meta);
     const item: OrcamentoListItem = { id, cliente, despachante: undefined, clienteId, despachanteId: undefined, codigo: codigoFinal, data: meta.createdAt, status: 'CRIADO' as const };
     const next = [item, ...this.loadIndex()];
