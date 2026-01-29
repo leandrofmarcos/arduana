@@ -23,20 +23,15 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
       </div>
       <table class="table">
         <thead>
-          <tr><th>Data</th><th>Cliente</th><th>Despachante</th><th>Código</th><th>Fluxo</th><th>Status</th><th style="width:140px">Ações</th></tr>
+          <tr><th>Data</th><th>Cliente</th><th>Despachante</th><th>Código</th><th>Status</th><th style="width:140px">Ações</th></tr>
         </thead>
         <tbody>
-          <tr *ngIf="(list|async)?.length === 0"><td colspan="7">Nenhum orçamento</td></tr>
+          <tr *ngIf="(list|async)?.length === 0"><td colspan="6">Nenhum orçamento</td></tr>
           <tr *ngFor="let p of (list|async)" style="cursor: pointer;" (click)="visualizar(p)" class="row-clickable">
             <td>{{p.data | date:'short'}}</td>
             <td>{{p.cliente || '-'}}</td>
             <td>{{p.despachante || '-'}}</td>
             <td>{{p.codigo || '-'}}</td>
-            <td>
-              <span class="badge" [ngClass]="p.templatePacklistId ? 'badge-packlist' : 'badge-manual'">
-                {{ p.templatePacklistId ? 'Packlist' : 'Manual' }}
-              </span>
-            </td>
             <td>{{p.status}}</td>
             <td>
               <div class="row-actions">

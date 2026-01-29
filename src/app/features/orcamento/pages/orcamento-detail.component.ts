@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { PacklistService } from '../../packlist/services/packlist.service';
+import { ClientesService } from '../../clientes/services/clientes.service';
 import { PacklistDetalheComponent } from '../../packlist/pages/packlist-detail-new.component';
 import { CustoDetailComponent } from '../../custo/pages/custo-detail.component';
 import { VendaDetailComponent } from '../../venda/pages/venda-detail.component';
@@ -96,21 +97,19 @@ interface OrçamentoDetalhe {
 
       <!-- Phase Cards Grid -->
       <div class="phases-grid">
-        <div class="phase-card" [ngClass]="{'disabled-card': !usaPacklist}" (click)="navigarParaPacklist()">
+        <div class="phase-card" (click)="navigarParaPacklist()">
           <div class="card-header">📦 Packlist</div>
           <div class="card-value">{{ orcamento?.fases?.packlist?.itens ?? 0 }} itens</div>
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.packlist?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.packlist?.status) }}
           </div>
           <div class="card-note" *ngIf="orcamento?.fases?.packlist?.arquivoNome">Arquivo: {{ orcamento?.fases?.packlist?.arquivoNome }}</div>
-          <div class="card-note" *ngIf="orcamento?.fases?.packlist?.nota">{{ orcamento?.fases?.packlist?.nota }}</div>
-          <div class="card-note" *ngIf="!usaPacklist">Não aplicável neste orçamento</div>
         </div>
 
         <div class="phase-card" (click)="navigarParaCusto()">
           <div class="card-header">💰 Custo</div>
-            <div class="card-value">R$ {{ formatCurrency(orcamento?.fases?.custo?.valor) }}</div>
-            <div class="card-note" *ngIf="!usaPacklist">Fluxo manual: informe custos diretamente</div>
+          <div class="card-value">R$ {{ formatCurrency(orcamento?.fases?.custo?.valor) }}</div>
+          <div class="card-note warn" *ngIf="orcamento?.fases?.packlist?.status !== 'concluido'">Finalização disponível após concluir packlist</div>
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.custo?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.custo?.status) }}
           </div>
@@ -119,6 +118,7 @@ interface OrçamentoDetalhe {
         <div class="phase-card" (click)="navigarParaVenda()">
           <div class="card-header">🛍️ Venda</div>
           <div class="card-value">R$ {{ formatCurrency(orcamento?.fases?.venda?.valor) }}</div>
+          <div class="card-note warn" *ngIf="orcamento?.fases?.custo?.status !== 'concluido'">Finalização disponível após concluir custo</div>
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.venda?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.venda?.status) }}
           </div>
@@ -528,7 +528,6 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   historicoResumido: any[] = [];
   interacoes: Array<{ id: string; titulo: string; descricao: string; nivel: 'info' | 'warning' | 'danger'; acao?: { label: string; rota: any[]; query?: Record<string, any> } }> = [];
   modo: 'overview' | 'packlist' | 'custo' | 'venda' | 'aduana' = 'overview';
-  usaPacklist = false;
 
   fases = [
     { key: 'criacao', label: 'Criação', status: 'concluido' },
@@ -541,7 +540,8 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private packlistService: PacklistService
+    private packlistService: PacklistService,
+    private clientesService: ClientesService
   ) {}
 
   ngOnInit(): void {
@@ -554,15 +554,26 @@ export class OrçamentoDetailComponentV2 implements OnInit {
 
   carregarOrçamento(id: string): void {
     const meta = this.getMockMetaData(id);
+    const listItem = this.getListItem(id);
     const hoje = new Date();
-    this.usaPacklist = !!meta.templatePacklistId;
+
+    // Buscar nome do cliente
+    let nomeCliente = listItem?.cliente || meta.cliente || 'Cliente não informado';
+    if (meta.clienteId && !nomeCliente) {
+      this.clientesService.list$().subscribe(clientes => {
+        const cliente = clientes.find(c => c.id === meta.clienteId);
+        if (cliente && this.orcamento) {
+          this.orcamento.cliente = cliente.nome;
+        }
+      });
+    }
 
     this.orcamento = {
       id,
-      numero: meta.codigo || `ORC-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
-      cliente: meta.cliente || 'Cliente não informado',
-      despachante: meta.despachante || '-',
-      codigo: meta.codigo || '-',
+      numero: meta.codigo || listItem?.codigo || `ORC-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      cliente: nomeCliente,
+      despachante: meta.despachante || listItem?.despachante || '-',
+      codigo: meta.codigo || listItem?.codigo || '-',
       data: meta.createdAt || hoje.toISOString(),
       status: 'em-andamento',
       criadoEm: meta.createdAt || hoje.toISOString(),
@@ -596,13 +607,6 @@ export class OrçamentoDetailComponentV2 implements OnInit {
         data: packlist.enviadoEm,
         arquivoNome: packlist.arquivoNome,
         arquivoCaminho: packlist.arquivoCaminho
-      };
-    } else if (!this.usaPacklist) {
-      this.orcamento.fases.packlist = {
-        status: 'concluido',
-        itens: 0,
-        data: undefined,
-        nota: 'Fluxo manual (sem packlist)'
       };
     }
 
@@ -648,23 +652,20 @@ export class OrçamentoDetailComponentV2 implements OnInit {
     return { cliente: 'Novo cliente', codigo: `ORC-${id.substring(0, 8)}`, createdAt: new Date().toISOString() };
   }
 
+  private getListItem(id: string): any {
+    const index = readJSON<any[]>(keys.orcamentosIndex()) || [];
+    return index.find(item => item.id === id) || null;
+  }
+
   private gerarInteracoes(id: string): any[] {
     const interacoes = [];
-    if (this.usaPacklist && this.orcamento?.fases.packlist.status === 'pendente') {
+    if (this.orcamento?.fases.packlist.status === 'pendente') {
       interacoes.push({
         id: 'packlist-pendente',
         titulo: 'Enviar packlist',
         descricao: 'Inicie enviando o packlist do cliente com os itens a importar.',
         nivel: 'warning',
         acao: { label: 'Ir para packlist', rota: ['/packlist', id] }
-      });
-    }
-    if (!this.usaPacklist) {
-      interacoes.push({
-        id: 'fluxo-manual',
-        titulo: 'Fluxo manual habilitado',
-        descricao: 'Este orçamento não possui template de packlist. Preencha custos e venda manualmente.',
-        nivel: 'info'
       });
     }
     return interacoes;
@@ -722,7 +723,6 @@ export class OrçamentoDetailComponentV2 implements OnInit {
 
   navigarParaPacklist(): void {
     if (!this.orcamento?.id) return;
-    if (!this.usaPacklist) return;
     this.modo = 'packlist';
   }
 
