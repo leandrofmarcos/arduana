@@ -10,6 +10,7 @@ export interface OrcamentoMeta {
   createdAt: string;
   clienteId?: string;
   despachanteId?: string;
+  templatePacklistId?: string;
 }
 
 export interface OrcamentoListItem {
@@ -18,6 +19,7 @@ export interface OrcamentoListItem {
   despachante?: string;
   clienteId?: string;
   despachanteId?: string;
+  templatePacklistId?: string;
   codigo?: string;
   data: string;
   status: 'CRIADO' | 'Orçamento' | 'Em aprovação' | 'Aprovado' | 'Reprovado' | 'Aduana';

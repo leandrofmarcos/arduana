@@ -12,6 +12,21 @@ interface AduanaEvento {
   descricao: string;
 }
 
+interface AduanaLancamento {
+  id: string;
+  data: string;
+  taxaUsdOficial: number;
+  pesoLiquidoOficial: number;
+  portoOrigem: string;
+  portoDestino: string;
+  dataEmbarque: string;
+  dataChegada: string;
+  canal: string;
+  observacoes: string;
+  totalDespesas: number;
+  desembolsoTotal: number;
+}
+
 @Component({
   standalone: true,
   selector: 'app-aduana-detail',
@@ -28,6 +43,12 @@ interface AduanaEvento {
 
       <div class="editor-grid">
         <div class="editor-left">
+          <div class="card" *ngIf="!aduanaHabilitada">
+            <div class="highlight-box">
+              <strong>Fase Aduana bloqueada</strong>
+              <span class="value">Conclua Packlist, Custo e Venda para habilitar.</span>
+            </div>
+          </div>
           <div class="card">
             <button class="accordion-head" (click)="toggle('premissas')"><span class="section-number">1</span> Premissas do Orçamento (Histórico)</button>
             <div class="accordion-content" *ngIf="acc.premissas">
@@ -48,28 +69,28 @@ interface AduanaEvento {
             <button class="accordion-head" (click)="toggle('oficial')"><span class="section-number">2</span> Atualização Oficial (Aduana)</button>
             <div class="accordion-content" *ngIf="acc.oficial">
               <div class="form-grid">
-                <div class="field"><label>Câmbio do dia (USD/BRL)</label><input type="number" step="0.0001" [(ngModel)]="aduanaData.taxaUsdOficial" placeholder="5.0000"><div class="hint">Taxa oficial</div></div>
-                <div class="field"><label>Peso Líquido Oficial (kg)</label><input type="number" step="0.01" [(ngModel)]="aduanaData.pesoLiquidoOficial" placeholder="0.00"></div>
-                <div class="field"><label>Porto de Origem</label><input type="text" [(ngModel)]="aduanaData.portoOrigem" placeholder="Origem"></div>
-                <div class="field"><label>Porto de Destino</label><input type="text" [(ngModel)]="aduanaData.portoDestino" placeholder="Destino"></div>
-                <div class="field"><label>Data de Embarque</label><input type="date" [(ngModel)]="aduanaData.dataEmbarque"></div>
-                <div class="field"><label>ETA (Chegada Prevista)</label><input type="date" [(ngModel)]="aduanaData.dataChegada"></div>
+                <div class="field"><label>Câmbio do dia (USD/BRL)</label><input type="number" step="0.0001" [(ngModel)]="aduanaData.taxaUsdOficial" placeholder="5.0000" [readonly]="!podeEditar"></div>
+                <div class="field"><label>Peso Líquido Oficial (kg)</label><input type="number" step="0.01" [(ngModel)]="aduanaData.pesoLiquidoOficial" placeholder="0.00" [readonly]="!podeEditar"></div>
+                <div class="field"><label>Porto de Origem</label><input type="text" [(ngModel)]="aduanaData.portoOrigem" placeholder="Origem" [readonly]="!podeEditar"></div>
+                <div class="field"><label>Porto de Destino</label><input type="text" [(ngModel)]="aduanaData.portoDestino" placeholder="Destino" [readonly]="!podeEditar"></div>
+                <div class="field"><label>Data de Embarque</label><input type="date" [(ngModel)]="aduanaData.dataEmbarque" [readonly]="!podeEditar"></div>
+                <div class="field"><label>ETA (Chegada Prevista)</label><input type="date" [(ngModel)]="aduanaData.dataChegada" [readonly]="!podeEditar"></div>
                 <div class="field"><label>Canal</label>
-                  <select [(ngModel)]="aduanaData.canal">
+                  <select [(ngModel)]="aduanaData.canal" [disabled]="!podeEditar">
                     <option value="">Selecione</option>
                     <option value="Verde">Verde</option>
                     <option value="Amarelo">Amarelo</option>
                     <option value="Vermelho">Vermelho</option>
                   </select>
                 </div>
-                <div class="field"><label>Status Aduana</label>
-                  <select [(ngModel)]="aduanaData.status">
-                    <option value="pendente">Pendente</option>
-                    <option value="em-andamento">Em andamento</option>
-                    <option value="concluido">Concluído</option>
-                  </select>
+                <div class="field checkbox-field">
+                  <label>Status</label>
+                  <label class="checkbox-inline">
+                    <input type="checkbox" [(ngModel)]="aduanaData.encerrado" [disabled]="!podeEditar">
+                    Encerrar Aduana
+                  </label>
                 </div>
-                <div class="field" style="grid-column:1/-1"><label>Observações</label><input type="text" [(ngModel)]="aduanaData.observacoes" placeholder="Atualizações importantes"></div>
+                <div class="field" style="grid-column:1/-1"><label>Observações</label><input type="text" [(ngModel)]="aduanaData.observacoes" placeholder="Atualizações importantes" [readonly]="!podeEditar"></div>
               </div>
             </div>
           </div>
@@ -79,18 +100,18 @@ interface AduanaEvento {
             <div class="accordion-content" *ngIf="acc.despesas">
               <div class="form-grid-2" style="margin-bottom:12px;">
                 <div class="field"><label>Categoria</label>
-                  <select [(ngModel)]="novaDespesa.categoria">
+                  <select [(ngModel)]="novaDespesa.categoria" [disabled]="!podeEditar">
                     <option *ngFor="let c of categoriasDespesa" [value]="c">{{ c }}</option>
                   </select>
                 </div>
-                <div class="field"><label>Item</label><input [(ngModel)]="novaDespesa.item" type="text" placeholder="Descrição do item"></div>
-                <div class="field"><label>Fornecedor</label><input [(ngModel)]="novaDespesa.fornecedor" type="text" placeholder="Fornecedor opcional"></div>
-                <div class="field"><label>Valor (R$)</label><input [(ngModel)]="novaDespesa.valor" type="number" step="0.01" placeholder="0,00"></div>
-                <div class="field" style="grid-column: 1 / -1;"><label>Observação</label><input [(ngModel)]="novaDespesa.observacao" type="text" placeholder="Detalhes opcionais"></div>
+                <div class="field"><label>Item</label><input [(ngModel)]="novaDespesa.item" type="text" placeholder="Descrição do item" [readonly]="!podeEditar"></div>
+                <div class="field"><label>Fornecedor</label><input [(ngModel)]="novaDespesa.fornecedor" type="text" placeholder="Fornecedor opcional" [readonly]="!podeEditar"></div>
+                <div class="field"><label>Valor (R$)</label><input [(ngModel)]="novaDespesa.valor" type="number" step="0.01" placeholder="0,00" [readonly]="!podeEditar"></div>
+                <div class="field" style="grid-column: 1 / -1;"><label>Observação</label><input [(ngModel)]="novaDespesa.observacao" type="text" placeholder="Detalhes opcionais" [readonly]="!podeEditar"></div>
               </div>
               <div class="actions-inline">
-                <button class="btn btn-primary" (click)="adicionarDespesa()">Adicionar</button>
-                <button class="btn btn-secondary" (click)="limparDespesaForm()">Limpar campos</button>
+                <button class="btn btn-primary" (click)="adicionarDespesa()" [disabled]="!podeEditar">Adicionar</button>
+                <button class="btn btn-secondary" (click)="limparDespesaForm()" [disabled]="!podeEditar">Limpar campos</button>
               </div>
               <div class="table-wrapper">
                 <table class="table">
@@ -116,8 +137,8 @@ interface AduanaEvento {
                       <td>{{ d.observacao || '-' }}</td>
                       <td>
                         <div class="row-actions">
-                          <button class="btn btn-secondary" (click)="editarDespesa(d)">Editar</button>
-                          <button class="btn btn-secondary" (click)="removerDespesa(d.id)">Excluir</button>
+                          <button class="btn btn-secondary" (click)="editarDespesa(d)" [disabled]="!podeEditar">Editar</button>
+                          <button class="btn btn-secondary" (click)="removerDespesa(d.id)" [disabled]="!podeEditar">Excluir</button>
                         </div>
                       </td>
                     </tr>
@@ -132,13 +153,13 @@ interface AduanaEvento {
             <button class="accordion-head" (click)="toggle('timeline')"><span class="section-number">4</span> Linha do Tempo de Atualizações</button>
             <div class="accordion-content" *ngIf="acc.timeline">
               <div class="form-grid-2" style="margin-bottom:12px;">
-                <div class="field"><label>Responsável</label><input [(ngModel)]="novoEvento.responsavel" type="text" placeholder="Quem registrou"></div>
-                <div class="field"><label>Data</label><input [(ngModel)]="novoEvento.data" type="datetime-local"></div>
-                <div class="field" style="grid-column: 1 / -1;"><label>Descrição</label><input [(ngModel)]="novoEvento.descricao" type="text" placeholder="Atualização registrada"></div>
+                <div class="field"><label>Responsável</label><input [(ngModel)]="novoEvento.responsavel" type="text" placeholder="Quem registrou" [readonly]="!podeEditar"></div>
+                <div class="field"><label>Data</label><input [(ngModel)]="novoEvento.data" type="datetime-local" [readonly]="!podeEditar"></div>
+                <div class="field" style="grid-column: 1 / -1;"><label>Descrição</label><input [(ngModel)]="novoEvento.descricao" type="text" placeholder="Atualização registrada" [readonly]="!podeEditar"></div>
               </div>
               <div class="actions-inline">
-                <button class="btn btn-primary" (click)="adicionarEvento()">Adicionar</button>
-                <button class="btn btn-secondary" (click)="limparEventoForm()">Limpar</button>
+                <button class="btn btn-primary" (click)="adicionarEvento()" [disabled]="!podeEditar">Adicionar</button>
+                <button class="btn btn-secondary" (click)="limparEventoForm()" [disabled]="!podeEditar">Limpar</button>
               </div>
               <div class="table-wrapper">
                 <table class="table">
@@ -157,7 +178,42 @@ interface AduanaEvento {
                       <td>{{ e.responsavel }}</td>
                       <td>{{ e.descricao }}</td>
                       <td>
-                        <button class="btn btn-secondary" (click)="removerEvento(e.id)">Excluir</button>
+                        <button class="btn btn-secondary" (click)="removerEvento(e.id)" [disabled]="!podeEditar">Excluir</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <button class="accordion-head" (click)="toggle('lancamentos')"><span class="section-number">5</span> Lançamentos de Aduana</button>
+            <div class="accordion-content" *ngIf="acc.lancamentos">
+              <div class="table-wrapper">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Câmbio</th>
+                      <th>Peso (kg)</th>
+                      <th>Canal</th>
+                      <th>Despesas (R$)</th>
+                      <th>Desembolso (R$)</th>
+                      <th style="width:120px">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngIf="lancamentos.length === 0"><td colspan="7">Nenhum lançamento registrado</td></tr>
+                    <tr *ngFor="let l of lancamentos">
+                      <td>{{ l.data | date:'dd/MM/yyyy HH:mm' }}</td>
+                      <td>{{ l.taxaUsdOficial || 0 | number:'1.4-4' }}</td>
+                      <td>{{ l.pesoLiquidoOficial || 0 | number:'1.2-2' }}</td>
+                      <td>{{ l.canal || '-' }}</td>
+                      <td>{{ l.totalDespesas | currency:'BRL' }}</td>
+                      <td>{{ l.desembolsoTotal | currency:'BRL' }}</td>
+                      <td>
+                        <button class="btn btn-secondary" (click)="removerLancamento(l.id)">Excluir</button>
                       </td>
                     </tr>
                   </tbody>
@@ -208,7 +264,8 @@ interface AduanaEvento {
 
       <div class="actions">
         <button class="btn btn-secondary" (click)="voltar()">Cancelar</button>
-        <button class="btn btn-primary" (click)="salvar()">Salvar Atualizações</button>
+        <button class="btn btn-secondary" (click)="registrarLancamento()" [disabled]="!podeEditar">Registrar Lançamento</button>
+        <button class="btn btn-primary" (click)="salvar()" [disabled]="!podeFinalizar">Finalizar Aduana</button>
       </div>
 
       <div class="modal-backdrop" *ngIf="showSaved">
@@ -245,6 +302,8 @@ interface AduanaEvento {
     `.field input,.field select{padding:13px 16px;border:2px solid var(--color-border);border-radius:8px;font-size:15px;transition:.2s;background:var(--color-surface)}`,
     `.field input:focus,.field select:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 4px rgba(102,126,234,.1)}`,
     `.field input[readonly]{background:var(--color-subtle-bg);color:var(--color-text);font-weight:600;cursor:not-allowed}`,
+    `.checkbox-field{align-items:flex-start}`,
+    `.checkbox-inline{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--color-text)}`,
     `.accordion-head{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--color-bg);border:1px solid var(--color-border);border-radius:10px;padding:12px;font-weight:700;cursor:pointer}`,
     `.accordion-content{margin-top:12px}`,
     `.section-title{font-size:18px;font-weight:700;color:var(--color-text);margin:0 0 20px 0;display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:2px solid var(--color-border)}`,
@@ -311,7 +370,7 @@ export class AduanaDetailComponent implements OnInit {
     dataEmbarque: '',
     dataChegada: '',
     canal: '',
-    status: 'em-andamento',
+    encerrado: false,
     observacoes: ''
   };
 
@@ -323,8 +382,22 @@ export class AduanaDetailComponent implements OnInit {
   eventos: AduanaEvento[] = [];
   novoEvento: AduanaEvento = { id: '', data: '', responsavel: '', descricao: '' };
 
+  lancamentos: AduanaLancamento[] = [];
+
   showSaved = false;
-  acc = { premissas: true, oficial: true, despesas: true, timeline: true };
+  acc = { premissas: false, oficial: false, despesas: false, timeline: false, lancamentos: false };
+  aduanaHabilitada = false;
+  packlistStatus: 'pendente' | 'em-andamento' | 'concluido' = 'pendente';
+  custoStatus: 'pendente' | 'em-andamento' | 'concluido' = 'pendente';
+  vendaStatus: 'pendente' | 'em-andamento' | 'concluido' = 'pendente';
+
+  get podeEditar(): boolean {
+    return this.aduanaHabilitada && !this.aduanaData.encerrado;
+  }
+
+  get podeFinalizar(): boolean {
+    return this.aduanaHabilitada && !this.aduanaData.encerrado;
+  }
 
   ngOnInit(): void {
     this.orcamentoId = this.orcamentoIdInput;
@@ -335,10 +408,25 @@ export class AduanaDetailComponent implements OnInit {
     const orcSnap: any = readJSON(keys.orcamento(this.orcamentoId)) || {};
     const custoSnap: any = readJSON(keys.custoSnapshot(this.orcamentoId)) || {};
     const aduanaSnap: any = readJSON(keys.aduanaSnapshot(this.orcamentoId)) || {};
+    const vendaSnap: any = readJSON(keys.vendaSnapshot(this.orcamentoId)) || {};
+    const packSnap: any = readJSON(keys.packlist(this.orcamentoId)) || {};
 
     this.codigo = orcSnap.codigo || this.orcamentoId;
     this.cliente = orcSnap.cliente || '';
     this.despachante = orcSnap.despachante || '';
+
+    if (!orcSnap.templatePacklistId) {
+      this.packlistStatus = 'concluido';
+    } else if (packSnap.status) {
+      this.packlistStatus = packSnap.status;
+    }
+    if (custoSnap.status) {
+      this.custoStatus = custoSnap.status;
+    }
+    if (vendaSnap.status) {
+      this.vendaStatus = vendaSnap.status;
+    }
+    this.aduanaHabilitada = this.packlistStatus === 'concluido' && this.custoStatus === 'concluido' && this.vendaStatus === 'concluido';
 
     if (custoSnap.premissas) {
       this.baseData = { ...this.baseData, ...custoSnap.premissas };
@@ -346,6 +434,9 @@ export class AduanaDetailComponent implements OnInit {
 
     if (aduanaSnap.premissas) {
       this.aduanaData = { ...this.aduanaData, ...aduanaSnap.premissas };
+    }
+    if (aduanaSnap.status === 'concluido') {
+      this.aduanaData.encerrado = true;
     }
 
     if (aduanaSnap.despesas && Array.isArray(aduanaSnap.despesas)) {
@@ -355,13 +446,18 @@ export class AduanaDetailComponent implements OnInit {
     if (aduanaSnap.eventos && Array.isArray(aduanaSnap.eventos)) {
       this.eventos = aduanaSnap.eventos as AduanaEvento[];
     }
+
+    if (aduanaSnap.lancamentos && Array.isArray(aduanaSnap.lancamentos)) {
+      this.lancamentos = aduanaSnap.lancamentos as AduanaLancamento[];
+    }
   }
 
-  toggle(key: 'premissas' | 'oficial' | 'despesas' | 'timeline'): void {
+  toggle(key: 'premissas' | 'oficial' | 'despesas' | 'timeline' | 'lancamentos'): void {
     this.acc[key] = !this.acc[key];
   }
 
   adicionarDespesa(): void {
+    if (!this.podeEditar) return;
     const n = this.novaDespesa;
     if (!n.item || (n.valor || 0) <= 0) return;
 
@@ -386,17 +482,20 @@ export class AduanaDetailComponent implements OnInit {
   }
 
   editarDespesa(d: Despesa): void {
+    if (!this.podeEditar) return;
     this.novaDespesa = { categoria: d.categoria, item: d.item, fornecedor: d.fornecedor, valor: d.valor, observacao: d.observacao };
     this.editId = d.id;
   }
 
   removerDespesa(id: string): void {
+    if (!this.podeEditar) return;
     this.despesas = this.despesas.filter(x => x.id !== id);
     if (this.editId === id) this.editId = null;
     this.persistir();
   }
 
   adicionarEvento(): void {
+    if (!this.podeEditar) return;
     if (!this.novoEvento.descricao) return;
     const id = randomId();
     const data = this.novoEvento.data || new Date().toISOString();
@@ -406,11 +505,41 @@ export class AduanaDetailComponent implements OnInit {
   }
 
   limparEventoForm(): void {
+    if (!this.podeEditar) return;
     this.novoEvento = { id: '', data: '', responsavel: '', descricao: '' };
   }
 
   removerEvento(id: string): void {
+    if (!this.podeEditar) return;
     this.eventos = this.eventos.filter(e => e.id !== id);
+    this.persistir();
+  }
+
+  registrarLancamento(): void {
+    if (!this.podeEditar) return;
+    const id = randomId();
+    const data = new Date().toISOString();
+    const lancamento: AduanaLancamento = {
+      id,
+      data,
+      taxaUsdOficial: this.aduanaData.taxaUsdOficial || 0,
+      pesoLiquidoOficial: this.aduanaData.pesoLiquidoOficial || 0,
+      portoOrigem: this.aduanaData.portoOrigem || '',
+      portoDestino: this.aduanaData.portoDestino || '',
+      dataEmbarque: this.aduanaData.dataEmbarque || '',
+      dataChegada: this.aduanaData.dataChegada || '',
+      canal: this.aduanaData.canal || '',
+      observacoes: this.aduanaData.observacoes || '',
+      totalDespesas: this.totalDespesas,
+      desembolsoTotal: this.desembolsoTotal
+    };
+    this.lancamentos.unshift(lancamento);
+    this.persistir();
+  }
+
+  removerLancamento(id: string): void {
+    if (!this.podeEditar) return;
+    this.lancamentos = this.lancamentos.filter(l => l.id !== id);
     this.persistir();
   }
 
@@ -459,16 +588,21 @@ export class AduanaDetailComponent implements OnInit {
   }
 
   salvar(): void {
+    if (!this.podeFinalizar) return;
+    this.aduanaData.encerrado = true;
     this.persistir();
     this.showSaved = true;
   }
 
   persistir(): void {
+    if (!this.aduanaHabilitada) return;
+    const status = this.aduanaData.encerrado ? 'concluido' : 'em-andamento';
     const snapshot = {
       premissas: this.aduanaData,
       despesas: this.despesas,
       eventos: this.eventos,
-      status: this.aduanaData.status || 'em-andamento',
+      lancamentos: this.lancamentos,
+      status,
       desembolsoTotal: this.desembolsoTotal,
       data: new Date().toISOString()
     };
@@ -477,7 +611,7 @@ export class AduanaDetailComponent implements OnInit {
     const orcSnap: any = readJSON(keys.orcamento(this.orcamentoId)) || {};
     orcSnap.fases = orcSnap.fases || {};
     orcSnap.fases.aduana = {
-      status: this.aduanaData.status || 'em-andamento',
+      status,
       data: new Date().toISOString(),
       valor: this.desembolsoTotal
     };

@@ -52,15 +52,16 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
               <div><span class="meta-label">Caminho:</span> {{ selectedFilePath || detalhe?.arquivoCaminho || '-' }}</div>
               <div><span class="meta-label">Cliente:</span> {{ cliente || '-' }}</div>
             </div>
-            <div class="file-upload-area">
+            <div class="file-upload-area" [class.disabled-area]="isFinalizado">
               <input 
                 type="file" 
                 #fileInput 
                 (change)="onFileSelect($event)" 
                 class="file-input"
                 accept=".xlsx,.xls,.csv"
+                [disabled]="isFinalizado"
               />
-              <label for="fileInput" class="file-upload-label" (click)="fileInput.click()">
+              <label for="fileInput" class="file-upload-label" (click)="abrirArquivo(fileInput)">
                 <div class="file-icon">📄</div>
                 <div class="file-text">
                   <span class="file-main">{{ selectedFileName || 'Clique para selecionar arquivo' }}</span>
@@ -70,7 +71,8 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
               </label>
             </div>
             <div class="upload-actions">
-              <button class="btn btn-primary" (click)="salvar()" [disabled]="!selectedFile">Salvar packlist</button>
+              <button class="btn btn-secondary" (click)="salvarRascunho()" [disabled]="!selectedFile || isFinalizado">Salvar rascunho</button>
+              <button class="btn btn-primary" (click)="finalizarPacklist()" [disabled]="isFinalizado || (!selectedFile && !detalhe)">Finalizar packlist</button>
             </div>
           </div>
         </div>
@@ -130,6 +132,7 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
     `.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px}`,
     `.card-header{font-weight:700;font-size:14px;margin-bottom:16px;color:#111;display:flex;justify-content:space-between;align-items:center}`,
     `.file-upload-area{border:2px dashed #cbd5e1;border-radius:10px;padding:24px;text-align:center;background:#f8fafc;transition:all 0.2s}`,
+    `.file-upload-area.disabled-area{opacity:.6;filter:grayscale(.2);pointer-events:none}`,
     `.file-upload-area:hover{border-color:#3b82f6;background:#eff6ff}`,
     `.file-input{display:none}`,
     `.file-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;padding:12px 14px;margin:0 0 12px;border:1px solid #e5e7eb;background:#f9fafb;border-radius:10px;font-size:13px;color:#374151}`,
@@ -174,6 +177,7 @@ export class PacklistDetalheComponent implements OnInit {
   importedItems: ImportedPacklistItem[] = [];
   mappingConfig?: PacklistImportConfig;
   totalItems = 0;
+  isFinalizado = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -253,10 +257,12 @@ export class PacklistDetalheComponent implements OnInit {
       if (typeof this.detalhe.totalItems === 'number') {
         this.totalItems = this.detalhe.totalItems;
       }
+      this.isFinalizado = this.detalhe.status === 'concluido';
     }
   }
 
   onFileSelect(event: Event): void {
+    if (this.isFinalizado) return;
     const input = event.target as HTMLInputElement;
     const file = input?.files?.[0];
     if (file) {
@@ -281,10 +287,21 @@ export class PacklistDetalheComponent implements OnInit {
       this.selectedFilePath = input.value || file.name;
       
       // Se existe template associado, processar automaticamente
+      // Se NÃO existe template, apenas armazena o arquivo sem processar
       if (this.templateAssociado) {
         this.processarComTemplate(file);
+      } else {
+        console.log('ℹ️ Upload simples sem template - arquivo não será processado');
+        this.importedItems = [];
+        this.mappingConfig = undefined;
+        this.totalItems = 0;
       }
     }
+  }
+
+  abrirArquivo(input: HTMLInputElement): void {
+    if (this.isFinalizado) return;
+    input.click();
   }
 
   private processarComTemplate(file: File): void {
@@ -327,16 +344,13 @@ export class PacklistDetalheComponent implements OnInit {
     });
   }
 
-  salvar(): void {
+  salvarRascunho(): void {
     if (!this.orcamentoId) return;
     if (!this.selectedFile) {
       this.showErrors(['Selecione um arquivo para enviar.']);
       return;
     }
-    if (this.errorMessages.length > 0) {
-      // bloqueia salvamento se houver erros pendentes
-      return;
-    }
+    // Permitir salvamento mesmo sem processamento (cliente sem template)
     
     const nome = this.selectedFile.name;
     const caminho = this.selectedFilePath || nome;
@@ -350,7 +364,7 @@ export class PacklistDetalheComponent implements OnInit {
       despachante: undefined,
       arquivoNome: nome,
       arquivoCaminho: caminho,
-      status: 'concluido',
+      status: 'em-andamento',
       enviadoEm: now,
       enviadoPor: undefined,
       itens: undefined,
@@ -369,9 +383,73 @@ export class PacklistDetalheComponent implements OnInit {
     if (this.fileInputRef) {
       this.fileInputRef.nativeElement.value = '';
     }
+    this.isFinalizado = saved.status === 'concluido';
     setTimeout(() => {
       this.router.navigate(['/orcamento', this.orcamentoId]);
-    }, 500);
+    }, 400);
+  }
+
+  finalizarPacklist(): void {
+    if (!this.orcamentoId) return;
+    if (this.isFinalizado) return;
+    if (!this.selectedFile && !this.detalhe) {
+      this.showErrors(['Selecione um arquivo ou salve um rascunho antes de finalizar.']);
+      return;
+    }
+    if (this.selectedFile) {
+      this.salvarComStatus('concluido');
+    } else if (this.detalhe) {
+      const now = new Date().toISOString();
+      const saved = this.service.save({
+        ...this.detalhe,
+        status: 'concluido',
+        enviadoEm: this.detalhe.enviadoEm || now
+      });
+      this.updateOrcamentoHistory(this.detalhe.arquivoNome, this.detalhe.arquivoCaminho, now);
+      this.detalhe = saved;
+      this.isFinalizado = true;
+      setTimeout(() => {
+        this.router.navigate(['/orcamento', this.orcamentoId]);
+      }, 400);
+    }
+  }
+
+  private salvarComStatus(status: 'em-andamento' | 'concluido'): void {
+    if (!this.selectedFile) return;
+    const nome = this.selectedFile.name;
+    const caminho = this.selectedFilePath || nome;
+    const now = new Date().toISOString();
+    const saved = this.service.save({
+      id: this.detalhe?.id,
+      orcamentoId: this.orcamentoId,
+      codigo: this.codigo,
+      cliente: this.cliente,
+      despachante: undefined,
+      arquivoNome: nome,
+      arquivoCaminho: caminho,
+      status,
+      enviadoEm: now,
+      enviadoPor: undefined,
+      itens: undefined,
+      previewItems: this.importedItems.length > 0 ? this.importedItems : undefined,
+      mappingConfig: this.mappingConfig,
+      totalItems: this.totalItems || (this.importedItems?.length || 0)
+    });
+    this.updateOrcamentoHistory(nome, caminho, now);
+    this.detalhe = saved;
+    this.loadPacklist();
+    this.selectedFile = null;
+    this.selectedFileName = '';
+    this.selectedFilePath = '';
+    if (this.fileInputRef) {
+      this.fileInputRef.nativeElement.value = '';
+    }
+    this.isFinalizado = saved.status === 'concluido';
+    if (status === 'concluido') {
+      setTimeout(() => {
+        this.router.navigate(['/orcamento', this.orcamentoId]);
+      }, 400);
+    }
   }
 
   private updateOrcamentoHistory(

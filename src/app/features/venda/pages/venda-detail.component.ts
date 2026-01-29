@@ -91,14 +91,14 @@ import { keys, readJSON, writeJSON } from '../../custo/data/storage.helper';
             <div class="accordion-content" *ngIf="acc.despesas">
               <div class="form-grid-2" style="margin-bottom:12px;">
                 <div class="field readonly-label"><label>Categoria</label><div class="pill">Agência Marítima</div></div>
-                <div class="field"><label>Item</label><input [(ngModel)]="novaDespesa.item" type="text" placeholder="Descrição do item"></div>
-                <div class="field"><label>Fornecedor</label><input [(ngModel)]="novaDespesa.fornecedor" type="text" placeholder="Fornecedor opcional"></div>
-                <div class="field"><label>Valor (R$)</label><input [(ngModel)]="novaDespesa.valor" type="number" step="0.01" placeholder="0,00"></div>
-                <div class="field" style="grid-column: 1 / -1;"><label>Observação</label><input [(ngModel)]="novaDespesa.observacao" type="text" placeholder="Detalhes opcionais"></div>
+                <div class="field"><label>Item</label><input [(ngModel)]="novaDespesa.item" type="text" placeholder="Descrição do item" [readonly]="!isEditable"></div>
+                <div class="field"><label>Fornecedor</label><input [(ngModel)]="novaDespesa.fornecedor" type="text" placeholder="Fornecedor opcional" [readonly]="!isEditable"></div>
+                <div class="field"><label>Valor (R$)</label><input [(ngModel)]="novaDespesa.valor" type="number" step="0.01" placeholder="0,00" [readonly]="!isEditable"></div>
+                <div class="field" style="grid-column: 1 / -1;"><label>Observação</label><input [(ngModel)]="novaDespesa.observacao" type="text" placeholder="Detalhes opcionais" [readonly]="!isEditable"></div>
               </div>
               <div class="actions-inline">
-                <button class="btn btn-primary" (click)="adicionarDespesa()">Adicionar</button>
-                <button class="btn btn-secondary" (click)="limparDespesaForm()">Limpar campos</button>
+                <button class="btn btn-primary" (click)="adicionarDespesa()" [disabled]="!isEditable">Adicionar</button>
+                <button class="btn btn-secondary" (click)="limparDespesaForm()" [disabled]="!isEditable">Limpar campos</button>
               </div>
               <div class="table-wrapper">
                 <table class="table">
@@ -122,8 +122,8 @@ import { keys, readJSON, writeJSON } from '../../custo/data/storage.helper';
                       <td>{{ d.observacao || '-' }}</td>
                       <td>
                         <div class="row-actions">
-                          <button class="btn btn-secondary" (click)="editarDespesa(d)">Editar</button>
-                          <button class="btn btn-secondary" (click)="removerDespesa(d.id)">Excluir</button>
+                          <button class="btn btn-secondary" (click)="editarDespesa(d)" [disabled]="!isEditable">Editar</button>
+                          <button class="btn btn-secondary" (click)="removerDespesa(d.id)" [disabled]="!isEditable">Excluir</button>
                         </div>
                       </td>
                     </tr>
@@ -165,7 +165,8 @@ import { keys, readJSON, writeJSON } from '../../custo/data/storage.helper';
 
       <div class="actions">
         <button class="btn btn-secondary" (click)="voltar()">Cancelar</button>
-        <button class="btn btn-primary" (click)="salvar()">Salvar Alterações</button>
+        <button class="btn btn-secondary" (click)="salvarRascunho()" [disabled]="!isEditable">Salvar rascunho</button>
+        <button class="btn btn-primary" (click)="finalizar()" [disabled]="!podeFinalizar">Finalizar venda</button>
       </div>
 
       <div class="modal-backdrop" *ngIf="showSaved">
@@ -253,7 +254,7 @@ export class VendaDetailComponent implements OnInit {
   // Dados editáveis de venda
   despesas: Despesa[] = [];
   despesasDespachante: Despesa[] = [];
-  acc = { premissas: true, aliquotas: false, despachante: true, despesas: true };
+  acc = { premissas: false, aliquotas: false, despachante: false, despesas: false };
 
   novaDespesa: {
     categoria: CategoriaDespesa;
@@ -271,6 +272,16 @@ export class VendaDetailComponent implements OnInit {
 
   editId: string | null = null;
   showSaved = false;
+  statusAtual: 'pendente' | 'em-andamento' | 'concluido' = 'pendente';
+  custoStatus: 'pendente' | 'em-andamento' | 'concluido' = 'pendente';
+
+  get isEditable(): boolean {
+    return this.statusAtual !== 'concluido';
+  }
+
+  get podeFinalizar(): boolean {
+    return this.isEditable && this.custoStatus === 'concluido';
+  }
 
   constructor(private router: Router) {}
 
@@ -292,6 +303,9 @@ export class VendaDetailComponent implements OnInit {
     if (custoSnap.premissas) {
       this.custoData = { ...this.custoData, ...custoSnap.premissas };
     }
+    if (custoSnap.status) {
+      this.custoStatus = custoSnap.status;
+    }
 
     // Carregar despesas de despachante do custo
     if (custoSnap.despesas && Array.isArray(custoSnap.despesas)) {
@@ -302,6 +316,9 @@ export class VendaDetailComponent implements OnInit {
     if (vendaSnap.despesas && Array.isArray(vendaSnap.despesas)) {
       this.despesas = (vendaSnap.despesas as Despesa[]).filter((d: Despesa) => d.categoria === 'Agência Marítima');
     }
+    if (vendaSnap.status) {
+      this.statusAtual = vendaSnap.status;
+    }
   }
 
   toggle(key: 'premissas' | 'aliquotas' | 'despachante' | 'despesas'): void {
@@ -309,6 +326,7 @@ export class VendaDetailComponent implements OnInit {
   }
 
   adicionarDespesa(): void {
+    if (!this.isEditable) return;
     const n = this.novaDespesa;
     if (!n.item || (n.valor || 0) <= 0) return;
 
@@ -353,6 +371,7 @@ export class VendaDetailComponent implements OnInit {
   }
 
   editarDespesa(d: Despesa): void {
+    if (!this.isEditable) return;
     this.novaDespesa = {
       categoria: d.categoria,
       item: d.item,
@@ -364,13 +383,14 @@ export class VendaDetailComponent implements OnInit {
   }
 
   removerDespesa(id: string): void {
+    if (!this.isEditable) return;
     this.despesas = this.despesas.filter(x => x.id !== id);
     if (this.editId === id) this.editId = null;
     this.persistirDespesas();
   }
 
   persistirDespesas(): void {
-    this.salvarSnapshot();
+    this.salvarSnapshot('em-andamento');
   }
 
   get totalDespesas(): number {
@@ -424,16 +444,28 @@ export class VendaDetailComponent implements OnInit {
     return this.custoDesembolsoTotal + this.totalDespesas;
   }
 
-  salvar(): void {
-    this.salvarSnapshot();
+  salvarRascunho(): void {
+    if (!this.isEditable) return;
+    this.statusAtual = 'em-andamento';
+    this.salvarSnapshot(this.statusAtual);
+    this.showSaved = true;
+    setTimeout(() => {
+      this.voltarClicked.emit();
+    }, 300);
+  }
+
+  finalizar(): void {
+    if (!this.podeFinalizar) return;
+    this.statusAtual = 'concluido';
+    this.salvarSnapshot(this.statusAtual);
     this.showSaved = true;
   }
 
-  salvarSnapshot(): void {
+  salvarSnapshot(status: 'pendente' | 'em-andamento' | 'concluido' = 'em-andamento'): void {
     const snapshot = {
       despesas: this.despesas,
       precoVenda: this.precoVenda,
-      status: 'concluido',
+      status,
       data: new Date().toISOString()
     };
 
@@ -443,7 +475,7 @@ export class VendaDetailComponent implements OnInit {
     const orcSnap: any = readJSON(`orcamento_${this.orcamentoId}`) || {};
     orcSnap.fases = orcSnap.fases || {};
     orcSnap.fases.venda = {
-      status: 'concluido',
+      status,
       data: new Date().toISOString(),
       valor: this.precoVenda
     };

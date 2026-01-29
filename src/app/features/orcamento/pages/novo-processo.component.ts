@@ -19,19 +19,24 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
       <p>Lista e gerenciamento de orçamentos</p>
       <div class="actions">
         <button class="btn btn-primary" (click)="abrirModalCriar()">Criar novo orçamento</button>
-        <button class="btn btn-secondary" (click)="limparStorage()" style="margin-left: 8px;">Limpar Storage</button>
+        <button class="btn btn-secondary" (click)="limparStorage()" style="margin-left: 8px;">Resetar fluxo</button>
       </div>
       <table class="table">
         <thead>
-          <tr><th>Data</th><th>Cliente</th><th>Despachante</th><th>Código</th><th>Status</th><th style="width:140px">Ações</th></tr>
+          <tr><th>Data</th><th>Cliente</th><th>Despachante</th><th>Código</th><th>Fluxo</th><th>Status</th><th style="width:140px">Ações</th></tr>
         </thead>
         <tbody>
-          <tr *ngIf="(list|async)?.length === 0"><td colspan="6">Nenhum orçamento</td></tr>
+          <tr *ngIf="(list|async)?.length === 0"><td colspan="7">Nenhum orçamento</td></tr>
           <tr *ngFor="let p of (list|async)" style="cursor: pointer;" (click)="visualizar(p)" class="row-clickable">
             <td>{{p.data | date:'short'}}</td>
             <td>{{p.cliente || '-'}}</td>
             <td>{{p.despachante || '-'}}</td>
             <td>{{p.codigo || '-'}}</td>
+            <td>
+              <span class="badge" [ngClass]="p.templatePacklistId ? 'badge-packlist' : 'badge-manual'">
+                {{ p.templatePacklistId ? 'Packlist' : 'Manual' }}
+              </span>
+            </td>
             <td>{{p.status}}</td>
             <td>
               <div class="row-actions">
@@ -157,6 +162,15 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
                   ℹ️ Este cliente não possui template de packlist associado
                 </div>
               </div>
+              <div class="flow-hint" *ngIf="formCriar.clienteSelecionado">
+                <span class="flow-title">Fluxo do orçamento:</span>
+                <span class="flow-chip" [ngClass]="templateAssociado ? 'flow-packlist' : 'flow-manual'">
+                  {{ templateAssociado ? 'Com packlist (importação guiada)' : 'Manual (sem packlist)' }}
+                </span>
+                <span class="flow-note">
+                  {{ templateAssociado ? 'O custo e a venda serão pré-calculados após importar o packlist.' : 'Custos e venda serão lançados manualmente.' }}
+                </span>
+              </div>
             </div>
           </div>
           <div class="modal-actions">
@@ -182,6 +196,9 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
     `.table th,.table td{border-bottom:1px solid var(--color-border);padding:10px;text-align:left}`,
     `.row-clickable:hover{background-color:var(--color-bg);transition:.15s}`,
     `.row-actions{display:flex;gap:8px}`,
+    `.badge{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center}`,
+    `.badge-packlist{background:rgba(102,126,234,.12);color:#4c5fd8;border:1px solid rgba(102,126,234,.35)}`,
+    `.badge-manual{background:rgba(16,185,129,.12);color:#0f9d71;border:1px solid rgba(16,185,129,.35)}`,
     `.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000}`,
     `.modal{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;overflow:hidden;box-shadow:0 10px 20px rgba(0,0,0,.2)}`,
     `.modal-lg{width:650px;height:70vh;max-height:70vh;display:flex;flex-direction:column}`,
@@ -226,7 +243,13 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
     `.mapping-tags{display:flex;flex-wrap:wrap;gap:6px}`,
     `.mapping-tag{background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500}`,
     `.no-template-info{margin-top:16px}`,
-    `.no-template-message{background:#f8f9fa;border:2px dashed #dee2e6;padding:12px;border-radius:8px;text-align:center;color:#6c757d;font-size:13px}`
+    `.no-template-message{background:#f8f9fa;border:2px dashed #dee2e6;padding:12px;border-radius:8px;text-align:center;color:#6c757d;font-size:13px}`,
+    `.flow-hint{margin-top:16px;display:flex;flex-direction:column;gap:6px}`,
+    `.flow-title{font-size:12px;font-weight:700;color:var(--color-text);text-transform:uppercase}`,
+    `.flow-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;width:max-content}`,
+    `.flow-packlist{background:rgba(102,126,234,.12);color:#4c5fd8;border:1px solid rgba(102,126,234,.35)}`,
+    `.flow-manual{background:rgba(16,185,129,.12);color:#0f9d71;border:1px solid rgba(16,185,129,.35)}`,
+    `.flow-note{font-size:12px;color:#6c757d}`
   ]
 })
 export class NovoProcessoNovaComponent implements OnInit {
@@ -323,7 +346,13 @@ export class NovoProcessoNovaComponent implements OnInit {
 
     const cliente = this.formCriar.clienteSelecionado;
     // Serviço gera código automaticamente
-    const novoId = this.s.criar(cliente.id, cliente.nome, undefined, new Date().toISOString());
+    const novoId = this.s.criar(
+      cliente.id,
+      cliente.nome,
+      undefined,
+      new Date().toISOString(),
+      cliente.templatePacklistId
+    );
 
     this.fecharModalCriar();
     // Redirecionar para a tela de detalhes do orçamento
@@ -352,7 +381,7 @@ export class NovoProcessoNovaComponent implements OnInit {
   cancelarExclusao() { this.confirmId = null; }
 
   limparStorage() {
-    if (confirm('Tem certeza que deseja apagar todos os orçamentos?')) {
+    if (confirm('Tem certeza que deseja reiniciar o fluxo? Isso remove orçamentos, custos, vendas, aduanas e packlists vinculados.')) {
       this.s.limparTodos();
     }
   }

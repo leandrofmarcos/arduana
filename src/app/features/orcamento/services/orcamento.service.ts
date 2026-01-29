@@ -14,21 +14,80 @@ export class OrcamentoService {
   }
   private saveIndex(items: OrcamentoListItem[]){ writeJSON(keys.orcamentosIndex(), items); }
 
-  criar(clienteId: string, cliente?: string, codigo?: string, data?: string){
+  /**
+   * Cria um orçamento, já garantindo entidades relacionadas (custo, venda, aduana) e importando packlist/template se fornecido.
+   * @param clienteId ID do cliente
+   * @param cliente Nome do cliente
+   * @param codigo Código do orçamento
+   * @param data Data de criação
+   * @param templatePacklistId (Opcional) Template packlist associado ao cliente
+   * @param packlistTemplate (Opcional) Array de itens do packlist/template
+   * @param aliquotaPadrao (Opcional) Aliquota padrão para cálculo automático
+   */
+  criar(
+    clienteId: string,
+    cliente?: string,
+    codigo?: string,
+    data?: string,
+    templatePacklistId?: string,
+    packlistTemplate?: any[],
+    aliquotaPadrao?: number
+  ) {
     const id = randomId();
     const createdAt = data ? new Date(data).toISOString() : new Date().toISOString();
-    
-    // Se código não foi fornecido, gerar automaticamente
     const codigoFinal = codigo || this.gerarCodigoOrcamento();
-    
-    const meta: OrcamentoMeta = { id, title: cliente ? `${cliente} • ${codigoFinal}`.trim() : 'Novo Orçamento', faseAtual: 'Orcamento', createdAt, aprovado: false, oficializado: false, clienteId, despachanteId: undefined };
+    const meta: OrcamentoMeta = {
+      id,
+      title: cliente ? `${cliente} • ${codigoFinal}`.trim() : 'Novo Orçamento',
+      faseAtual: 'Orcamento',
+      createdAt,
+      aprovado: false,
+      oficializado: false,
+      clienteId,
+      despachanteId: undefined,
+      templatePacklistId
+    };
     writeJSON(keys.orcamento(id), meta);
-    const item: OrcamentoListItem = { id, cliente, despachante: undefined, clienteId, despachanteId: undefined, codigo: codigoFinal, data: meta.createdAt, status: 'CRIADO' as const };
+    const item: OrcamentoListItem = {
+      id,
+      cliente,
+      despachante: undefined,
+      clienteId,
+      despachanteId: undefined,
+      codigo: codigoFinal,
+      data: meta.createdAt,
+      status: 'CRIADO' as const,
+      templatePacklistId
+    };
     const next = [item, ...this.loadIndex()];
     this.saveIndex(next);
     this.subj.next(next);
     this.logHistory(id, { meta: null, item: null }, { meta, item });
     (globalThis as any).localStorage?.setItem(keys.currentId(), id);
+
+    // Garante entidades relacionadas
+    this.ensureCustoForOrcamento(id);
+    this.ensureVendaForOrcamento(id);
+    this.ensureAduanaForOrcamento(id);
+
+    // Se houver packlist/template, importar e preencher custos automaticamente
+    if (packlistTemplate && Array.isArray(packlistTemplate) && packlistTemplate.length > 0) {
+      this.savePacklist(id, packlistTemplate);
+      // Preencher custos automaticamente
+      const despesas = packlistTemplate.map(item => ({
+        codigo: item.codigo,
+        descricao: item.descricao,
+        quantidade: item.quantidade,
+        valorUnitario: item.valorUSD || 0,
+        valorTotal: (item.quantidade || 0) * (item.valorUSD || 0),
+        aliquota: aliquotaPadrao || 0,
+        valorComAliquota: ((item.quantidade || 0) * (item.valorUSD || 0)) * (1 + (aliquotaPadrao || 0) / 100)
+      }));
+      this.saveCustoSnapshot(id, { premissas: {}, despesas });
+      // Venda pode ser pré-calculada (exemplo: soma dos valores com aliquota)
+      const vendaDespesas = despesas.map(d => ({ ...d }));
+      this.saveVendaSnapshot(id, { premissas: {}, despesas: vendaDespesas });
+    }
     return id;
   }
 

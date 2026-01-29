@@ -78,8 +78,8 @@ import { Observable } from 'rxjs';
                 <div class="field" style="grid-column: 1 / -1;"><label>Observação</label><input [(ngModel)]="novaDespesa.observacao" type="text" [readonly]="readOnly" placeholder="Detalhes opcionais"></div>
               </div>
               <div class="actions-inline">
-                <button class="btn btn-primary" (click)="adicionarDespesa()" [disabled]="statusAtual !== 'Orçamento'">Adicionar</button>
-                <button class="btn btn-secondary" (click)="limparDespesaForm()" [disabled]="statusAtual !== 'Orçamento'">Limpar campos</button>
+                <button class="btn btn-primary" (click)="adicionarDespesa()" [disabled]="!isEditable">Adicionar</button>
+                <button class="btn btn-secondary" (click)="limparDespesaForm()" [disabled]="!isEditable">Limpar campos</button>
               </div>
               <div class="table-wrapper">
                 <table class="table">
@@ -105,8 +105,8 @@ import { Observable } from 'rxjs';
                       <td>{{ d.observacao || '-' }}</td>
                       <td>
                         <div class="row-actions">
-                          <button class="btn btn-secondary" (click)="editarDespesa(d)" [disabled]="statusAtual !== 'Orçamento'">Editar</button>
-                          <button class="btn btn-secondary" (click)="removerDespesa(d.id)" [disabled]="statusAtual !== 'Orçamento'">Excluir</button>
+                          <button class="btn btn-secondary" (click)="editarDespesa(d)" [disabled]="!isEditable">Editar</button>
+                          <button class="btn btn-secondary" (click)="removerDespesa(d.id)" [disabled]="!isEditable">Excluir</button>
                         </div>
                       </td>
                     </tr>
@@ -139,7 +139,8 @@ import { Observable } from 'rxjs';
 
       <div class="actions">
         <button class="btn btn-secondary" (click)="voltar()">Cancelar</button>
-        <button class="btn btn-primary" (click)="salvar()" [disabled]="statusAtual !== 'Orçamento'">Salvar Alterações</button>
+        <button class="btn btn-secondary" (click)="salvarRascunho()" [disabled]="!isEditable">Salvar rascunho</button>
+        <button class="btn btn-primary" (click)="finalizar()" [disabled]="!podeFinalizar">Finalizar custo</button>
       </div>
 
       <div class="modal-backdrop" *ngIf="showSaved">
@@ -227,8 +228,9 @@ export class CustoDetailComponent implements OnInit {
     pis: 0,
     cofins: 0
   };
-  statusAtual: string | null = 'Orçamento';
+  statusAtual: 'pendente' | 'em-andamento' | 'concluido' = 'pendente';
   readOnly = false;
+  packlistStatus: 'pendente' | 'em-andamento' | 'concluido' = 'pendente';
   showSaved = false;
   despesas: Despesa[] = [];
   novaDespesa: { categoria: CategoriaDespesa; item: string; fornecedor?: string; valor: number; observacao?: string } = { 
@@ -238,7 +240,15 @@ export class CustoDetailComponent implements OnInit {
   categoriasDespesa: CategoriaDespesa[] = ['Despachante', 'Agência Marítima', 'Porto', 'Tributos', 'Outros'];
   aliquotas$!: Observable<AliquotaPerfil[]>;
   aliquotas: AliquotaPerfil[] = [];
-  acc = { premissas: true, aliquotas: true, despesas: true };
+  acc = { premissas: false, aliquotas: false, despesas: false };
+
+  get isEditable(): boolean {
+    return this.statusAtual !== 'concluido';
+  }
+
+  get podeFinalizar(): boolean {
+    return this.isEditable && this.packlistStatus === 'concluido';
+  }
 
   get despesasDespachante() {
     return (this.despesas || []).filter(d => d.categoria === 'Despachante');
@@ -314,6 +324,14 @@ export class CustoDetailComponent implements OnInit {
     this.cliente = meta?.cliente || this.cliente;
     this.codigo = meta?.codigo || this.codigo || `ORC-${this.orcamentoId}`;
     this.despachante = meta?.despachante;
+    if (!meta?.templatePacklistId) {
+      this.packlistStatus = 'concluido';
+    } else {
+      const pack = readJSON<any>(keys.packlist(this.orcamentoId));
+      if (pack?.status) {
+        this.packlistStatus = pack.status;
+      }
+    }
     
     // Ensure custo exists for this orçamento
     this.s.ensureByOrcamento(this.orcamentoId, { 
@@ -331,7 +349,11 @@ export class CustoDetailComponent implements OnInit {
       this.despesas = Array.isArray(snap.despesas)
         ? (snap.despesas as any).map((d: any) => ({ ...d, categoria: d.categoria || 'Despachante' }))
         : [];
+      if (snap['status']) {
+        this.statusAtual = snap['status'];
+      }
     }
+    this.readOnly = this.statusAtual === 'concluido';
     if (this.form.aliquotaId && this.aliquotas.length > 0) {
       const perfil = this.aliquotas.find(a => a.id === this.form.aliquotaId);
       if (perfil) {
@@ -422,7 +444,7 @@ export class CustoDetailComponent implements OnInit {
   }
 
   adicionarDespesa() {
-    if (this.statusAtual !== 'Orçamento') return;
+    if (!this.isEditable) return;
     const n = this.novaDespesa;
     if (!n.categoria) {
       n.categoria = 'Despachante';
@@ -457,7 +479,7 @@ export class CustoDetailComponent implements OnInit {
   }
 
   editarDespesa(d: Despesa) {
-    if (this.statusAtual !== 'Orçamento') return;
+    if (!this.isEditable) return;
     this.editId = d.id;
     this.novaDespesa = { 
       categoria: d.categoria, 
@@ -469,7 +491,7 @@ export class CustoDetailComponent implements OnInit {
   }
 
   removerDespesa(id: string) {
-    if (this.statusAtual !== 'Orçamento') return;
+    if (!this.isEditable) return;
     this.despesas = this.despesas.filter(d => d.id !== id);
     this.persistirDespesas();
   }
@@ -481,18 +503,41 @@ export class CustoDetailComponent implements OnInit {
 
   private persistirDespesas(): void {
     if (!this.orcamentoId) return;
-    this.s.saveCustoSnapshot(this.orcamentoId, { premissas: this.form, despesas: this.despesas });
+    if (this.statusAtual === 'pendente') {
+      this.statusAtual = 'em-andamento';
+    }
+    this.s.saveCustoSnapshot(this.orcamentoId, { premissas: this.form, despesas: this.despesas, status: this.statusAtual });
   }
 
-  salvar() {
-    if (this.statusAtual !== 'Orçamento') return;
+  salvarRascunho(): void {
+    if (!this.isEditable) return;
+    this.statusAtual = 'em-andamento';
     this.s.saveCustoSnapshot(this.orcamentoId, {
       premissas: this.form,
       despesas: this.despesas,
       valorTotal: this.desembolsoTotal,
-      status: 'concluido',
+      status: this.statusAtual,
       data: new Date().toISOString()
     });
+    this.showSaved = true;
+    if (this.voltarClicked.observed) {
+      this.voltarClicked.emit();
+    } else {
+      this.router.navigate(['/orcamento', this.orcamentoId]);
+    }
+  }
+
+  finalizar(): void {
+    if (!this.podeFinalizar) return;
+    this.statusAtual = 'concluido';
+    this.s.saveCustoSnapshot(this.orcamentoId, {
+      premissas: this.form,
+      despesas: this.despesas,
+      valorTotal: this.desembolsoTotal,
+      status: this.statusAtual,
+      data: new Date().toISOString()
+    });
+    this.readOnly = true;
     this.showSaved = true;
     if (this.voltarClicked.observed) {
       this.voltarClicked.emit();

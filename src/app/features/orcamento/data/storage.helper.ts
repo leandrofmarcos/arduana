@@ -13,7 +13,25 @@ export function deleteJSON(key: string): void {
 }
 
 export function clearOrcamentos(): void {
-  try { const ls = (globalThis as any).localStorage as Storage | undefined; if (!ls) return; const index = readJSON<any[]>(keys.orcamentosIndex()) || []; index.forEach(item => { ls.removeItem(keys.orcamento(item.id)); ls.removeItem(keys.history(item.id)); }); ls.removeItem(keys.orcamentosIndex()); ls.removeItem(keys.currentId()); } catch { /* noop */ }
+  try {
+    const ls = (globalThis as any).localStorage as Storage | undefined;
+    if (!ls) return;
+    const index = readJSON<any[]>(keys.orcamentosIndex()) || [];
+    index.forEach(item => {
+      const id = item.id;
+      ls.removeItem(keys.orcamento(id));
+      ls.removeItem(keys.history(id));
+      ls.removeItem(keys.packlist(id));
+      ls.removeItem(keys.custoSnapshot(id));
+      ls.removeItem(keys.vendaSnapshot(id));
+      ls.removeItem(keys.aduanaSnapshot(id));
+    });
+    ls.removeItem(keys.orcamentosIndex());
+    ls.removeItem(keys.custosIndex());
+    ls.removeItem(keys.vendasIndex());
+    ls.removeItem(keys.aduanaIndex());
+    ls.removeItem(keys.currentId());
+  } catch { /* noop */ }
 }
 
 export function randomId(): string {

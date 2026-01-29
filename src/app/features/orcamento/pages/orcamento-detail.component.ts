@@ -19,9 +19,10 @@ interface OrçamentoDetalhe {
   status: string;
   criadoEm: string;
   atualizadoEm: string;
+  templatePacklistId?: string;
   fases: {
     criacao: { status: 'concluido' | 'em-andamento' | 'pendente'; data: string };
-    packlist: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; itens?: number; arquivoNome?: string; arquivoCaminho?: string };
+    packlist: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; itens?: number; arquivoNome?: string; arquivoCaminho?: string; nota?: string };
     custo: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; valor?: number };
     venda: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; valor?: number };
     aduana: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; valor?: number };
@@ -95,37 +96,38 @@ interface OrçamentoDetalhe {
 
       <!-- Phase Cards Grid -->
       <div class="phases-grid">
-        <div class="phase-card" (click)="navigarParaPacklist()">
+        <div class="phase-card" [ngClass]="{'disabled-card': !usaPacklist}" (click)="navigarParaPacklist()">
           <div class="card-header">📦 Packlist</div>
           <div class="card-value">{{ orcamento?.fases?.packlist?.itens ?? 0 }} itens</div>
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.packlist?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.packlist?.status) }}
           </div>
           <div class="card-note" *ngIf="orcamento?.fases?.packlist?.arquivoNome">Arquivo: {{ orcamento?.fases?.packlist?.arquivoNome }}</div>
+          <div class="card-note" *ngIf="orcamento?.fases?.packlist?.nota">{{ orcamento?.fases?.packlist?.nota }}</div>
+          <div class="card-note" *ngIf="!usaPacklist">Não aplicável neste orçamento</div>
         </div>
 
-        <div class="phase-card" [ngClass]="{'disabled-card': (orcamento?.fases?.packlist?.itens ?? 0) === 0}" (click)="navigarParaCusto()">
+        <div class="phase-card" (click)="navigarParaCusto()">
           <div class="card-header">💰 Custo</div>
             <div class="card-value">R$ {{ formatCurrency(orcamento?.fases?.custo?.valor) }}</div>
-            <div class="card-note warn" *ngIf="(orcamento?.fases?.packlist?.itens ?? 0) === 0">Disponível após importar packlist</div>
+            <div class="card-note" *ngIf="!usaPacklist">Fluxo manual: informe custos diretamente</div>
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.custo?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.custo?.status) }}
           </div>
         </div>
 
-        <div class="phase-card" [ngClass]="{'disabled-card': (orcamento?.fases?.custo?.status !== 'concluido')}" (click)="navigarParaVenda()">
+        <div class="phase-card" (click)="navigarParaVenda()">
           <div class="card-header">🛍️ Venda</div>
           <div class="card-value">R$ {{ formatCurrency(orcamento?.fases?.venda?.valor) }}</div>
-          <div class="card-note warn" *ngIf="orcamento?.fases?.custo?.status !== 'concluido'">Disponível após definir custo</div>
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.venda?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.venda?.status) }}
           </div>
         </div>
 
-        <div class="phase-card" [ngClass]="{'disabled-card': (orcamento?.fases?.venda?.status !== 'concluido')}" (click)="navigarParaAduana()">
+        <div class="phase-card" [ngClass]="{'disabled-card': !podeIrAduana()}" (click)="navigarParaAduana()">
           <div class="card-header">🏛️ Aduana</div>
           <div class="card-value">R$ {{ formatCurrency(orcamento?.fases?.aduana?.valor) }}</div>
-          <div class="card-note warn" *ngIf="orcamento?.fases?.venda?.status !== 'concluido'">Disponível após concluir venda</div>
+          <div class="card-note warn" *ngIf="!podeIrAduana()">Disponível após concluir packlist, custo e venda</div>
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.aduana?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.aduana?.status) }}
           </div>
@@ -526,6 +528,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   historicoResumido: any[] = [];
   interacoes: Array<{ id: string; titulo: string; descricao: string; nivel: 'info' | 'warning' | 'danger'; acao?: { label: string; rota: any[]; query?: Record<string, any> } }> = [];
   modo: 'overview' | 'packlist' | 'custo' | 'venda' | 'aduana' = 'overview';
+  usaPacklist = false;
 
   fases = [
     { key: 'criacao', label: 'Criação', status: 'concluido' },
@@ -552,6 +555,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   carregarOrçamento(id: string): void {
     const meta = this.getMockMetaData(id);
     const hoje = new Date();
+    this.usaPacklist = !!meta.templatePacklistId;
 
     this.orcamento = {
       id,
@@ -563,6 +567,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
       status: 'em-andamento',
       criadoEm: meta.createdAt || hoje.toISOString(),
       atualizadoEm: hoje.toISOString(),
+      templatePacklistId: meta.templatePacklistId,
       fases: {
         criacao: { status: 'concluido', data: meta.createdAt || hoje.toISOString() },
         packlist: { status: 'pendente', itens: 0, data: undefined },
@@ -584,7 +589,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
     const packlist = this.packlistService.getByOrcamentoId(id);
     if (packlist) {
       const itemCount = packlist.totalItems ?? packlist.previewItems?.length ?? packlist.itens?.length ?? 0;
-      const packlistStatus = packlist.status || (itemCount > 0 ? 'concluido' : 'pendente');
+      const packlistStatus = packlist.status || (itemCount > 0 ? 'em-andamento' : 'pendente');
       this.orcamento.fases.packlist = {
         status: packlistStatus as any,
         itens: itemCount,
@@ -592,16 +597,20 @@ export class OrçamentoDetailComponentV2 implements OnInit {
         arquivoNome: packlist.arquivoNome,
         arquivoCaminho: packlist.arquivoCaminho
       };
-
-      // habilita custo quando packlist possui itens
-      this.orcamento.fases.custo.status = itemCount > 0 ? 'em-andamento' : 'pendente';
+    } else if (!this.usaPacklist) {
+      this.orcamento.fases.packlist = {
+        status: 'concluido',
+        itens: 0,
+        data: undefined,
+        nota: 'Fluxo manual (sem packlist)'
+      };
     }
 
     const custoSnap = readJSON<any>(keys.custoSnapshot(id));
     if (custoSnap) {
       const valorCusto = this.calcularValorCusto(custoSnap);
       this.orcamento.fases.custo.valor = valorCusto;
-      this.orcamento.fases.custo.status = 'concluido';
+      this.orcamento.fases.custo.status = custoSnap.status || 'em-andamento';
       this.orcamento.fases.custo.data = custoSnap.data || new Date().toISOString();
     }
 
@@ -609,7 +618,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
     if (vendaSnap) {
       const valorVenda = vendaSnap.precoVenda ?? vendaSnap.valorTotal ?? vendaSnap.valor ?? 0;
       this.orcamento.fases.venda.valor = valorVenda;
-      this.orcamento.fases.venda.status = 'concluido';
+      this.orcamento.fases.venda.status = vendaSnap.status || 'em-andamento';
       this.orcamento.fases.venda.data = vendaSnap.data || new Date().toISOString();
     }
 
@@ -634,24 +643,28 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   }
 
   private getMockMetaData(id: string): any {
-    try {
-      const data = (globalThis as any).localStorage?.getItem(`orcamento_${id}`);
-      if (data) {
-        return JSON.parse(data);
-      }
-    } catch { }
+    const data = readJSON<any>(keys.orcamento(id));
+    if (data) return data;
     return { cliente: 'Novo cliente', codigo: `ORC-${id.substring(0, 8)}`, createdAt: new Date().toISOString() };
   }
 
   private gerarInteracoes(id: string): any[] {
     const interacoes = [];
-    if (this.orcamento?.fases.packlist.status === 'pendente') {
+    if (this.usaPacklist && this.orcamento?.fases.packlist.status === 'pendente') {
       interacoes.push({
         id: 'packlist-pendente',
         titulo: 'Enviar packlist',
         descricao: 'Inicie enviando o packlist do cliente com os itens a importar.',
         nivel: 'warning',
         acao: { label: 'Ir para packlist', rota: ['/packlist', id] }
+      });
+    }
+    if (!this.usaPacklist) {
+      interacoes.push({
+        id: 'fluxo-manual',
+        titulo: 'Fluxo manual habilitado',
+        descricao: 'Este orçamento não possui template de packlist. Preencha custos e venda manualmente.',
+        nivel: 'info'
       });
     }
     return interacoes;
@@ -709,28 +722,31 @@ export class OrçamentoDetailComponentV2 implements OnInit {
 
   navigarParaPacklist(): void {
     if (!this.orcamento?.id) return;
+    if (!this.usaPacklist) return;
     this.modo = 'packlist';
   }
 
   navigarParaCusto(): void {
     if (!this.orcamento?.id) return;
-    const packlistItens = this.orcamento.fases.packlist?.itens || 0;
-    if (packlistItens <= 0) return; // bloquear se não houver packlist
     this.modo = 'custo';
   }
 
   navigarParaVenda(): void {
     if (!this.orcamento?.id) return;
-    const custoStatus = this.orcamento.fases.custo?.status;
-    if (custoStatus !== 'concluido') return; // bloquear se custo não foi concluído
     this.modo = 'venda';
   }
 
   navigarParaAduana(): void {
     if (!this.orcamento?.id) return;
-    const vendaStatus = this.orcamento.fases.venda?.status;
-    if (vendaStatus !== 'concluido') return; // bloquear se venda não foi concluída
+    if (!this.podeIrAduana()) return;
     this.modo = 'aduana';
+  }
+
+  podeIrAduana(): boolean {
+    const packlistOk = this.orcamento?.fases.packlist?.status === 'concluido';
+    const custoOk = this.orcamento?.fases.custo?.status === 'concluido';
+    const vendaOk = this.orcamento?.fases.venda?.status === 'concluido';
+    return !!(packlistOk && custoOk && vendaOk);
   }
 
   voltarParaOverview(): void {
