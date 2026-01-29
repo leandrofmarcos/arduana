@@ -30,6 +30,10 @@ import { Router } from '@angular/router';
         </div>
         <nav class="menu">
           <div class="menu-group">
+            <div class="menu-title">Principal</div>
+            <a routerLink="/" routerLinkActive="active"><span class="icon">📊</span><span>Dashboard</span></a>
+          </div>
+          <div class="menu-group">
             <div class="menu-title">Orçamentos</div>
             <a routerLink="/orcamento" routerLinkActive="active"><span class="icon">🧩</span><span>Orçamento</span></a>
             <a routerLink="/custo" routerLinkActive="active"><span class="icon">🧮</span><span>Planilha de Custo</span></a>
@@ -114,7 +118,10 @@ export class ShellComponent {
     });
   }
   private updateHeader(url: string){
-    if(url.includes('/profile')){
+    if(url.includes('/dashboard') || url === '/'){
+      this.headerTitle = 'Dashboard';
+      this.headerSubtitle = 'Acompanhamento de importações';
+    } else if(url.includes('/profile')){
       this.headerTitle = 'Meu Perfil';
       this.headerSubtitle = 'Gerenciamento de conta';
     } else if(url.includes('/orcamento')){

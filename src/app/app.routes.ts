@@ -15,7 +15,11 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'orcamento'
+        loadComponent: () => import('./features/dashboard/pages/dashboard.component').then(m => m.DashboardComponent)
+      },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./features/dashboard/pages/dashboard.component').then(m => m.DashboardComponent)
       },
       {
         path: 'aliquotas',
