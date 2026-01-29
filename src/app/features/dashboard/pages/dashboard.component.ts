@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { readJSON, keys } from '../../orcamento/data/storage.helper';
+import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
 interface OrçamentoResumo {
   id: string;
@@ -29,17 +30,16 @@ interface OrçamentoResumo {
 @Component({
   standalone: true,
   selector: 'app-dashboard',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, PageHeaderComponent],
   template: `
-    <div class="dashboard">
+    <div class="container-standard">
       <!-- Header -->
-      <div class="dashboard-header">
-        <div class="header-content">
-          <h1>📊 Dashboard de Importações</h1>
-          <p class="subtitle">Acompanhamento completo de orçamentos e fases de desembaraço</p>
-        </div>
+      <app-page-header 
+        icon="📊" 
+        title="Dashboard de Importações" 
+        subtitle="Acompanhamento completo de orçamentos e fases de desembaraço">
         <button class="btn btn-primary" (click)="novoOrcamento()">+ Novo Orçamento</button>
-      </div>
+      </app-page-header>
 
       <!-- KPIs -->
       <div class="kpis-grid">
@@ -80,25 +80,25 @@ interface OrçamentoResumo {
         </div>
 
         <div class="financial-grid">
-          <div class="financial-card">
-            <div class="fi-label">Custos Totais</div>
-            <div class="fi-value">{{ custoTotal | currency:'BRL' }}</div>
-            <div class="fi-sub">Todos os orçamentos</div>
+          <div class="fin-card">
+            <div class="fin-label">Custos Totais</div>
+            <div class="fin-value">{{ custoTotal | currency:'BRL' }}</div>
+            <div class="fin-sub">Todos os orçamentos</div>
           </div>
-          <div class="financial-card">
-            <div class="fi-label">Vendas Totais</div>
-            <div class="fi-value highlight">{{ vendaTotal | currency:'BRL' }}</div>
-            <div class="fi-sub">Margem de lucro</div>
+          <div class="fin-card">
+            <div class="fin-label">Vendas Totais</div>
+            <div class="fin-value highlight">{{ vendaTotal | currency:'BRL' }}</div>
+            <div class="fin-sub">Margem de lucro</div>
           </div>
-          <div class="financial-card">
-            <div class="fi-label">Aduana (Despesas)</div>
-            <div class="fi-value">{{ despesasAduanaTotal | currency:'BRL' }}</div>
-            <div class="fi-sub">Desembaraço</div>
+          <div class="fin-card">
+            <div class="fin-label">Aduana (Despesas)</div>
+            <div class="fin-value">{{ despesasAduanaTotal | currency:'BRL' }}</div>
+            <div class="fin-sub">Desembaraço</div>
           </div>
-          <div class="financial-card total">
-            <div class="fi-label">Desembolso Total</div>
-            <div class="fi-value">{{ desembolsoTotal | currency:'BRL' }}</div>
-            <div class="fi-sub">Custo + Aduana</div>
+          <div class="fin-card highlight">
+            <div class="fin-label">Desembolso Total</div>
+            <div class="fin-value">{{ desembolsoTotal | currency:'BRL' }}</div>
+            <div class="fin-sub">Custo + Aduana</div>
           </div>
         </div>
       </div>
@@ -118,7 +118,7 @@ interface OrçamentoResumo {
         </div>
 
         <div class="table-wrapper">
-          <table class="table-orcamentos">
+          <table class="data-table">
             <thead>
               <tr>
                 <th>Código</th>
@@ -135,7 +135,7 @@ interface OrçamentoResumo {
               <tr *ngIf="orcamentosFiltrados.length === 0">
                 <td colspan="8" class="empty-state">Nenhum orçamento encontrado</td>
               </tr>
-              <tr *ngFor="let orc of orcamentosFiltrados" class="orc-row" (click)="abrirDetalhes(orc)">
+              <tr *ngFor="let orc of orcamentosFiltrados" class="clickable" (click)="abrirDetalhes(orc)">
                 <td class="codigo"><strong>{{ orc.codigo }}</strong></td>
                 <td>{{ orc.cliente }}</td>
                 <td>{{ orc.data | date:'dd/MM/yyyy' }}</td>
@@ -157,7 +157,7 @@ interface OrçamentoResumo {
 
       <!-- Seção de Aduana (Crítica) -->
       <div class="content-section" *ngIf="aduanasCriticas.length > 0">
-        <div class="section-header critical">
+        <div class="section-header alert">
           <h2>🏛️ Aduana - Atenção Necessária</h2>
           <span class="badge-alert">{{ aduanasCriticas.length }} item(ns)</span>
         </div>
@@ -220,259 +220,21 @@ interface OrçamentoResumo {
     </div>
   `,
   styles: [`
-    .dashboard {
-      padding: 24px;
-      max-width: 1400px;
-      margin: 0 auto;
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      min-height: 100vh;
-    }
-
-    .dashboard-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      margin-bottom: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .dashboard-header h1 {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 700;
-      color: #1a1a1a;
-    }
-
-    .dashboard-header .subtitle {
-      margin: 4px 0 0 0;
-      color: #666;
-      font-size: 14px;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-
-    /* KPIs Grid */
-    .kpis-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .kpi-card {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      border-left: 4px solid #667eea;
-    }
-
-    .kpi-icon {
-      font-size: 32px;
-    }
-
-    .kpi-content {
-      flex: 1;
-    }
-
-    .kpi-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: #1a1a1a;
-    }
-
-    .kpi-label {
-      font-size: 12px;
-      color: #999;
-      margin-top: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    /* Content Section */
-    .content-section {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      margin-bottom: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid #f0f0f0;
-    }
-
-    .section-header h2 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 700;
-      color: #1a1a1a;
-    }
-
-    .section-header.critical {
-      border-bottom-color: #ff6b6b;
-    }
-
-    .section-header.critical h2 {
-      color: #ff6b6b;
-    }
-
-    .badge-alert {
-      background: #ff6b6b;
-      color: white;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
-    .filters {
-      display: flex;
-      gap: 12px;
-    }
-
-    .filter-select {
-      padding: 8px 12px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    /* Table */
-    .table-wrapper {
-      overflow-x: auto;
-    }
-
-    .table-orcamentos {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
-
-    .table-orcamentos thead {
-      background: #f8f9fa;
-      border-bottom: 2px solid #ddd;
-    }
-
-    .table-orcamentos th {
-      padding: 12px;
-      text-align: left;
-      font-weight: 600;
-      color: #1a1a1a;
-    }
-
-    .table-orcamentos td {
-      padding: 12px;
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .table-orcamentos .orc-row {
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .table-orcamentos .orc-row:hover {
-      background: #f0f4ff;
-    }
-
-    .codigo {
-      font-weight: 600;
-      color: #667eea;
-    }
-
-    .empty-state {
-      text-align: center;
-      color: #999;
-      padding: 32px 12px !important;
-    }
-
-    /* Badges */
-    .badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .badge.status-concluido {
-      background: #d4edda;
-      color: #155724;
-    }
-
-    .badge.status-em-andamento {
-      background: #cfe2ff;
-      color: #084298;
-    }
-
-    .badge.status-pendente {
-      background: #f8d7da;
-      color: #721c24;
-    }
-
-    .canal-badge {
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .canal-badge.canal-Verde {
-      background: #d4edda;
-      color: #155724;
-    }
-
-    .canal-badge.canal-Amarelo {
-      background: #fff3cd;
-      color: #664d03;
-    }
-
-    .canal-badge.canal-Vermelho {
-      background: #f8d7da;
-      color: #721c24;
-    }
-
+    /* Dashboard-specific styles - minimal, component-specific only */
+    
     /* Progress Bar */
     .progresso-bar {
       position: relative;
       height: 20px;
-      background: #f0f0f0;
-      border-radius: 4px;
+      background: var(--color-border-light);
+      border-radius: var(--radius-sm);
       overflow: hidden;
     }
 
     .progresso-fill {
       height: 100%;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-      transition: width 0.3s;
+      background: var(--gradient-primary);
+      transition: width var(--transition-standard);
     }
 
     .progresso-text {
@@ -489,7 +251,7 @@ interface OrçamentoResumo {
     /* Actions */
     .actions {
       display: flex;
-      gap: 8px;
+      gap: var(--spacing-sm);
     }
 
     .btn-icon {
@@ -498,32 +260,32 @@ interface OrçamentoResumo {
       cursor: pointer;
       font-size: 16px;
       padding: 4px 8px;
-      border-radius: 4px;
-      transition: background 0.2s;
+      border-radius: var(--radius-sm);
+      transition: background var(--transition-standard);
     }
 
     .btn-icon:hover {
-      background: #f0f0f0;
+      background: var(--color-border-light);
     }
 
-    /* Aduana Cards */
+    /* Aduana Cards - Alert style */
     .aduana-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
+      gap: var(--spacing-lg);
     }
 
     .aduana-card {
-      border: 1px solid #ff6b6b;
-      border-radius: 8px;
+      border: 2px solid var(--color-danger);
+      border-radius: var(--radius-lg);
       overflow: hidden;
-      background: linear-gradient(135deg, #ffe8e8 0%, #fff5f5 100%);
+      background: var(--color-danger-light);
     }
 
     .aduana-card .card-header {
-      background: #ff6b6b;
+      background: var(--color-danger);
       color: white;
-      padding: 12px;
+      padding: var(--spacing-md);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -536,106 +298,57 @@ interface OrçamentoResumo {
     }
 
     .aduana-card .card-body {
-      padding: 12px;
+      padding: var(--spacing-md);
     }
 
     .info-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255,107,107,0.1);
+      padding: var(--spacing-sm) 0;
+      border-bottom: 1px solid rgba(239, 68, 68, 0.1);
       font-size: 13px;
     }
 
     .info-row label {
       font-weight: 600;
-      color: #666;
+      color: var(--color-text-secondary);
     }
 
     .info-row.financial {
       background: white;
-      padding: 10px;
-      border-radius: 4px;
+      padding: var(--spacing-md);
+      border-radius: var(--radius-sm);
       border-bottom: none;
     }
 
     .info-row .amount {
       font-weight: 700;
-      color: #ff6b6b;
+      color: var(--color-danger);
       font-size: 14px;
     }
 
     .aduana-card .card-footer {
-      padding: 12px;
-      border-top: 1px solid rgba(255,107,107,0.1);
+      padding: var(--spacing-md);
+      border-top: 1px solid rgba(239, 68, 68, 0.1);
       text-align: center;
     }
 
     .btn-small {
-      background: #ff6b6b;
+      background: var(--color-danger);
       color: white;
       border: none;
       padding: 8px 16px;
-      border-radius: 6px;
+      border-radius: var(--radius-md);
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all var(--transition-standard);
     }
 
     .btn-small:hover {
-      background: #ff5252;
+      background: #dc2626;
       transform: translateY(-1px);
-    }
-
-    /* Financial Grid */
-    .financial-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-    }
-
-    .financial-card {
-      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-      border: 2px solid #667eea;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-    }
-
-    .financial-card.total {
-      border-color: #ff6b6b;
-      background: linear-gradient(135deg, #ff6b6b15 0%, #ff000015 100%);
-    }
-
-    .fi-label {
-      font-size: 12px;
-      color: #666;
-      text-transform: uppercase;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-
-    .fi-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: #667eea;
-      margin-bottom: 8px;
-    }
-
-    .fi-value.highlight {
-      color: #28a745;
-    }
-
-    .financial-card.total .fi-value {
-      color: #ff6b6b;
-    }
-
-    .fi-sub {
-      font-size: 12px;
-      color: #999;
     }
 
     /* Timeline */
@@ -651,7 +364,7 @@ interface OrçamentoResumo {
       top: 0;
       bottom: 0;
       width: 2px;
-      background: #ddd;
+      background: var(--color-border);
     }
 
     .timeline-item {
@@ -667,15 +380,15 @@ interface OrçamentoResumo {
       height: 18px;
       border-radius: 50%;
       background: white;
-      border: 3px solid #667eea;
+      border: 3px solid var(--color-primary);
     }
 
     .timeline-marker.packlist {
-      border-color: #28a745;
+      border-color: var(--color-success);
     }
 
     .timeline-marker.custo {
-      border-color: #ffc107;
+      border-color: var(--color-warning);
     }
 
     .timeline-marker.venda {
@@ -683,61 +396,32 @@ interface OrçamentoResumo {
     }
 
     .timeline-marker.aduana {
-      border-color: #ff6b6b;
+      border-color: var(--color-danger);
     }
 
     .timeline-title {
       font-weight: 600;
-      color: #1a1a1a;
-      margin-bottom: 4px;
+      color: var(--color-text);
+      margin-bottom: var(--spacing-xs);
     }
 
     .timeline-desc {
       font-size: 13px;
-      color: #666;
-      margin-bottom: 4px;
+      color: var(--color-text-secondary);
+      margin-bottom: var(--spacing-xs);
     }
 
     .timeline-time {
       font-size: 11px;
-      color: #999;
+      color: var(--color-text-muted);
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
 
     .empty-timeline {
       text-align: center;
-      color: #999;
-      padding: 32px;
-    }
-
-    @media (max-width: 768px) {
-      .dashboard {
-        padding: 12px;
-      }
-
-      .dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-      }
-
-      .table-orcamentos {
-        font-size: 12px;
-      }
-
-      .table-orcamentos th,
-      .table-orcamentos td {
-        padding: 8px;
-      }
-
-      .kpis-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .aduana-grid {
-        grid-template-columns: 1fr;
-      }
+      color: var(--color-text-muted);
+      padding: var(--spacing-2xl);
     }
   `]
 })

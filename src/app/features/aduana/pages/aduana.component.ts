@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { readJSON, keys } from '../../orcamento/data/storage.helper';
+import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
 interface ProcessoAduana {
   id: string;
@@ -30,16 +31,15 @@ interface ProcessoAduana {
 @Component({
   standalone: true,
   selector: 'app-aduana-nova',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, PageHeaderComponent],
   template: `
-    <div class="dashboard-aduana">
+    <div class="container-standard">
       <!-- Header -->
-      <div class="header-section">
-        <div class="header-content">
-          <h1>🛃 Dashboard Aduana</h1>
-          <p class="subtitle">Controle analítico e acompanhamento detalhado do desembaraço aduaneiro</p>
-        </div>
-      </div>
+      <app-page-header 
+        icon="🛃" 
+        title="Dashboard Aduana" 
+        subtitle="Controle analítico e acompanhamento detalhado do desembaraço aduaneiro">
+      </app-page-header>
 
       <!-- KPIs Principais -->
       <div class="kpis-grid">
@@ -136,7 +136,7 @@ interface ProcessoAduana {
         </div>
 
         <div class="table-wrapper">
-          <table class="table-aduana">
+          <table class="data-table clickable">
             <thead>
               <tr>
                 <th>Processo</th>
@@ -157,8 +157,8 @@ interface ProcessoAduana {
               <tr *ngIf="processosFiltrados.length === 0">
                 <td colspan="12" class="empty-state">Nenhum processo encontrado</td>
               </tr>
-              <tr *ngFor="let proc of processosFiltrados" class="processo-row" (click)="abrirProcesso(proc)">
-                <td class="codigo"><strong>{{ proc.codigo }}</strong></td>
+              <tr *ngFor="let proc of processosFiltrados" (click)="abrirProcesso(proc)">
+                <td><strong>{{ proc.codigo }}</strong></td>
                 <td>{{ proc.cliente }}</td>
                 <td>{{ proc.porto }}</td>
                 <td>
@@ -175,9 +175,9 @@ interface ProcessoAduana {
                 </td>
                 <td class="numeric">{{ proc.totalVolumes }}</td>
                 <td class="numeric">{{ proc.cbmTotal | number:'1.2-2' }}</td>
-                <td class="numeric">{{ proc.desembolsoTotal ? (proc.desembolsoTotal | currency:'BRL':'symbol':'1.0-0') : '-' }}</td>
+                <td class="numeric currency">{{ proc.desembolsoTotal ? (proc.desembolsoTotal | currency:'BRL':'symbol':'1.0-0') : '-' }}</td>
                 <td>
-                  <span class="pendencias-badge" *ngIf="proc.pendencias.length > 0">{{ proc.pendencias.length }}</span>
+                  <span class="badge-alert" *ngIf="proc.pendencias.length > 0">{{ proc.pendencias.length }}</span>
                   <span *ngIf="proc.pendencias.length === 0">-</span>
                 </td>
               </tr>
@@ -258,345 +258,128 @@ interface ProcessoAduana {
     </div>
   `,
   styles: [`
-    .dashboard-aduana {
-      padding: 24px;
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      min-height: 100vh;
-    }
-
-    .header-section {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      margin-bottom: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .header-section h1 {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 700;
-      color: #1a1a1a;
-    }
-
-    .subtitle {
-      margin: 4px 0 0 0;
-      color: #666;
-      font-size: 14px;
-    }
-
-    .kpis-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
-    .kpi-card {
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      border-left: 4px solid;
-    }
-
-    .kpi-card.total { border-left-color: #667eea; }
-    .kpi-card.pending { border-left-color: #f59e0b; }
-    .kpi-card.progress { border-left-color: #3b82f6; }
-    .kpi-card.done { border-left-color: #10b981; }
-
-    .kpi-icon {
-      font-size: 32px;
-    }
-
-    .kpi-value {
-      font-size: 28px;
-      font-weight: 700;
-      color: #1a1a1a;
-    }
-
-    .kpi-label {
-      font-size: 12px;
-      color: #999;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-top: 4px;
-    }
-
-    .content-section {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      margin-bottom: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid #f0f0f0;
-    }
-
-    .section-header h2 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 700;
-      color: #1a1a1a;
-    }
-
-    .section-header.alert {
-      border-bottom-color: #ff6b6b;
-    }
-
-    .section-header.alert h2 {
-      color: #ff6b6b;
-    }
-
-    .badge-alert {
-      background: #ff6b6b;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-    }
-
+    /* Estilos adicionais específicos da Aduana */
     .canais-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: var(--spacing-lg);
     }
 
     .canal-card {
-      padding: 20px;
-      border-radius: 12px;
+      padding: var(--spacing-lg);
+      border-radius: var(--radius-lg);
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: var(--spacing-lg);
       border: 2px solid;
     }
 
     .canal-card.verde {
-      background: #d1fae5;
-      border-color: #10b981;
+      background: var(--color-success-light);
+      border-color: var(--color-success);
     }
 
     .canal-card.amarelo {
-      background: #fef3c7;
-      border-color: #f59e0b;
+      background: var(--color-warning-light);
+      border-color: var(--color-warning);
     }
 
     .canal-card.vermelho {
-      background: #fee2e2;
-      border-color: #ef4444;
+      background: var(--color-danger-light);
+      border-color: var(--color-danger);
     }
 
     .canal-card.cinza {
-      background: #f3f4f6;
-      border-color: #6b7280;
+      background: var(--color-border-light);
+      border-color: #9ca3af;
     }
 
     .canal-icon {
       font-size: 36px;
+      min-width: 50px;
     }
 
     .canal-value {
       font-size: 32px;
       font-weight: 700;
+      color: var(--color-text);
     }
 
     .canal-label {
       font-size: 14px;
       font-weight: 600;
-      margin-top: 4px;
+      margin-top: var(--spacing-xs);
+      color: var(--color-text);
     }
 
     .canal-desc {
       font-size: 11px;
-      color: #666;
+      color: var(--color-text-muted);
       margin-top: 2px;
-    }
-
-    .filters {
-      display: flex;
-      gap: 12px;
-    }
-
-    .filter-select {
-      padding: 8px 12px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      font-size: 14px;
-      background: white;
-      cursor: pointer;
-    }
-
-    .table-wrapper {
-      overflow-x: auto;
-    }
-
-    .table-aduana {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-
-    .table-aduana thead {
-      background: #f9fafb;
-    }
-
-    .table-aduana th {
-      padding: 12px 10px;
-      text-align: left;
-      font-weight: 600;
-      color: #374151;
-      border-bottom: 2px solid #e5e7eb;
-      white-space: nowrap;
-    }
-
-    .table-aduana td {
-      padding: 12px 10px;
-      border-bottom: 1px solid #f3f4f6;
-    }
-
-    .processo-row {
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .processo-row:hover {
-      background: #f0f4ff;
-    }
-
-    .codigo {
-      font-weight: 600;
-      color: #667eea;
-    }
-
-    .numeric {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .empty-state {
-      text-align: center;
-      color: #999;
-      padding: 32px !important;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .badge.status-concluido {
-      background: #d4edda;
-      color: #155724;
-    }
-
-    .badge.status-em-andamento {
-      background: #cfe2ff;
-      color: #084298;
-    }
-
-    .badge.status-pendente {
-      background: #f8d7da;
-      color: #721c24;
-    }
-
-    .badge-muted {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 4px;
-      font-size: 11px;
-      background: #f3f4f6;
-      color: #6b7280;
     }
 
     .canal-badge {
       display: inline-block;
       padding: 4px 10px;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
     }
 
     .canal-badge.canal-Verde {
-      background: #d1fae5;
+      background: var(--color-success-light);
       color: #065f46;
     }
 
     .canal-badge.canal-Amarelo {
-      background: #fef3c7;
+      background: var(--color-warning-light);
       color: #92400e;
     }
 
     .canal-badge.canal-Vermelho {
-      background: #fee2e2;
+      background: var(--color-danger-light);
       color: #991b1b;
     }
 
     .canal-badge.canal-Cinza {
-      background: #f3f4f6;
+      background: var(--color-border-light);
       color: #374151;
     }
 
     .dias-badge {
       display: inline-block;
       padding: 4px 8px;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
       font-size: 11px;
       font-weight: 600;
     }
 
     .dias-badge.normal {
-      background: #d1fae5;
+      background: var(--color-success-light);
       color: #065f46;
     }
 
     .dias-badge.atencao {
-      background: #fef3c7;
+      background: var(--color-warning-light);
       color: #92400e;
     }
 
     .dias-badge.critico {
-      background: #fee2e2;
+      background: var(--color-danger-light);
       color: #991b1b;
-    }
-
-    .pendencias-badge {
-      display: inline-block;
-      background: #ff6b6b;
-      color: white;
-      padding: 4px 8px;
-      border-radius: 50%;
-      font-size: 11px;
-      font-weight: 600;
-      min-width: 20px;
-      text-align: center;
     }
 
     .pendencias-list {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
+      gap: var(--spacing-lg);
     }
 
     .pendencia-card {
-      border: 2px solid #ff6b6b;
-      border-radius: 12px;
-      padding: 16px;
+      border: 2px solid var(--color-danger);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
       background: #fff5f5;
     }
 
@@ -604,8 +387,8 @@ interface ProcessoAduana {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      padding-bottom: 12px;
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-md);
       border-bottom: 1px solid #fecaca;
     }
 
@@ -615,13 +398,13 @@ interface ProcessoAduana {
 
     .cliente-name {
       font-size: 12px;
-      color: #666;
+      color: var(--color-text-muted);
     }
 
     .pendencia-items {
-      margin: 0 0 12px 0;
+      margin: 0 0 var(--spacing-md) 0;
       padding-left: 20px;
-      color: #374151;
+      color: var(--color-text-secondary);
       font-size: 13px;
     }
 
@@ -629,57 +412,41 @@ interface ProcessoAduana {
       margin-bottom: 6px;
     }
 
-    .btn-action {
-      background: #ff6b6b;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      width: 100%;
-    }
-
-    .btn-action:hover {
-      background: #ef4444;
-    }
-
     .portos-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 16px;
+      gap: var(--spacing-lg);
     }
 
     .porto-card {
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 16px;
-      background: #f9fafb;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      background: var(--color-subtle-bg);
     }
 
     .porto-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: var(--spacing-md);
+      padding-bottom: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
     }
 
     .porto-name {
       font-weight: 600;
-      color: #1a1a1a;
+      color: var(--color-text);
     }
 
     .porto-count {
       font-size: 12px;
-      color: #666;
+      color: var(--color-text-muted);
     }
 
     .porto-stats {
       display: flex;
-      gap: 16px;
+      gap: var(--spacing-lg);
     }
 
     .stat-item {
@@ -690,41 +457,41 @@ interface ProcessoAduana {
 
     .stat-label {
       font-size: 11px;
-      color: #999;
+      color: var(--color-text-muted);
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: var(--spacing-xs);
     }
 
     .stat-value {
       font-size: 18px;
       font-weight: 700;
-      color: #374151;
+      color: var(--color-text-secondary);
     }
 
     .financial-summary {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+      gap: var(--spacing-lg);
     }
 
     .fin-card {
-      padding: 20px;
-      border-radius: 12px;
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
+      padding: var(--spacing-lg);
+      border-radius: var(--radius-lg);
+      background: var(--color-subtle-bg);
+      border: 1px solid var(--color-border);
     }
 
     .fin-card.highlight {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: var(--gradient-primary);
       color: white;
       border: none;
     }
 
     .fin-label {
       font-size: 12px;
-      color: #666;
+      color: var(--color-text-muted);
       text-transform: uppercase;
-      margin-bottom: 8px;
+      margin-bottom: var(--spacing-md);
     }
 
     .fin-card.highlight .fin-label {
@@ -734,34 +501,19 @@ interface ProcessoAduana {
     .fin-value {
       font-size: 24px;
       font-weight: 700;
-      color: #1a1a1a;
+      color: var(--color-text);
     }
 
     .fin-card.highlight .fin-value {
       color: white;
     }
 
-    @media (max-width: 768px) {
-      .dashboard-aduana {
-        padding: 12px;
-      }
+    .section-header.alert {
+      border-bottom-color: var(--color-danger);
+    }
 
-      .kpis-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .canais-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .table-aduana {
-        font-size: 11px;
-      }
-
-      .table-aduana th,
-      .table-aduana td {
-        padding: 8px 6px;
-      }
+    .section-header.alert h2 {
+      color: var(--color-danger);
     }
   `]
 })

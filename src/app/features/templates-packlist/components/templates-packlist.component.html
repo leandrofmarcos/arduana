@@ -1,20 +1,22 @@
-<div class="templates-container">
-  <div class="templates-header">
-    <h2>Templates Packlist</h2>
-    <button class="btn-primary" (click)="newTemplate()">+ Novo Template</button>
-  </div>
+<div class="container-standard">
+  <app-page-header
+    icon="📋"
+    title="Templates Packlist"
+    subtitle="Gerencie templates para uso nos clientes">
+    <button class="btn btn-primary" (click)="newTemplate()">+ Novo Template</button>
+  </app-page-header>
 
   <ng-container *ngIf="!isCreating && !selectedTemplate">
-    <div class="search-box">
-      <input 
-        type="text" 
-        placeholder="Buscar templates..." 
-        [(ngModel)]="searchTerm"
-        class="search-input">
-    </div>
+    <div class="content-section">
+      <div class="toolbar">
+        <input 
+          type="text" 
+          placeholder="🔎 Buscar templates..." 
+          [(ngModel)]="searchTerm"
+          class="search">
+      </div>
 
-    <div class="card">
-      <table class="table">
+      <table class="data-table">
         <thead>
           <tr>
             <th>Nome do Template</th>
@@ -33,9 +35,11 @@
             <td class="template-descricao" [title]="template.descricao || ''">{{ template.descricao || '—' }}</td>
             <td class="template-arquivo">{{ template.nomeArquivo }}</td>
             <td class="template-data">{{ template.dataCriacao | date:'dd/MM/yyyy' }}</td>
-            <td class="template-actions">
-              <button class="btn-edit" (click)="selectTemplate(template)">Editar</button>
-              <button class="btn-delete" (click)="deleteTemplate(template.id)">Deletar</button>
+            <td>
+              <div class="row-actions">
+                <button class="btn-icon" title="Editar template" (click)="selectTemplate(template)">✏️</button>
+                <button class="btn-icon danger" title="Excluir template" (click)="deleteTemplate(template.id)">🗑️</button>
+              </div>
             </td>
           </tr>
         </tbody>

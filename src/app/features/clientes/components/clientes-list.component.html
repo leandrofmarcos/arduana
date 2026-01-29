@@ -1,17 +1,13 @@
-<div class="content">
-  <div class="header">
-    <div>
-      <h1>👥 Cadastro de Clientes</h1>
-      <p>Gerencie clientes para uso nos processos</p>
-    </div>
-    <button class="btn-new" (click)="createNew()">
-      <span class="icon">➕</span>
-      Novo Cliente
-    </button>
-  </div>
+<div class="container-standard">
+  <app-page-header
+    icon="👥"
+    title="Cadastro de Clientes"
+    subtitle="Gerencie clientes para uso nos processos">
+    <button class="btn btn-primary" (click)="createNew()">+ Novo Cliente</button>
+  </app-page-header>
 
   <ng-container *ngIf="!isCreating && !selectedCliente">
-    <div class="card">
+    <div class="content-section">
       <div class="toolbar">
         <input 
           class="search" 
@@ -21,7 +17,7 @@
         />
       </div>
 
-      <table class="table">
+      <table class="data-table">
         <thead>
           <tr>
             <th>Nome</th>
@@ -45,9 +41,11 @@
               </span>
               <span *ngIf="!cliente.templatePacklistId" class="no-template">—</span>
             </td>
-            <td class="cliente-actions">
-              <button class="btn-edit" (click)="selectCliente(cliente)">Editar</button>
-              <button class="btn-delete" (click)="deleteCliente(cliente.id)">Deletar</button>
+            <td>
+              <div class="row-actions">
+                <button class="btn-icon" title="Editar cliente" (click)="selectCliente(cliente)">✏️</button>
+                <button class="btn-icon danger" title="Excluir cliente" (click)="deleteCliente(cliente.id)">🗑️</button>
+              </div>
             </td>
           </tr>
         </tbody>

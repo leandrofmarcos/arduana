@@ -3,20 +3,20 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AliquotasService } from '../services/aliquotas.service';
 import { AliquotaPerfil } from '../models/aliquota.models';
+import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
 @Component({
   selector: 'app-aliquotas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PageHeaderComponent],
   template: `
-    <div class="content">
-      <div class="header">
-        <div>
-          <h1>🧮 Perfis de Alíquotas</h1>
-          <p>Cadastre e reutilize perfis de impostos</p>
-        </div>
+    <div class="container-standard">
+      <app-page-header 
+        icon="🧮" 
+        title="Perfis de Alíquotas" 
+        subtitle="Cadastre e reutilize perfis de impostos">
         <button class="btn btn-primary" (click)="abrirCadastro()">+ Novo cadastro</button>
-      </div>
+      </app-page-header>
       <div class="modal-backdrop" *ngIf="showForm">
         <div class="modal">
           <div class="modal-header">
@@ -41,19 +41,24 @@ import { AliquotaPerfil } from '../models/aliquota.models';
           </div>
         </div>
       </div>
-      <div class="card">
-        <table class="table">
+
+      <div class="content-section">
+        <table class="data-table">
           <thead><tr><th>Nome</th><th>II</th><th>IPI</th><th>ICMS</th><th>PIS</th><th>COFINS</th><th>Padrão</th><th>Ações</th></tr></thead>
           <tbody>
             <tr *ngFor="let a of (list$ | async)">
-              <td><input type="text" [(ngModel)]="a.nome" (change)="update(a)"></td>
-              <td><input type="number" step="0.01" [(ngModel)]="a.ii" (change)="update(a)"></td>
-              <td><input type="number" step="0.01" [(ngModel)]="a.ipi" (change)="update(a)"></td>
-              <td><input type="number" step="0.01" [(ngModel)]="a.icms" (change)="update(a)"></td>
-              <td><input type="number" step="0.01" [(ngModel)]="a.pis" (change)="update(a)"></td>
-              <td><input type="number" step="0.01" [(ngModel)]="a.cofins" (change)="update(a)"></td>
-              <td><input type="checkbox" [checked]="a.padrao" (change)="setPadrao(a)"></td>
-              <td><button class="btn btn-secondary" (click)="remove(a.id)">Excluir</button></td>
+              <td>{{ a.nome }}</td>
+              <td>{{ a.ii }}</td>
+              <td>{{ a.ipi }}</td>
+              <td>{{ a.icms }}</td>
+              <td>{{ a.pis }}</td>
+              <td>{{ a.cofins }}</td>
+              <td>{{ a.padrao ? 'Sim' : 'Não' }}</td>
+              <td>
+                <div class="row-actions">
+                  <button class="btn-icon danger" title="Excluir perfil" (click)="remove(a.id)">🗑️</button>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -61,10 +66,6 @@ import { AliquotaPerfil } from '../models/aliquota.models';
     </div>
   `,
   styles: [
-    `.content{padding:24px}`,
-    `.header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:12px}`,
-    `.header h1{font-size:22px;margin:0 0 6px 0}`,
-    `.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px;margin-bottom:16px}`,
     `.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 25px}`,
     `.field{display:flex;flex-direction:column}`,
     `.field label{font-size:13px;color:var(--color-muted);font-weight:600;margin-bottom:8px}`,
@@ -74,11 +75,10 @@ import { AliquotaPerfil } from '../models/aliquota.models';
     `.btn{padding:12px 16px;border-radius:8px;border:none;cursor:pointer;font-weight:700}`,
     `.btn-primary{background:var(--gradient-primary);color:#fff}`,
     `.btn-secondary{background:var(--color-surface);color:var(--color-primary);border:2px solid var(--color-primary)}`,
-    `.table{width:100%;border-collapse:collapse}`,
-    `.table th{font-size:12px;color:var(--color-muted);font-weight:700;letter-spacing:.4px;text-transform:uppercase}`,
-    `.table th,.table td{border-bottom:1px solid var(--color-border);padding:12px;text-align:left}`,
-    `.table td input{width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;background:var(--color-surface)}`,
-    `.table td input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 4px rgba(102,126,234,.08)}`,
+    `.data-table th:last-child,.data-table td:last-child{text-align:right;width:120px}`,
+    `.row-actions{display:flex;justify-content:flex-end;gap:0;align-items:center}`,
+    `.row-actions .btn-icon{padding:6px 8px}`,
+    `.btn-icon.danger{color:var(--color-danger)}`,
     `.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000}`,
     `.modal{width:min(900px,92vw);background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.2);overflow:hidden}`,
     `.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--color-border)}`,

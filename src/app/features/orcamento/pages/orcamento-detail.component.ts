@@ -42,7 +42,7 @@ interface OrçamentoDetalhe {
   selector: 'app-orcamento-detail-v2',
   imports: [CommonModule, RouterModule, FormsModule, PacklistDetalheComponent, CustoDetailComponent, VendaDetailComponent, AduanaDetailComponent],
   template: `
-    <div class="detail-container" *ngIf="modo === 'overview'">
+    <div class="container-standard" *ngIf="modo === 'overview'">
       <!-- Header -->
       <div class="detail-header">
         <div class="header-info">
@@ -170,13 +170,6 @@ interface OrçamentoDetalhe {
     </div>
   `,
   styles: [`
-    .detail-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 24px;
-      background: #f8f9fa;
-    }
-
     .detail-header {
       display: flex;
       justify-content: space-between;

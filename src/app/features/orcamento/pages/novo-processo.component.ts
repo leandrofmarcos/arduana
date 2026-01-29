@@ -8,20 +8,23 @@ import { TemplatesPacklistService } from '../../templates-packlist/services/temp
 import { OrcamentoListItem } from '../models/orcamento.models';
 import { Cliente } from '../../clientes/models/cliente.models';
 import { TemplatePacklist } from '../../templates-packlist/models/templates-packlist.models';
+import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
 @Component({
   standalone: true,
   selector: 'app-novo-processo-nova',
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, PageHeaderComponent],
   template: `
-    <div class="card">
-      <h2>Orçamentos</h2>
-      <p>Lista e gerenciamento de orçamentos</p>
-      <div class="actions">
-        <button class="btn btn-primary" (click)="abrirModalCriar()">Criar novo orçamento</button>
-        <button class="btn btn-secondary" (click)="limparStorage()" style="margin-left: 8px;">Resetar fluxo</button>
-      </div>
-      <table class="table">
+    <div class="container-standard">
+      <app-page-header 
+        icon="💼" 
+        title="Orçamentos" 
+        subtitle="Lista e gerenciamento de orçamentos">
+        <button class="btn btn-primary" (click)="abrirModalCriar()">+ Criar novo orçamento</button>
+      </app-page-header>
+
+      <div class="content-section">
+        <table class="data-table">
         <thead>
           <tr><th>Data</th><th>Cliente</th><th>Despachante</th><th>Código</th><th>Status</th><th style="width:140px">Ações</th></tr>
         </thead>
@@ -43,6 +46,7 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
           </tr>
         </tbody>
       </table>
+      </div>
 
       <div class="modal-backdrop" *ngIf="confirmId">
         <div class="modal">

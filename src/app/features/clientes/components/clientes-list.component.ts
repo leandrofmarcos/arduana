@@ -6,11 +6,12 @@ import { Cliente } from '../models/cliente.models';
 import { ClienteDetailComponent } from './cliente-detail.component';
 import { TemplatesPacklistService } from '../../templates-packlist/services/templates-packlist.service';
 import { TemplatePacklistListItem } from '../../templates-packlist/models/templates-packlist.models';
+import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
 @Component({
   selector: 'app-clientes-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ClienteDetailComponent],
+  imports: [CommonModule, FormsModule, ClienteDetailComponent, PageHeaderComponent],
   templateUrl: './clientes-list.component.html',
   styleUrls: ['./clientes-list.component.scss']
 })

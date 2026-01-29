@@ -1,45 +1,11 @@
-.templates-container {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.templates-header {
+.toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  gap: 20px;
-
-  h2 {
-    margin: 0;
-    font-size: 24px;
-    color: #333;
-  }
+  margin-bottom: 16px;
 }
 
-.btn-primary {
-  padding: 12px 16px;
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 700;
-  transition: all 0.3s;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  }
-}
-
-.search-box {
-  margin-bottom: 20px;
-}
-
-.search-input {
+.search {
   width: 100%;
   max-width: 400px;
   padding: 13px 16px;
@@ -56,43 +22,10 @@
   }
 }
 
-.card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 16px;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-
-  th {
-    font-size: 12px;
-    color: var(--color-muted);
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    text-transform: uppercase;
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  td {
-    padding: 12px;
-    border-bottom: 1px solid var(--color-border);
-    font-size: 14px;
-    color: var(--color-text);
-  }
-
-  tbody tr {
-    transition: background-color 0.2s;
-
-    &:hover {
-      background-color: rgba(102, 126, 234, 0.03);
-    }
-  }
+.data-table th:last-child,
+.data-table td:last-child {
+  text-align: right;
+  width: 120px;
 }
 
 .template-name {
@@ -142,43 +75,22 @@
   font-size: 13px;
 }
 
-.template-actions {
+.row-actions {
   display: flex;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 0;
+  align-items: center;
 }
 
-.btn-edit,
-.btn-delete {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  transition: all 0.2s;
+.row-actions .btn-icon {
+  padding: 6px 8px;
 }
 
-.btn-edit {
-  background-color: #28a745;
-  color: white;
-
-  &:hover {
-    background-color: #218838;
-    transform: translateY(-1px);
-  }
+.btn-icon.danger {
+  color: var(--color-danger);
 }
 
-.btn-delete {
-  background-color: #dc3545;
-  color: white;
-
-  &:hover {
-    background-color: #c82333;
-    transform: translateY(-1px);
-  }
-}
-
-.empty-state {
+.data-table .empty-state {
   text-align: center;
   padding: 40px;
   color: #999;

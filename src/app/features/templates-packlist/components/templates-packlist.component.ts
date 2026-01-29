@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { TemplatesPacklistService } from '../services/templates-packlist.service';
 import { TemplatePacklistListItem } from '../models/templates-packlist.models';
 import { TemplatesPacklistDetailComponent } from './templates-packlist-detail.component';
+import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
 @Component({
   selector: 'app-templates-packlist',
   standalone: true,
-  imports: [CommonModule, FormsModule, TemplatesPacklistDetailComponent],
+  imports: [CommonModule, FormsModule, TemplatesPacklistDetailComponent, PageHeaderComponent],
   templateUrl: './templates-packlist.component.html',
   styleUrls: ['./templates-packlist.component.scss']
 })
