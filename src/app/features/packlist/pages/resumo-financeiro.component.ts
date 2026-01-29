@@ -19,12 +19,8 @@ import { Despesa } from '../../custo/models/custo.models';
           <div class="value">{{ cifBrl | currency:'BRL' }}</div>
         </div>
         <div class="block">
-          <div class="label">Despachante</div>
-          <div class="value">{{ totalDespachante | currency:'BRL' }}</div>
-        </div>
-        <div class="block">
-          <div class="label">Despesas Desembaraço (Agência Marítima)</div>
-          <div class="value">{{ totalAgencia | currency:'BRL' }}</div>
+          <div class="label">Desembaraço</div>
+          <div class="value">{{ totalDesembaraco | currency:'BRL' }}</div>
         </div>
         <div class="block total">
           <div class="label">Custo Total</div>
@@ -47,9 +43,12 @@ export class ResumoFinanceiroComponent{
   @Input() form: any;
   @Input() despesas: Despesa[] = [];
   @Input() despesasDespachante: Despesa[] = [];
-  get cifUsd(){ const f = this.form || {}; return (f.fobUsd||0) + (f.freteUsd||0) + (f.seguroUsd||0); }
+  get cifUsd(){ const f = this.form || {}; return (f.fobUsd||0) + (f.freteUsd||0) + (f.seguroUsd||0) + (f.thcUsd||0); }
   get cifBrl(){ const f = this.form || {}; return this.cifUsd * (f.taxaUsd||0); }
-  get totalAgencia(){ return (this.despesas||[]).reduce((s,d)=>s + (d.valor||0), 0); }
-  get totalDespachante(){ return (this.despesasDespachante||[]).reduce((s,d)=>s + (d.valor||0), 0); }
-  get custoTotal(){ return this.cifBrl + this.totalAgencia + this.totalDespachante; }
+  get totalDesembaraco(){
+    const total = (this.despesas||[]).reduce((s,d)=>s + (d.valor||0), 0);
+    const totalDesp = (this.despesasDespachante||[]).reduce((s,d)=>s + (d.valor||0), 0);
+    return total + totalDesp;
+  }
+  get custoTotal(){ return this.cifBrl + this.totalDesembaraco; }
 }

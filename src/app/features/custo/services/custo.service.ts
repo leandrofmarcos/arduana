@@ -35,11 +35,11 @@ export class CustoService {
     writeJSON(`custo_despesas_${custoId}`, despesas);
   }
 
-  getCustoSnapshot(id: string): { premissas: any; despesas: any[] } | null {
-    return readJSON<{ premissas: any; despesas: any[] }>(`custo_${id}`) || null;
+  getCustoSnapshot(id: string): { premissas: any; despesas: any[]; [key: string]: any } | null {
+    return readJSON<{ premissas: any; despesas: any[]; [key: string]: any }>(`custo_${id}`) || null;
   }
 
-  saveCustoSnapshot(id: string, data: { premissas: any; despesas: any[] }): void {
+  saveCustoSnapshot(id: string, data: { premissas: any; despesas: any[]; [key: string]: any }): void {
     const snap = readJSON<any>(keys.custoSnapshot(id)) || {};
     const next = { ...snap, ...data };
     writeJSON(keys.custoSnapshot(id), next);

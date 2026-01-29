@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { PacklistService } from '../../packlist/services/packlist.service';
 import { PacklistDetalheComponent } from '../../packlist/pages/packlist-detail-new.component';
 import { CustoDetailComponent } from '../../custo/pages/custo-detail.component';
+import { readJSON, keys } from '../data/storage.helper';
 
 interface OrçamentoDetalhe {
   id: string;
@@ -585,6 +586,14 @@ export class OrçamentoDetailComponentV2 implements OnInit {
       this.orcamento.fases.custo.status = itemCount > 0 ? 'em-andamento' : 'pendente';
     }
 
+    const custoSnap = readJSON<any>(keys.custoSnapshot(id));
+    if (custoSnap) {
+      const valorCusto = this.calcularValorCusto(custoSnap);
+      this.orcamento.fases.custo.valor = valorCusto;
+      this.orcamento.fases.custo.status = 'concluido';
+      this.orcamento.fases.custo.data = custoSnap.data || new Date().toISOString();
+    }
+
     this.historicoResumido = this.orcamento.historico.slice(0, 5);
 
     this.fases = this.fases.map(f => {
@@ -646,6 +655,22 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   formatCurrency(value?: number): string {
     if (!value) return '0,00';
     return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  private calcularValorCusto(snap: any): number {
+    if (!snap) return 0;
+    if (typeof snap.valorTotal === 'number') return snap.valorTotal;
+    const f = snap.premissas || {};
+    const despesas = Array.isArray(snap.despesas) ? snap.despesas : [];
+    const baseUsd = (f.fobUsd || 0) + (f.freteUsd || 0) + (f.seguroUsd || 0) + (f.thcUsd || 0);
+    const baseBrl = baseUsd * (f.taxaUsd || 0);
+    const ii = baseBrl * ((f.ii || 0) / 100);
+    const ipi = (baseBrl + ii) * ((f.ipi || 0) / 100);
+    const pis = baseBrl * ((f.pis || 0) / 100);
+    const cofins = baseBrl * ((f.cofins || 0) / 100);
+    const totalTributos = ii + ipi + pis + cofins;
+    const totalDespesas = despesas.reduce((s: number, d: any) => s + (d.valor || 0), 0);
+    return baseBrl + totalTributos + totalDespesas;
   }
 
   getActionType(acao: string): string {
