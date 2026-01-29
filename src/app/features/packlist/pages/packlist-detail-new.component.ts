@@ -24,14 +24,13 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
           <div class="template-info-badge" *ngIf="templateAssociado">
             <span class="badge-icon">📋</span>
             <span class="badge-text">Template: <strong>{{ templateAssociado.nome }}</strong></span>
-            <span class="badge-auto">Mapeamento Automático</span>
           </div>
           <div class="no-template-badge" *ngIf="!templateAssociado && clienteId">
             <span class="badge-icon">ℹ️</span>
-            <span class="badge-text">Cliente sem template - Upload simples (sem processamento)</span>
+            <span class="badge-text">Cliente sem template</span>
           </div>
         </div>
-        <button class="btn btn-secondary" (click)="voltar()">← Voltar</button>
+        <button class="btn-close" (click)="voltar()" title="Fechar">✕</button>
       </div>
 
       <div class="alert alert-error" *ngIf="errorMessages.length > 0">
@@ -71,6 +70,7 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
               </label>
             </div>
             <div class="upload-actions">
+              <button class="btn btn-secondary" (click)="voltar()">Cancelar</button>
               <button class="btn btn-secondary" (click)="salvarRascunho()" [disabled]="!selectedFile || isFinalizado">Salvar rascunho</button>
               <button class="btn btn-primary" (click)="finalizarPacklist()" [disabled]="isFinalizado || (!selectedFile && !detalhe)">Finalizar packlist</button>
             </div>
@@ -116,17 +116,18 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
     `.header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;background:#fff;padding:20px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}`,
     `.header h1{margin:0;font-size:24px;font-weight:700}`,
     `.subtitle{color:#6b7280;margin:4px 0 0;font-size:14px}`,
-    `.template-info-badge{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:8px 14px;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;border-radius:20px;font-size:13px}`,
-    `.template-info-badge .badge-icon{font-size:16px}`,
-    `.template-info-badge .badge-text strong{font-weight:700}`,
-    `.template-info-badge .badge-auto{margin-left:8px;padding:2px 8px;background:rgba(255,255,255,0.25);border-radius:10px;font-size:11px;font-weight:600}`,
-    `.no-template-badge{display:inline-flex;align-items:center;gap:8px;margin-top:12px;padding:8px 14px;background:#f3f4f6;color:#6b7280;border:2px dashed #d1d5db;border-radius:20px;font-size:13px}`,
+    `.template-info-badge{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:6px 10px;background:#f3f4f6;color:#374151;border:1px solid #e5e7eb;border-radius:999px;font-size:12px}`,
+    `.template-info-badge .badge-icon{font-size:14px}`,
+    `.template-info-badge .badge-text strong{font-weight:600}`,
+    `.no-template-badge{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:6px 10px;background:#f8fafc;color:#6b7280;border:1px dashed #e5e7eb;border-radius:999px;font-size:12px}`,
     `.btn{border:none;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer;font-size:14px;transition:all 0.2s}`,
     `.btn-primary{background:#2563eb;color:#fff}`,
     `.btn-primary:hover:not(:disabled){background:#1d4ed8}`,
     `.btn-primary:disabled{background:#cbd5e1;cursor:not-allowed;opacity:0.6}`,
     `.btn-secondary{background:#e5e7eb;color:#111}`,
     `.btn-secondary:hover{background:#d1d5db}`,
+    `.btn-close{background:transparent;border:none;color:#6b7280;font-size:18px;line-height:1;cursor:pointer;padding:6px 8px;border-radius:8px}`,
+    `.btn-close:hover{background:#f3f4f6;color:#111}`,
     `.content-wrapper{display:flex;flex-direction:column;gap:24px}`,
     `.upload-section{display:flex;flex-direction:column;gap:16px}`,
     `.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:20px}`,
@@ -142,7 +143,7 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
     `.file-text{display:flex;flex-direction:column;gap:4px}`,
     `.file-main{font-weight:600;color:#111;font-size:15px}`,
     `.file-sub{color:#9ca3af;font-size:13px}`,
-    `.upload-actions{display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid #f3f4f6}`,
+    `.upload-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid #f3f4f6}`,
     `.upload-actions .btn{flex:1}`,
     `.alert{position:relative;border-radius:12px;padding:14px 16px 14px 16px;margin-bottom:16px;border:1px solid #fecdd3;background:linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%);color:#7f1d1d;box-shadow:0 6px 20px rgba(255,76,96,0.1)}`,
     `.alert-title{font-weight:700;margin-bottom:6px;font-size:14px;color:#991b1b}`,
@@ -384,18 +385,12 @@ export class PacklistDetalheComponent implements OnInit {
       this.fileInputRef.nativeElement.value = '';
     }
     this.isFinalizado = saved.status === 'concluido';
-    setTimeout(() => {
-      this.router.navigate(['/orcamento', this.orcamentoId]);
-    }, 400);
+    this.fecharAposSalvar();
   }
 
   finalizarPacklist(): void {
     if (!this.orcamentoId) return;
     if (this.isFinalizado) return;
-    if (!this.selectedFile && !this.detalhe) {
-      this.showErrors(['Selecione um arquivo ou salve um rascunho antes de finalizar.']);
-      return;
-    }
     if (this.selectedFile) {
       this.salvarComStatus('concluido');
     } else if (this.detalhe) {
@@ -408,9 +403,28 @@ export class PacklistDetalheComponent implements OnInit {
       this.updateOrcamentoHistory(this.detalhe.arquivoNome, this.detalhe.arquivoCaminho, now);
       this.detalhe = saved;
       this.isFinalizado = true;
-      setTimeout(() => {
-        this.router.navigate(['/orcamento', this.orcamentoId]);
-      }, 400);
+      this.fecharAposSalvar();
+    } else {
+      const now = new Date().toISOString();
+      const saved = this.service.save({
+        id: undefined,
+        orcamentoId: this.orcamentoId,
+        codigo: this.codigo,
+        cliente: this.cliente,
+        despachante: undefined,
+        arquivoNome: '',
+        arquivoCaminho: '',
+        status: 'concluido',
+        enviadoEm: now,
+        enviadoPor: undefined,
+        itens: undefined,
+        previewItems: undefined,
+        mappingConfig: undefined,
+        totalItems: 0
+      });
+      this.detalhe = saved;
+      this.isFinalizado = true;
+      this.fecharAposSalvar();
     }
   }
 
@@ -446,6 +460,14 @@ export class PacklistDetalheComponent implements OnInit {
     }
     this.isFinalizado = saved.status === 'concluido';
     if (status === 'concluido') {
+      this.fecharAposSalvar();
+    }
+  }
+
+  private fecharAposSalvar(): void {
+    if (this.voltarClicked.observed) {
+      this.voltarClicked.emit();
+    } else {
       setTimeout(() => {
         this.router.navigate(['/orcamento', this.orcamentoId]);
       }, 400);

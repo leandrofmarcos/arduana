@@ -42,7 +42,7 @@ interface AduanaLancamento {
           <h1>🏛️ Aduana / Embarque</h1>
           <p class="subtitle">{{ codigo || orcamentoId }} • Cliente: {{ cliente || '-' }} • Despachante: {{ despachante || '-' }}</p>
         </div>
-        <button class="btn btn-secondary" (click)="voltar()">← Voltar</button>
+        <button class="btn-close" (click)="voltar()" title="Fechar">✕</button>
       </div>
 
       <div class="editor-grid">
@@ -269,7 +269,7 @@ interface AduanaLancamento {
         </div>
       </div>
 
-      <div class="actions">
+      <div class="actions actions-uniform">
         <button class="btn btn-secondary" (click)="voltar()">Cancelar</button>
         <button class="btn btn-secondary" (click)="salvarRascunho()" [disabled]="!podeEditar">Salvar rascunho</button>
         <button class="btn btn-secondary" (click)="registrarLancamento()" [disabled]="!podeEditar">Registrar Lançamento</button>
@@ -414,6 +414,8 @@ interface AduanaLancamento {
     `.editor-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:0px}`,
     `.editor-left,.editor-right{display:flex;flex-direction:column;gap:16px}`,
     `.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}`,
+    `.actions-uniform{display:flex;gap:8px;flex-wrap:wrap}`,
+    `.actions-uniform .btn{flex:1}`,
     `.actions-inline{display:flex;gap:10px;justify-content:flex-end;margin:8px 0 16px}`,
     `.highlight-box{display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,#667eea15,#764ba215);border:2px solid var(--color-primary);padding:16px;border-radius:10px;margin-top:16px}`,
     `.highlight-box strong{font-weight:700}`,
@@ -438,8 +440,10 @@ interface AduanaLancamento {
     `.modal-header{background:var(--color-header-bg);color:#fff;padding:12px 16px;font-weight:800}`,
     `.modal-header-flex{display:flex;justify-content:space-between;align-items:flex-start;background:var(--color-header-bg);color:#fff;padding:16px;border-bottom:1px solid var(--color-border)}`,
     `.modal-header-flex h3{margin:0;font-size:18px}`,
-    `.btn-close{background:transparent;border:none;color:#fff;cursor:pointer;font-size:20px;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center}`,
-    `.btn-close:hover{opacity:.8}`,
+    `.btn-close{background:transparent;border:none;color:#6b7280;cursor:pointer;font-size:18px;padding:6px 8px;border-radius:8px}`,
+    `.btn-close:hover{background:#f3f4f6;color:#111}`,
+    `.modal-header-flex .btn-close{color:#fff;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center}`,
+    `.modal-header-flex .btn-close:hover{opacity:.8;background:transparent;color:#fff}`,
     `.btn-icon{background:transparent;border:none;cursor:pointer;font-size:16px;padding:4px 8px;border-radius:4px;transition:.2s}`,
     `.btn-icon.info{color:#2563eb}`,
     `.modal-body{padding:16px}`,

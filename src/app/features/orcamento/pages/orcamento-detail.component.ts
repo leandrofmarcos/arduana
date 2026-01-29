@@ -9,6 +9,7 @@ import { CustoDetailComponent } from '../../custo/pages/custo-detail.component';
 import { VendaDetailComponent } from '../../venda/pages/venda-detail.component';
 import { AduanaDetailComponent } from '../../aduana/pages/aduana-detail.component';
 import { readJSON, keys } from '../data/storage.helper';
+import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
 interface OrçamentoDetalhe {
   id: string;
@@ -40,17 +41,15 @@ interface OrçamentoDetalhe {
 @Component({
   standalone: true,
   selector: 'app-orcamento-detail-v2',
-  imports: [CommonModule, RouterModule, FormsModule, PacklistDetalheComponent, CustoDetailComponent, VendaDetailComponent, AduanaDetailComponent],
+  imports: [CommonModule, RouterModule, FormsModule, PacklistDetalheComponent, CustoDetailComponent, VendaDetailComponent, AduanaDetailComponent, PageHeaderComponent],
   template: `
-    <div class="container-standard" *ngIf="modo === 'overview'">
+    <div class="container-standard" *ngIf="modo === 'overview' || modo === 'packlist' || modo === 'custo' || modo === 'venda' || modo === 'aduana'">
       <!-- Header -->
-      <div class="detail-header">
-        <div class="header-info">
-          <h1>{{ orcamento?.numero }}</h1>
-          <p class="header-subtitle">{{ orcamento?.cliente }}</p>
-        </div>
-        <button class="btn btn-secondary" (click)="voltar()">← Voltar</button>
-      </div>
+      <app-page-header
+        icon="💼"
+        [title]="'Orçamento ' + (orcamento?.numero || '')"
+        [subtitle]="'Cliente: ' + (orcamento?.cliente || '-')">
+      </app-page-header>
 
       <!-- Visual Timeline - Semáforo de Fases -->
       <div class="timeline-container">
@@ -150,23 +149,31 @@ interface OrçamentoDetalhe {
     </div>
 
     <!-- Modo Packlist -->
-    <div *ngIf="modo === 'packlist'">
-      <app-packlist-detalhe [orcamentoId]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-packlist-detalhe>
+    <div *ngIf="modo === 'packlist'" class="modal-backdrop">
+      <div class="modal modal-xl">
+        <app-packlist-detalhe [orcamentoId]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-packlist-detalhe>
+      </div>
     </div>
 
     <!-- Modo Custo -->
-    <div *ngIf="modo === 'custo'">
-      <app-custo-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-custo-detail>
+    <div *ngIf="modo === 'custo'" class="modal-backdrop">
+      <div class="modal modal-xl">
+        <app-custo-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-custo-detail>
+      </div>
     </div>
 
     <!-- Modo Venda -->
-    <div *ngIf="modo === 'venda'">
-      <app-venda-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-venda-detail>
+    <div *ngIf="modo === 'venda'" class="modal-backdrop">
+      <div class="modal modal-xl">
+        <app-venda-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-venda-detail>
+      </div>
     </div>
 
     <!-- Modo Aduana -->
-    <div *ngIf="modo === 'aduana'">
-      <app-aduana-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-aduana-detail>
+    <div *ngIf="modo === 'aduana'" class="modal-backdrop">
+      <div class="modal modal-xl">
+        <app-aduana-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-aduana-detail>
+      </div>
     </div>
   `,
   styles: [`
@@ -210,6 +217,27 @@ interface OrçamentoDetalhe {
 
     .btn-secondary:hover {
       background: #d0d0d0;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .modal {
+      width: min(1200px, 96vw);
+      max-height: 92vh;
+      overflow: auto;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
     }
 
     /* Timeline Visual */

@@ -18,7 +18,7 @@ import { keys, readJSON, writeJSON } from '../../custo/data/storage.helper';
           <h1>💼 Planilha de Venda</h1>
           <p class="subtitle">{{ codigo || orcamentoId }} • Cliente: {{ cliente || '-' }} </p>
         </div>
-        <button class="btn btn-secondary" (click)="voltar()">← Voltar</button>
+        <button class="btn-close" (click)="voltar()" title="Fechar">✕</button>
       </div>
 
       <div class="editor-grid">
@@ -163,7 +163,7 @@ import { keys, readJSON, writeJSON } from '../../custo/data/storage.helper';
         </div>
       </div>
 
-      <div class="actions">
+      <div class="actions actions-uniform">
         <button class="btn btn-secondary" (click)="voltar()">Cancelar</button>
         <button class="btn btn-secondary" (click)="salvarRascunho()" [disabled]="!isEditable">Salvar rascunho</button>
         <button class="btn btn-primary" (click)="finalizar()" [disabled]="!podeFinalizar">Finalizar venda</button>
@@ -187,6 +187,8 @@ import { keys, readJSON, writeJSON } from '../../custo/data/storage.helper';
     `.btn-primary{background:var(--gradient-primary);color:#fff}`,
     `.btn-secondary{background:var(--color-subtle-bg);border:1px solid var(--color-border)}`,
     `.btn:disabled{opacity:.5;cursor:not-allowed}`,
+    `.btn-close{background:transparent;border:none;color:#6b7280;font-size:18px;line-height:1;cursor:pointer;padding:6px 8px;border-radius:8px}`,
+    `.btn-close:hover{background:#f3f4f6;color:#111}`,
     `.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px;margin-bottom:16px}`,
     `.accordion-head{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--color-bg);border:1px solid var(--color-border);border-radius:10px;padding:12px;font-weight:700;cursor:pointer}`,
     `.accordion-content{margin-top:12px}`,
@@ -219,6 +221,8 @@ import { keys, readJSON, writeJSON } from '../../custo/data/storage.helper';
     `.section-title{font-size:16px;font-weight:700;color:var(--color-text);margin:0 0 12px 0;padding-bottom:8px;border-bottom:2px solid var(--color-border)}`,
     `.highlight-box{display:flex;justify-content:space-between;align-items:center;padding:16px;background:rgba(102,126,234,.08);border-radius:8px;margin-top:12px}`,
     `.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}`,
+    `.actions-uniform{display:flex;gap:8px;flex-wrap:wrap}`,
+    `.actions-uniform .btn{flex:1}`,
     `.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000}`,
     `.modal{width:360px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;overflow:hidden;box-shadow:0 10px 20px rgba(0,0,0,.2)}`,
     `.modal-header{background:var(--color-header-bg);color:#fff;padding:12px 16px;font-weight:800}`,

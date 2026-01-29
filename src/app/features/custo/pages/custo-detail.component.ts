@@ -22,7 +22,7 @@ import { Observable } from 'rxjs';
           <h1>💰 Planilha de Custo</h1>
           <p class="subtitle">{{ codigo || orcamentoId }} • Cliente: {{ cliente || '-' }}\u00a0</p>
         </div>
-        <button class="btn btn-secondary" (click)="voltar()">← Voltar</button>
+        <button class="btn-close" (click)="voltar()" title="Fechar">✕</button>
       </div>
 
       <div class="editor-grid">
@@ -137,7 +137,7 @@ import { Observable } from 'rxjs';
         </div>
       </div>
 
-      <div class="actions">
+      <div class="actions actions-uniform">
         <button class="btn btn-secondary" (click)="voltar()">Cancelar</button>
         <button class="btn btn-secondary" (click)="salvarRascunho()" [disabled]="!isEditable">Salvar rascunho</button>
         <button class="btn btn-primary" (click)="finalizar()" [disabled]="!podeFinalizar">Finalizar custo</button>
@@ -164,6 +164,8 @@ import { Observable } from 'rxjs';
     `.btn[disabled]{opacity:.6;cursor:not-allowed}`,
     `.btn-secondary{background:var(--color-bg);color:var(--color-text);border:1px solid var(--color-border)}`,
     `.btn-secondary:hover:not(:disabled){background:var(--color-subtle-bg)}`,
+    `.btn-close{background:transparent;border:none;color:#6b7280;font-size:18px;line-height:1;cursor:pointer;padding:6px 8px;border-radius:8px}`,
+    `.btn-close:hover{background:#f3f4f6;color:#111}`,
     `.table{width:100%;border-collapse:collapse;margin-top:12px}`,
     `.table thead{background:var(--color-bg)}`,
     `.table th{padding:12px;text-align:left;font-size:13px;font-weight:600;color:var(--color-text);border-bottom:2px solid var(--color-border)}`,
@@ -183,6 +185,8 @@ import { Observable } from 'rxjs';
     `.section-number{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--gradient-primary);color:#fff;border-radius:50%;font-size:14px;font-weight:700}`,
     `.editor-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:0px}`,
     `.editor-left,.editor-right{display:flex;flex-direction:column;gap:16px}`,
+    `.actions-uniform{display:flex;gap:8px;flex-wrap:wrap}`,
+    `.actions-uniform .btn{flex:1}`,
     `.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}`,
     `.actions-inline{display:flex;gap:10px;justify-content:flex-end;margin:8px 0 16px}`,
     `.pill{display:inline-block;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.8);color:var(--color-primary-ink);font-weight:700;border:2px solid var(--color-border)}`,
