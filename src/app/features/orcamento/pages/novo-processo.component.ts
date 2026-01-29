@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Pipe, PipeTransform } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -10,10 +10,25 @@ import { Cliente } from '../../clientes/models/cliente.models';
 import { TemplatePacklist } from '../../templates-packlist/models/templates-packlist.models';
 import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
+@Pipe({name:'orcamentoFilter', standalone: true})
+export class OrcamentoFilterPipe implements PipeTransform {
+  transform(list: OrcamentoListItem[] | null, q: string){
+    if(!list) return [];
+    if(!q) return list;
+    const s = q.toLowerCase();
+    return list.filter(p =>
+      (p.cliente||'').toLowerCase().includes(s) ||
+      (p.despachante||'').toLowerCase().includes(s) ||
+      (p.codigo||'').toLowerCase().includes(s) ||
+      (p.status||'').toLowerCase().includes(s)
+    );
+  }
+}
+
 @Component({
   standalone: true,
   selector: 'app-novo-processo-nova',
-  imports: [CommonModule, RouterModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, RouterModule, FormsModule, PageHeaderComponent, OrcamentoFilterPipe],
   template: `
     <div class="container-standard">
       <app-page-header 
@@ -24,13 +39,16 @@ import { PageHeaderComponent } from '../../../core/layout/page-header.component'
       </app-page-header>
 
       <div class="content-section">
+        <div class="toolbar">
+          <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por cliente, despachante, código ou status" />
+        </div>
         <table class="data-table">
         <thead>
           <tr><th>Data</th><th>Cliente</th><th>Despachante</th><th>Código</th><th>Status</th><th style="width:140px">Ações</th></tr>
         </thead>
         <tbody>
           <tr *ngIf="(list|async)?.length === 0"><td colspan="6">Nenhum orçamento</td></tr>
-          <tr *ngFor="let p of (list|async)" style="cursor: pointer;" (click)="visualizar(p)" class="row-clickable">
+          <tr *ngFor="let p of (list|async) | orcamentoFilter:q" style="cursor: pointer;" (click)="visualizar(p)" class="row-clickable">
             <td>{{p.data | date:'short'}}</td>
             <td>{{p.cliente || '-'}}</td>
             <td>{{p.despachante || '-'}}</td>
@@ -194,6 +212,8 @@ import { PageHeaderComponent } from '../../../core/layout/page-header.component'
     `.table{width:100%;border-collapse:collapse;margin-top:12px}`,
     `.table th,.table td{border-bottom:1px solid var(--color-border);padding:10px;text-align:left}`,
     `.row-clickable:hover{background-color:var(--color-bg);transition:.15s}`,
+    `.toolbar{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap}`,
+    `.search{flex:1;min-width:200px;padding:13px 16px;border:2px solid var(--color-border);border-radius:8px;font-size:15px}`,
     `.row-actions{display:flex;gap:8px}`,
     `.badge{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center}`,
     `.badge-packlist{background:rgba(102,126,234,.12);color:#4c5fd8;border:1px solid rgba(102,126,234,.35)}`,
@@ -260,6 +280,7 @@ export class NovoProcessoNovaComponent implements OnInit {
   showDropdown = false;
   dataHoraAtual = new Date();
   templateAssociado: TemplatePacklist | null = null;
+  q = '';
 
   formCriar = {
     clienteBusca: '',

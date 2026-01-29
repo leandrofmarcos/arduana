@@ -1,14 +1,24 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, Pipe, PipeTransform } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AliquotasService } from '../services/aliquotas.service';
 import { AliquotaPerfil } from '../models/aliquota.models';
 import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
+@Pipe({name:'aliquotaFilter', standalone: true})
+export class AliquotaFilterPipe implements PipeTransform {
+  transform(list: AliquotaPerfil[] | null, q: string){
+    if(!list) return [];
+    if(!q) return list;
+    const s = q.toLowerCase();
+    return list.filter(a => (a.nome||'').toLowerCase().includes(s));
+  }
+}
+
 @Component({
   selector: 'app-aliquotas',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, AliquotaFilterPipe],
   template: `
     <div class="container-standard">
       <app-page-header 
@@ -43,10 +53,13 @@ import { PageHeaderComponent } from '../../../core/layout/page-header.component'
       </div>
 
       <div class="content-section">
+        <div class="toolbar">
+          <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome" />
+        </div>
         <table class="data-table">
           <thead><tr><th>Nome</th><th>II</th><th>IPI</th><th>ICMS</th><th>PIS</th><th>COFINS</th><th>Padrão</th><th>Ações</th></tr></thead>
           <tbody>
-            <tr *ngFor="let a of (list$ | async)">
+            <tr *ngFor="let a of (list$ | async) | aliquotaFilter:q">
               <td>{{ a.nome }}</td>
               <td>{{ a.ii }}</td>
               <td>{{ a.ipi }}</td>
@@ -75,6 +88,8 @@ import { PageHeaderComponent } from '../../../core/layout/page-header.component'
     `.btn{padding:12px 16px;border-radius:8px;border:none;cursor:pointer;font-weight:700}`,
     `.btn-primary{background:var(--gradient-primary);color:#fff}`,
     `.btn-secondary{background:var(--color-surface);color:var(--color-primary);border:2px solid var(--color-primary)}`,
+    `.toolbar{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap}`,
+    `.search{flex:1;min-width:200px;padding:13px 16px;border:2px solid var(--color-border);border-radius:8px;font-size:15px}`,
     `.data-table th:last-child,.data-table td:last-child{text-align:right;width:120px}`,
     `.row-actions{display:flex;justify-content:flex-end;gap:0;align-items:center}`,
     `.row-actions .btn-icon{padding:6px 8px}`,
@@ -95,6 +110,7 @@ export class AliquotasComponent {
   descricao = '';
   ii = 14.4; ipi = 7.43; icms = 4; pis = 2.1; cofins = 10.65;
   padrao = false;
+  q = '';
   abrirCadastro(){ this.limpar(); this.showForm = true; }
   cancelarCadastro(){ this.showForm = false; this.limpar(); }
   salvar(){ if(!this.nome) return; this.service.create({ nome: this.nome, descricao: this.descricao, ii: this.ii, ipi: this.ipi, icms: this.icms, pis: this.pis, cofins: this.cofins, padrao: this.padrao }); this.limpar(); this.showForm = false; }
