@@ -73,6 +73,36 @@ interface OrçamentoResumo {
         </div>
       </div>
 
+      <!-- Resumo Financeiro -->
+      <div class="content-section">
+        <div class="section-header">
+          <h2>💰 Resumo Financeiro</h2>
+        </div>
+
+        <div class="financial-grid">
+          <div class="financial-card">
+            <div class="fi-label">Custos Totais</div>
+            <div class="fi-value">{{ custoTotal | currency:'BRL' }}</div>
+            <div class="fi-sub">Todos os orçamentos</div>
+          </div>
+          <div class="financial-card">
+            <div class="fi-label">Vendas Totais</div>
+            <div class="fi-value highlight">{{ vendaTotal | currency:'BRL' }}</div>
+            <div class="fi-sub">Margem de lucro</div>
+          </div>
+          <div class="financial-card">
+            <div class="fi-label">Aduana (Despesas)</div>
+            <div class="fi-value">{{ despesasAduanaTotal | currency:'BRL' }}</div>
+            <div class="fi-sub">Desembaraço</div>
+          </div>
+          <div class="financial-card total">
+            <div class="fi-label">Desembolso Total</div>
+            <div class="fi-value">{{ desembolsoTotal | currency:'BRL' }}</div>
+            <div class="fi-sub">Custo + Aduana</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Lista de Orçamentos -->
       <div class="content-section">
         <div class="section-header">
@@ -99,14 +129,13 @@ interface OrçamentoResumo {
                 <th>Custo</th>
                 <th>Venda</th>
                 <th>Aduana</th>
-                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="orcamentosFiltrados.length === 0">
-                <td colspan="9" class="empty-state">Nenhum orçamento encontrado</td>
+                <td colspan="8" class="empty-state">Nenhum orçamento encontrado</td>
               </tr>
-              <tr *ngFor="let orc of orcamentosFiltrados" class="orc-row">
+              <tr *ngFor="let orc of orcamentosFiltrados" class="orc-row" (click)="abrirDetalhes(orc)">
                 <td class="codigo"><strong>{{ orc.codigo }}</strong></td>
                 <td>{{ orc.cliente }}</td>
                 <td>{{ orc.data | date:'dd/MM/yyyy' }}</td>
@@ -120,12 +149,6 @@ interface OrçamentoResumo {
                 <td><span class="badge" [ngClass]="'status-' + orc.fases.custo">{{ formatStatus(orc.fases.custo) }}</span></td>
                 <td><span class="badge" [ngClass]="'status-' + orc.fases.venda">{{ formatStatus(orc.fases.venda) }}</span></td>
                 <td><span class="badge" [ngClass]="'status-' + orc.fases.aduana">{{ formatStatus(orc.fases.aduana) }}</span></td>
-                <td>
-                  <div class="actions">
-                    <button class="btn-icon" (click)="abrirDetalhes(orc)" title="Detalhes">👁️</button>
-                    <button class="btn-icon" (click)="abrirAcompanhamento(orc)" title="Acompanhamento">📊</button>
-                  </div>
-                </td>
               </tr>
             </tbody>
           </table>
@@ -170,36 +193,6 @@ interface OrçamentoResumo {
             <div class="card-footer">
               <button class="btn btn-small" (click)="abrirAduana(item)">Abrir Aduana →</button>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Resumo Financeiro -->
-      <div class="content-section">
-        <div class="section-header">
-          <h2>💰 Resumo Financeiro</h2>
-        </div>
-
-        <div class="financial-grid">
-          <div class="financial-card">
-            <div class="fi-label">Custos Totais</div>
-            <div class="fi-value">{{ custoTotal | currency:'BRL' }}</div>
-            <div class="fi-sub">Todos os orçamentos</div>
-          </div>
-          <div class="financial-card">
-            <div class="fi-label">Vendas Totais</div>
-            <div class="fi-value highlight">{{ vendaTotal | currency:'BRL' }}</div>
-            <div class="fi-sub">Margem de lucro</div>
-          </div>
-          <div class="financial-card">
-            <div class="fi-label">Aduana (Despesas)</div>
-            <div class="fi-value">{{ despesasAduanaTotal | currency:'BRL' }}</div>
-            <div class="fi-sub">Desembaraço</div>
-          </div>
-          <div class="financial-card total">
-            <div class="fi-label">Desembolso Total</div>
-            <div class="fi-value">{{ desembolsoTotal | currency:'BRL' }}</div>
-            <div class="fi-sub">Custo + Aduana</div>
           </div>
         </div>
       </div>
@@ -399,8 +392,13 @@ interface OrçamentoResumo {
       border-bottom: 1px solid #f0f0f0;
     }
 
+    .table-orcamentos .orc-row {
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
     .table-orcamentos .orc-row:hover {
-      background: #f9f9f9;
+      background: #f0f4ff;
     }
 
     .codigo {
@@ -861,16 +859,25 @@ export class DashboardComponent implements OnInit {
   }
 
   aplicarFiltros(): void {
-    if (this.filtroStatus === '') {
-      this.orcamentosFiltrados = [...this.orcamentos];
-    } else {
-      this.orcamentosFiltrados = this.orcamentos.filter(o => {
+    let lista = [...this.orcamentos];
+    
+    if (this.filtroStatus !== '') {
+      lista = lista.filter(o => {
         if (this.filtroStatus === 'concluido') return o.progresso === 100;
         if (this.filtroStatus === 'em-andamento') return o.progresso > 0 && o.progresso < 100;
         if (this.filtroStatus === 'pendente') return o.progresso === 0;
         return true;
       });
     }
+    
+    // Ordenar: packlist pendente primeiro
+    lista.sort((a, b) => {
+      if (a.fases.packlist === 'pendente' && b.fases.packlist !== 'pendente') return -1;
+      if (a.fases.packlist !== 'pendente' && b.fases.packlist === 'pendente') return 1;
+      return 0;
+    });
+    
+    this.orcamentosFiltrados = lista;
   }
 
   formatStatus(status: string): string {
@@ -883,10 +890,6 @@ export class DashboardComponent implements OnInit {
   }
 
   abrirDetalhes(orc: OrçamentoResumo): void {
-    this.router.navigate(['/orcamento', orc.id]);
-  }
-
-  abrirAcompanhamento(orc: OrçamentoResumo): void {
     this.router.navigate(['/orcamento', orc.id]);
   }
 

@@ -31,12 +31,9 @@ import { Router } from '@angular/router';
         <nav class="menu">
           <div class="menu-group">
             <div class="menu-title">Principal</div>
-            <a routerLink="/" routerLinkActive="active"><span class="icon">📊</span><span>Dashboard</span></a>
-          </div>
-          <div class="menu-group">
-            <div class="menu-title">Orçamentos</div>
+            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"><span class="icon">🛃</span><span>Aduana</span></a>
+            <a routerLink="/processos" routerLinkActive="active"><span class="icon">📊</span><span>Processos</span></a>
             <a routerLink="/orcamento" routerLinkActive="active"><span class="icon">🧩</span><span>Orçamento</span></a>
-            <a routerLink="/aduana" routerLinkActive="active"><span class="icon">🛃</span><span>Aduana</span></a>
           </div>
           <div class="menu-group">
             <div class="menu-title">Cadastros</div>
@@ -116,9 +113,15 @@ export class ShellComponent {
     });
   }
   private updateHeader(url: string){
-    if(url.includes('/dashboard') || url === '/'){
-      this.headerTitle = 'Dashboard';
-      this.headerSubtitle = 'Acompanhamento de importações';
+    if(url === '/' || url.includes('/aduana')){
+      this.headerTitle = 'Aduana';
+      this.headerSubtitle = 'Dashboard analítico e controle aduaneiro';
+    } else if(url.includes('/processos')){
+      this.headerTitle = 'Processos';
+      this.headerSubtitle = 'Acompanhamento geral de importações';
+    } else if(url.includes('/dashboard')){
+      this.headerTitle = 'Processos';
+      this.headerSubtitle = 'Acompanhamento geral de importações';
     } else if(url.includes('/profile')){
       this.headerTitle = 'Meu Perfil';
       this.headerSubtitle = 'Gerenciamento de conta';
@@ -128,9 +131,6 @@ export class ShellComponent {
     } else if(url.includes('/templates-packlist')){
       this.headerTitle = 'Templates Packlist';
       this.headerSubtitle = 'Configuração de modelos de packlist';
-    } else if(url.includes('/aduana')){
-      this.headerTitle = 'Aduana';
-      this.headerSubtitle = 'Gerenciamento aduaneiro';
     } else {
       this.headerTitle = 'Cadastros';
       this.headerSubtitle = 'Dados mestres';

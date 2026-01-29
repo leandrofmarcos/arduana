@@ -15,11 +15,16 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
+        loadComponent: () => import('./features/aduana/pages/aduana.component').then(m => m.AduanaNovaComponent)
+      },
+      {
+        path: 'processos',
         loadComponent: () => import('./features/dashboard/pages/dashboard.component').then(m => m.DashboardComponent)
       },
       {
         path: 'dashboard',
-        loadComponent: () => import('./features/dashboard/pages/dashboard.component').then(m => m.DashboardComponent)
+        redirectTo: 'processos',
+        pathMatch: 'full'
       },
       {
         path: 'aliquotas',
