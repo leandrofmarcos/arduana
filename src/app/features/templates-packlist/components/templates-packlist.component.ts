@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TemplatesPacklistService } from '../services/templates-packlist.service';
@@ -16,7 +16,7 @@ import { PageHeaderComponent } from '../../../core/layout/page-header.component'
 export class TemplatesPacklistComponent implements OnInit {
   templates: TemplatePacklistListItem[] = [];
   selectedTemplate: any = null;
-  isCreating = false;
+  showModal = false;
   searchTerm = '';
 
   constructor(private service: TemplatesPacklistService) {}
@@ -27,31 +27,34 @@ export class TemplatesPacklistComponent implements OnInit {
 
   loadTemplates(): void {
     this.templates = this.service.getAll();
-    console.log('Templates carregados:', this.templates);
-    console.log('LocalStorage raw:', localStorage.getItem('templates_packlist'));
   }
 
-  newTemplate(): void {
-    this.isCreating = true;
+  abrirNovoTemplate(): void {
+    this.showModal = true;
     this.selectedTemplate = null;
   }
 
-  selectTemplate(template: TemplatePacklistListItem): void {
+  abrirEditar(template: TemplatePacklistListItem): void {
+    this.showModal = true;
     this.selectedTemplate = this.service.getById(template.id);
   }
 
-  onSaveTemplate(): void {
-    this.isCreating = false;
+  fecharModal(): void {
+    this.showModal = false;
     this.selectedTemplate = null;
+  }
+
+  onSaveTemplate(): void {
+    this.fecharModal();
     this.loadTemplates();
   }
 
   onCancelTemplate(): void {
-    this.isCreating = false;
-    this.selectedTemplate = null;
+    this.fecharModal();
   }
 
-  deleteTemplate(id: string): void {
+  deleteTemplate(id: string, event: Event): void {
+    event.preventDefault();
     if (confirm('Deseja realmente deletar este template?')) {
       this.service.delete(id);
       this.loadTemplates();

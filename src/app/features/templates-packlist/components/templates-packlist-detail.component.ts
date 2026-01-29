@@ -25,6 +25,7 @@ export class TemplatesPacklistDetailComponent implements OnInit {
 
   showUploadModal = false;
   isEditMode = false;
+  validationError = '';
 
   constructor(
     private parserService: TemplatesPacklistParserService,
@@ -49,21 +50,44 @@ export class TemplatesPacklistDetailComponent implements OnInit {
 
   onUploadComplete(templateData: TemplatePacklist): void {
     this.template = templateData;
-    // Não sobrescreve o nome se já foi preenchido
     if (!this.form.nome) {
       this.form.nome = templateData.nome || '';
     }
     this.showUploadModal = false;
+    this.validationError = '';
   }
 
   save(): void {
-    if (!this.form.nome.trim()) {
-      alert('Por favor, preencha o nome do template');
+    this.validationError = '';
+
+    // Validação: nome obrigatório
+    if (!this.form.nome || !this.form.nome.trim()) {
+      this.validationError = 'Nome do template é obrigatório';
       return;
     }
 
+    // Validação: template precisa ter configuração
     if (!this.template || !this.template.config) {
-      alert('Por favor, configure o template através do upload');
+      this.validationError = 'Configure o template através do upload de arquivo';
+      return;
+    }
+
+    // Validação: arquivo deve ter sido enviado
+    if (!this.template.nomeArquivo) {
+      this.validationError = 'Arquivo de template é obrigatório';
+      return;
+    }
+
+    // Validação: mapeamento deve ter pelo menos um campo
+    const fieldMapping = this.template.config?.fieldMapping;
+    if (!fieldMapping || Object.keys(fieldMapping).length === 0) {
+      this.validationError = 'Configure pelo menos um mapeamento de coluna';
+      return;
+    }
+
+    // Validação: linha de início válida
+    if (!this.template.config?.linhaInicio || this.template.config.linhaInicio < 1) {
+      this.validationError = 'Linha de início deve ser >= 1';
       return;
     }
 
@@ -80,12 +104,17 @@ export class TemplatesPacklistDetailComponent implements OnInit {
       dataAtualizacao: new Date()
     };
 
-    console.log('Salvando template (apenas metadados):', toSave);
-    this.storageService.save(toSave);
-    this.saved.emit();
+    try {
+      this.storageService.save(toSave);
+      this.saved.emit();
+    } catch (error) {
+      this.validationError = 'Erro ao salvar template no localStorage';
+      console.error('Erro ao salvar:', error);
+    }
   }
 
   cancel(): void {
+    this.validationError = '';
     this.cancelled.emit();
   }
 

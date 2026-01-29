@@ -3,19 +3,22 @@
     icon="📋"
     title="Templates Packlist"
     subtitle="Gerencie templates para uso nos clientes">
-    <button class="btn btn-primary" (click)="newTemplate()">+ Novo Template</button>
+    <button class="btn btn-primary" (click)="abrirNovoTemplate()">+ Novo Template</button>
   </app-page-header>
 
-  <ng-container *ngIf="!isCreating && !selectedTemplate">
-    <div class="content-section">
-      <div class="toolbar">
+  <div class="content-section">
+    <div class="search-toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔎</span>
         <input 
           type="text" 
-          placeholder="🔎 Buscar templates..." 
+          placeholder="Buscar templates..."
           [(ngModel)]="searchTerm"
-          class="search">
+          class="search-input">
       </div>
+    </div>
 
+    <div class="table-wrapper">
       <table class="data-table">
         <thead>
           <tr>
@@ -23,7 +26,7 @@
             <th>Descrição</th>
             <th>Arquivo</th>
             <th>Data Criação</th>
-            <th>Ações</th>
+            <th style="width: 80px; text-align: right;">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -31,27 +34,35 @@
             <td colspan="5" class="empty-state">Nenhum template encontrado</td>
           </tr>
           <tr *ngFor="let template of filteredTemplates">
-            <td class="template-name">{{ template.nome }}</td>
-            <td class="template-descricao" [title]="template.descricao || ''">{{ template.descricao || '—' }}</td>
-            <td class="template-arquivo">{{ template.nomeArquivo }}</td>
-            <td class="template-data">{{ template.dataCriacao | date:'dd/MM/yyyy' }}</td>
-            <td>
-              <div class="row-actions">
-                <button class="btn-icon" title="Editar template" (click)="selectTemplate(template)">✏️</button>
-                <button class="btn-icon danger" title="Excluir template" (click)="deleteTemplate(template.id)">🗑️</button>
-              </div>
+            <td>{{ template.nome }}</td>
+            <td [title]="template.descricao || ''">{{ template.descricao || '—' }}</td>
+            <td>{{ template.nomeArquivo }}</td>
+            <td>{{ template.dataCriacao | date:'dd/MM/yyyy' }}</td>
+            <td class="text-right">
+              <button class="btn-icon" title="Editar" (click)="abrirEditar(template)">✏️</button>
+              <button class="btn-icon" title="Excluir" (click)="deleteTemplate(template.id, $event)">🗑️</button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-  </ng-container>
+  </div>
 
-  <ng-container *ngIf="isCreating || selectedTemplate">
-    <app-templates-packlist-detail 
-      [template]="selectedTemplate"
-      (saved)="onSaveTemplate()"
-      (cancelled)="onCancelTemplate()">
-    </app-templates-packlist-detail>
-  </ng-container>
+  <!-- Modal Popup -->
+  <div class="modal-backdrop" *ngIf="showModal" (click)="fecharModal()">
+    <div class="modal modal-xl" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ selectedTemplate ? 'Editar Template' : 'Novo Template' }}</h2>
+        <button class="btn-close" (click)="fecharModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <app-templates-packlist-detail 
+          [template]="selectedTemplate"
+          (saved)="onSaveTemplate()"
+          (cancelled)="onCancelTemplate()">
+        </app-templates-packlist-detail>
+      </div>
+    </div>
+  </div>
 </div>

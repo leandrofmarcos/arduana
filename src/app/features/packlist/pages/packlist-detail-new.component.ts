@@ -72,7 +72,7 @@ import { TemplatePacklist } from '../../templates-packlist/models/templates-pack
             <div class="upload-actions">
               <button class="btn btn-secondary" (click)="voltar()">Cancelar</button>
               <button class="btn btn-secondary" (click)="salvarRascunho()" [disabled]="!selectedFile || isFinalizado">Salvar rascunho</button>
-              <button class="btn btn-primary" (click)="finalizarPacklist()" [disabled]="isFinalizado || (!selectedFile && !detalhe)">Finalizar packlist</button>
+              <button class="btn btn-primary" (click)="finalizarPacklist()" [disabled]="isFinalizado">Finalizar packlist</button>
             </div>
           </div>
         </div>

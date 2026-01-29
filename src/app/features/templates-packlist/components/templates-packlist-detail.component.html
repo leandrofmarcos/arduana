@@ -1,66 +1,77 @@
-<div class="detail-container">
-  <div class="detail-header">
-    <h3>{{ isEditMode ? 'Editar Template' : 'Novo Template' }}</h3>
-    <button class="btn-close" (click)="cancel()">×</button>
+<div class="detail-form">
+  <!-- Erro de Validação -->
+  <div *ngIf="validationError" class="alert alert-danger">
+    ⚠️ {{ validationError }}
   </div>
 
-  <div class="form-section">
-    <div class="form-group">
-      <label>Nome do Template *</label>
+  <div class="form-grid">
+    <div class="form-field full-width">
+      <label class="form-label">Nome do Template *</label>
       <input 
         type="text" 
         [(ngModel)]="form.nome"
         placeholder="Ex: Template Exportação USA"
-        class="form-control">
+        class="form-input">
     </div>
 
-    <div class="form-group">
-      <label>Descrição</label>
+    <div class="form-field full-width">
+      <label class="form-label">Descrição</label>
       <textarea 
         [(ngModel)]="form.descricao"
         placeholder="Descrição do template (opcional)"
-        class="form-control"
+        class="form-textarea"
         rows="3"></textarea>
     </div>
+  </div>
 
-    <div class="upload-section">
-      <h4>Arquivo e Mapeamento</h4>
-      
-      <ng-container *ngIf="!hasConfig">
-        <button class="btn-upload" (click)="openUploadModal()">
-          📤 Carregar Arquivo e Mapear
-        </button>
-      </ng-container>
+  <!-- Seção de Upload e Mapeamento -->
+  <div class="upload-section">
+    <h3 class="section-title">Arquivo e Mapeamento</h3>
+    
+    <ng-container *ngIf="!hasConfig">
+      <button class="btn btn-primary" (click)="openUploadModal()">
+        📤 Carregar Arquivo e Mapear
+      </button>
+    </ng-container>
 
-      <ng-container *ngIf="hasConfig">
-        <div class="config-summary">
-          <div class="summary-item">
-            <span class="label">Arquivo:</span>
-            <span class="value">{{ template?.nomeArquivo }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="label">Linha de Início:</span>
-            <span class="value">{{ template?.config?.linhaInicio }}</span>
-          </div>
-          <div class="mapping-grid">
-            <div class="mapping-row" *ngFor="let item of (columnLabels | keyvalue)">
-              <span class="mapping-label">{{ item.key }}:</span>
-              <span class="mapping-value">{{ item.value }}</span>
-            </div>
-          </div>
-          <button class="btn-edit-upload" (click)="openUploadModal()">
-            ✎ Editar Mapeamento
-          </button>
+    <ng-container *ngIf="hasConfig">
+      <div class="config-summary">
+        <div class="summary-item">
+          <span class="summary-label">Arquivo:</span>
+          <span class="summary-value">{{ template?.nomeArquivo }}</span>
         </div>
-      </ng-container>
+        <div class="summary-item">
+          <span class="summary-label">Linha de Início:</span>
+          <span class="summary-value">{{ template?.config?.linhaInicio }}</span>
+        </div>
+        
+        <div class="mapping-grid">
+          <div class="mapping-row" *ngFor="let item of (columnLabels | keyvalue)">
+            <span class="mapping-label">{{ item.key }}:</span>
+            <span class="mapping-value">{{ item.value }}</span>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary" (click)="openUploadModal()">
+          ✎ Editar Mapeamento
+        </button>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Ações (uniforme) -->
+  <div class="modal-footer">
+    <div class="actions-uniform">
+      <button class="btn btn-secondary" (click)="cancel()">
+        Cancelar
+      </button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="!hasConfig">
+        Salvar Template
+      </button>
     </div>
   </div>
 
-  <div class="form-actions">
-    <button class="btn-cancel" (click)="cancel()">Cancelar</button>
-    <button class="btn-save" (click)="save()" [disabled]="!hasConfig">Salvar Template</button>
-  </div>
-
+  <!-- Upload Modal (aninhado) -->
   <ng-container *ngIf="showUploadModal">
     <app-templates-packlist-upload-modal
       [templateToEdit]="template"
