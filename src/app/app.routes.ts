@@ -54,14 +54,6 @@ export const routes: Routes = [
         loadChildren: () => import('./features/orcamento/orcamento.routes').then(m => m.ORCAMENTO_ROUTES)
       },
       {
-        path: 'custo',
-        loadComponent: () => import('./features/custo/pages/custo.component').then(m => m.CustoNovaComponent)
-      },
-      {
-        path: 'venda',
-        loadComponent: () => import('./features/venda/pages/venda.component').then(m => m.VendaNovaComponent)
-      },
-      {
         path: 'aduana',
         loadComponent: () => import('./features/aduana/pages/aduana.component').then(m => m.AduanaNovaComponent)
       },
