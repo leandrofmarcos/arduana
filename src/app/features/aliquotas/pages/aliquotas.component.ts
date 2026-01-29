@@ -11,21 +11,35 @@ import { AliquotaPerfil } from '../models/aliquota.models';
   template: `
     <div class="content">
       <div class="header">
-        <h1>🧮 Perfis de Alíquotas</h1>
-        <p>Cadastre e reutilize perfis de impostos</p>
-      </div>
-      <div class="card">
-        <div class="grid">
-          <div class="field"><label>Nome</label><input type="text" [(ngModel)]="nome" placeholder="Padrão Nacional"></div>
-          <div class="field"><label>Descrição</label><input type="text" [(ngModel)]="descricao" placeholder="Perfil base"></div>
-          <div class="field"><label>II (%)</label><input type="number" step="0.01" [(ngModel)]="ii"></div>
-          <div class="field"><label>IPI (%)</label><input type="number" step="0.01" [(ngModel)]="ipi"></div>
-          <div class="field"><label>ICMS (%)</label><input type="number" step="0.01" [(ngModel)]="icms"></div>
-          <div class="field"><label>PIS (%)</label><input type="number" step="0.01" [(ngModel)]="pis"></div>
-          <div class="field"><label>COFINS (%)</label><input type="number" step="0.01" [(ngModel)]="cofins"></div>
-          <div class="field"><label>Padrão</label><input type="checkbox" [(ngModel)]="padrao"></div>
+        <div>
+          <h1>🧮 Perfis de Alíquotas</h1>
+          <p>Cadastre e reutilize perfis de impostos</p>
         </div>
-        <div class="actions"><button class="btn btn-primary" (click)="salvar()">Salvar</button><button class="btn btn-secondary" (click)="limpar()">Limpar</button></div>
+        <button class="btn btn-primary" (click)="abrirCadastro()">+ Novo cadastro</button>
+      </div>
+      <div class="modal-backdrop" *ngIf="showForm">
+        <div class="modal">
+          <div class="modal-header">
+            <div class="modal-title">Novo perfil de alíquotas</div>
+            <button class="btn btn-secondary" (click)="cancelarCadastro()">Fechar</button>
+          </div>
+          <div class="modal-body">
+            <div class="grid">
+              <div class="field"><label>Nome</label><input type="text" [(ngModel)]="nome" placeholder="Ex: Padrão Nacional"></div>
+              <div class="field"><label>Descrição</label><input type="text" [(ngModel)]="descricao" placeholder="Descrição do perfil"></div>
+              <div class="field"><label>II (%)</label><input type="number" step="0.01" [(ngModel)]="ii"></div>
+              <div class="field"><label>IPI (%)</label><input type="number" step="0.01" [(ngModel)]="ipi"></div>
+              <div class="field"><label>ICMS (%)</label><input type="number" step="0.01" [(ngModel)]="icms"></div>
+              <div class="field"><label>PIS (%)</label><input type="number" step="0.01" [(ngModel)]="pis"></div>
+              <div class="field"><label>COFINS (%)</label><input type="number" step="0.01" [(ngModel)]="cofins"></div>
+              <div class="field"><label>Padrão</label><input type="checkbox" [(ngModel)]="padrao"></div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" (click)="cancelarCadastro()">Cancelar</button>
+            <button class="btn btn-primary" (click)="salvar()">Salvar</button>
+          </div>
+        </div>
       </div>
       <div class="card">
         <table class="table">
@@ -48,6 +62,7 @@ import { AliquotaPerfil } from '../models/aliquota.models';
   `,
   styles: [
     `.content{padding:24px}`,
+    `.header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:12px}`,
     `.header h1{font-size:22px;margin:0 0 6px 0}`,
     `.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:20px;margin-bottom:16px}`,
     `.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 25px}`,
@@ -63,17 +78,26 @@ import { AliquotaPerfil } from '../models/aliquota.models';
     `.table th{font-size:12px;color:var(--color-muted);font-weight:700;letter-spacing:.4px;text-transform:uppercase}`,
     `.table th,.table td{border-bottom:1px solid var(--color-border);padding:12px;text-align:left}`,
     `.table td input{width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;background:var(--color-surface)}`,
-    `.table td input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 4px rgba(102,126,234,.08)}`
+    `.table td input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 4px rgba(102,126,234,.08)}`,
+    `.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000}`,
+    `.modal{width:min(900px,92vw);background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.2);overflow:hidden}`,
+    `.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--color-border)}`,
+    `.modal-title{font-size:16px;font-weight:700}`,
+    `.modal-body{padding:20px}`,
+    `.modal-actions{display:flex;justify-content:flex-end;gap:12px;padding:16px 20px;border-top:1px solid var(--color-border)}`
   ]
 })
 export class AliquotasComponent {
   private service = inject(AliquotasService);
   list$ = this.service.list$();
+  showForm = false;
   nome = 'Padrão Nacional';
   descricao = '';
   ii = 14.4; ipi = 7.43; icms = 4; pis = 2.1; cofins = 10.65;
   padrao = false;
-  salvar(){ if(!this.nome) return; this.service.create({ nome: this.nome, descricao: this.descricao, ii: this.ii, ipi: this.ipi, icms: this.icms, pis: this.pis, cofins: this.cofins, padrao: this.padrao }); this.limpar(); }
+  abrirCadastro(){ this.limpar(); this.showForm = true; }
+  cancelarCadastro(){ this.showForm = false; this.limpar(); }
+  salvar(){ if(!this.nome) return; this.service.create({ nome: this.nome, descricao: this.descricao, ii: this.ii, ipi: this.ipi, icms: this.icms, pis: this.pis, cofins: this.cofins, padrao: this.padrao }); this.limpar(); this.showForm = false; }
   limpar(){ this.nome=''; this.descricao=''; this.ii=0; this.ipi=0; this.icms=0; this.pis=0; this.cofins=0; this.padrao=false; }
   update(a:any){ this.service.update(a.id, { nome: a.nome, descricao: a.descricao, ii: a.ii, ipi: a.ipi, icms: a.icms, pis: a.pis, cofins: a.cofins, padrao: a.padrao }); }
   remove(id:string){ this.service.remove(id); }

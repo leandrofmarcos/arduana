@@ -12,31 +12,13 @@ import { keys, readJSON, writeJSON } from '../data/storage.helper';
   selector: 'app-custo-detail',
   imports: [CommonModule, RouterModule, FormsModule, ResumoFinanceiroComponent],
   template: `
-    <div>
-      <div class="header-card">
-        <div class="header-actions">
-          <button class="btn-back" (click)="voltar()">← Voltar</button>
+    <div class="page">
+      <div class="header">
+        <div>
+          <h1>💰 Planilha de Custo</h1>
+          <p class="subtitle">{{ codigo || orcamentoId }} • Cliente: {{ cliente || '-' }}\u00a0</p>
         </div>
-        <h1 class="header-title">Planilha de Custo</h1>
-        <p class="header-subtitle">Fase do despachante: premissas e despesas estimadas</p>
-        <div class="meta-grid">
-          <div class="meta-box">
-            <div class="meta-label">Código</div>
-            <div class="meta-value">{{codigo || '-'}}</div>
-          </div>
-          <div class="meta-box">
-            <div class="meta-label">Orçamento</div>
-            <div class="meta-value">{{orcamentoId}}</div>
-          </div>
-          <div class="meta-box">
-            <div class="meta-label">Cliente</div>
-            <div class="meta-value">{{cliente || '-'}}</div>
-          </div>
-          <div class="meta-box">
-            <div class="meta-label">Despachante</div>
-            <div class="meta-value">{{despachante || '-'}}</div>
-          </div>
-        </div>
+        <button class="btn btn-secondary" (click)="voltarClicked.emit()">← Voltar</button>
       </div>
 
       <div class="editor-grid">
@@ -121,6 +103,10 @@ import { keys, readJSON, writeJSON } from '../data/storage.helper';
     </div>
   `,
   styles: [
+    `.page{padding:24px;max-width:1200px;margin:0 auto;background:#f8f9fa}`,
+    `.header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;background:#fff;padding:20px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}`,
+    `.header h1{margin:0 0 8px 0;font-size:20px;font-weight:700}`,
+    `.header .subtitle{margin:0;color:#6b7280;font-size:14px}`,
     `.card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;padding:24px}`,
     `.btn{padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600;transition:.2s}`,
     `.btn-primary{background:var(--gradient-primary);color:#fff;border:none}`,
@@ -128,8 +114,6 @@ import { keys, readJSON, writeJSON } from '../data/storage.helper';
     `.btn[disabled]{opacity:.6;cursor:not-allowed}`,
     `.btn-secondary{background:var(--color-bg);color:var(--color-text);border:1px solid var(--color-border)}`,
     `.btn-secondary:hover:not(:disabled){background:var(--color-subtle-bg)}`,
-    `.btn-back{background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.3);padding:10px 16px;border-radius:10px;cursor:pointer;font-weight:600;transition:.2s}`,
-    `.btn-back:hover{background:rgba(255,255,255,.3)}`,
     `.table{width:100%;border-collapse:collapse;margin-top:12px}`,
     `.table thead{background:var(--color-bg)}`,
     `.table th{padding:12px;text-align:left;font-size:13px;font-weight:600;color:var(--color-text);border-bottom:2px solid var(--color-border)}`,
@@ -145,16 +129,8 @@ import { keys, readJSON, writeJSON } from '../data/storage.helper';
     `.field input[readonly]{background:var(--color-subtle-bg);color:var(--color-text);font-weight:600;cursor:not-allowed}`,
     `.section-title{font-size:18px;font-weight:700;color:var(--color-text);margin:0 0 20px 0;display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:2px solid var(--color-border)}`,
     `.section-number{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:var(--gradient-primary);color:#fff;border-radius:50%;font-size:14px;font-weight:700}`,
-    `.editor-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:8px}`,
+    `.editor-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:0px}`,
     `.editor-left,.editor-right{display:flex;flex-direction:column;gap:16px}`,
-    `.header-card{background:var(--gradient-primary);color:#fff;padding:24px;border-radius:12px;margin-bottom:24px;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);position:relative}`,
-    `.header-actions{position:absolute;top:16px;right:16px}`,
-    `.header-title{font-size:24px;font-weight:800;margin:0 0 8px 0}`,
-    `.header-subtitle{font-size:14px;opacity:.9;margin:0 0 16px 0}`,
-    `.meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}`,
-    `.meta-box{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:10px 12px;color:#fff}`,
-    `.meta-label{font-size:11px;opacity:.85;letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px}`,
-    `.meta-value{font-weight:700}`,
     `.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}`,
     `.actions-inline{display:flex;gap:10px;justify-content:flex-end;margin:8px 0 16px}`,
     `.pill{display:inline-block;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.8);color:var(--color-primary-ink);font-weight:700;border:2px solid var(--color-border)}`,
