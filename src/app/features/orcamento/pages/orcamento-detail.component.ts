@@ -6,6 +6,7 @@ import { PacklistService } from '../../packlist/services/packlist.service';
 import { PacklistDetalheComponent } from '../../packlist/pages/packlist-detail-new.component';
 import { CustoDetailComponent } from '../../custo/pages/custo-detail.component';
 import { VendaDetailComponent } from '../../venda/pages/venda-detail.component';
+import { AduanaDetailComponent } from '../../aduana/pages/aduana-detail.component';
 import { readJSON, keys } from '../data/storage.helper';
 
 interface OrçamentoDetalhe {
@@ -23,7 +24,7 @@ interface OrçamentoDetalhe {
     packlist: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; itens?: number; arquivoNome?: string; arquivoCaminho?: string };
     custo: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; valor?: number };
     venda: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; valor?: number };
-    aduana: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string };
+    aduana: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; valor?: number };
   };
   historico: Array<{
     id: string;
@@ -37,7 +38,7 @@ interface OrçamentoDetalhe {
 @Component({
   standalone: true,
   selector: 'app-orcamento-detail-v2',
-  imports: [CommonModule, RouterModule, FormsModule, PacklistDetalheComponent, CustoDetailComponent, VendaDetailComponent],
+  imports: [CommonModule, RouterModule, FormsModule, PacklistDetalheComponent, CustoDetailComponent, VendaDetailComponent, AduanaDetailComponent],
   template: `
     <div class="detail-container" *ngIf="modo === 'overview'">
       <!-- Header -->
@@ -121,9 +122,10 @@ interface OrçamentoDetalhe {
           </div>
         </div>
 
-        <div class="phase-card">
+        <div class="phase-card" [ngClass]="{'disabled-card': (orcamento?.fases?.venda?.status !== 'concluido')}" (click)="navigarParaAduana()">
           <div class="card-header">🏛️ Aduana</div>
-          <div class="card-value">Documentação</div>
+          <div class="card-value">R$ {{ formatCurrency(orcamento?.fases?.aduana?.valor) }}</div>
+          <div class="card-note warn" *ngIf="orcamento?.fases?.venda?.status !== 'concluido'">Disponível após concluir venda</div>
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.aduana?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.aduana?.status) }}
           </div>
@@ -158,6 +160,11 @@ interface OrçamentoDetalhe {
     <!-- Modo Venda -->
     <div *ngIf="modo === 'venda'">
       <app-venda-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-venda-detail>
+    </div>
+
+    <!-- Modo Aduana -->
+    <div *ngIf="modo === 'aduana'">
+      <app-aduana-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-aduana-detail>
     </div>
   `,
   styles: [`
@@ -518,7 +525,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   orcamento: OrçamentoDetalhe | null = null;
   historicoResumido: any[] = [];
   interacoes: Array<{ id: string; titulo: string; descricao: string; nivel: 'info' | 'warning' | 'danger'; acao?: { label: string; rota: any[]; query?: Record<string, any> } }> = [];
-  modo: 'overview' | 'packlist' | 'custo' | 'venda' = 'overview';
+  modo: 'overview' | 'packlist' | 'custo' | 'venda' | 'aduana' = 'overview';
 
   fases = [
     { key: 'criacao', label: 'Criação', status: 'concluido' },
@@ -561,7 +568,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
         packlist: { status: 'pendente', itens: 0, data: undefined },
         custo: { status: 'pendente', valor: 0, data: undefined },
         venda: { status: 'pendente', valor: 0, data: undefined },
-        aduana: { status: 'pendente' }
+        aduana: { status: 'pendente', valor: 0, data: undefined }
       },
       historico: [
         {
@@ -604,6 +611,14 @@ export class OrçamentoDetailComponentV2 implements OnInit {
       this.orcamento.fases.venda.valor = valorVenda;
       this.orcamento.fases.venda.status = 'concluido';
       this.orcamento.fases.venda.data = vendaSnap.data || new Date().toISOString();
+    }
+
+    const aduanaSnap = readJSON<any>(keys.aduanaSnapshot(id));
+    if (aduanaSnap) {
+      const valorAduana = aduanaSnap.desembolsoTotal ?? aduanaSnap.valorTotal ?? 0;
+      this.orcamento.fases.aduana.valor = valorAduana;
+      this.orcamento.fases.aduana.status = aduanaSnap.status || 'em-andamento';
+      this.orcamento.fases.aduana.data = aduanaSnap.data || new Date().toISOString();
     }
 
     this.historicoResumido = this.orcamento.historico.slice(0, 5);
@@ -709,6 +724,13 @@ export class OrçamentoDetailComponentV2 implements OnInit {
     const custoStatus = this.orcamento.fases.custo?.status;
     if (custoStatus !== 'concluido') return; // bloquear se custo não foi concluído
     this.modo = 'venda';
+  }
+
+  navigarParaAduana(): void {
+    if (!this.orcamento?.id) return;
+    const vendaStatus = this.orcamento.fases.venda?.status;
+    if (vendaStatus !== 'concluido') return; // bloquear se venda não foi concluída
+    this.modo = 'aduana';
   }
 
   voltarParaOverview(): void {
