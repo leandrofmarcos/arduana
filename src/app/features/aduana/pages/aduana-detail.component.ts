@@ -15,16 +15,20 @@ interface AduanaEvento {
 interface AduanaLancamento {
   id: string;
   data: string;
-  taxaUsdOficial: number;
-  pesoLiquidoOficial: number;
-  portoOrigem: string;
-  portoDestino: string;
-  dataEmbarque: string;
-  dataChegada: string;
-  canal: string;
-  observacoes: string;
-  totalDespesas: number;
-  desembolsoTotal: number;
+  aduanaCompleta: {
+    taxaUsdOficial: number;
+    pesoLiquidoOficial: number;
+    portoOrigem: string;
+    portoDestino: string;
+    dataEmbarque: string;
+    dataChegada: string;
+    canal: string;
+    observacoes: string;
+    encerrado: boolean;
+    despesas: Despesa[];
+    totalDespesas: number;
+    desembolsoTotal: number;
+  };
 }
 
 @Component({
@@ -207,13 +211,16 @@ interface AduanaLancamento {
                     <tr *ngIf="lancamentos.length === 0"><td colspan="7">Nenhum lançamento registrado</td></tr>
                     <tr *ngFor="let l of lancamentos">
                       <td>{{ l.data | date:'dd/MM/yyyy HH:mm' }}</td>
-                      <td>{{ l.taxaUsdOficial || 0 | number:'1.4-4' }}</td>
-                      <td>{{ l.pesoLiquidoOficial || 0 | number:'1.2-2' }}</td>
-                      <td>{{ l.canal || '-' }}</td>
-                      <td>{{ l.totalDespesas | currency:'BRL' }}</td>
-                      <td>{{ l.desembolsoTotal | currency:'BRL' }}</td>
+                      <td>{{ l.aduanaCompleta.taxaUsdOficial || 0 | number:'1.4-4' }}</td>
+                      <td>{{ l.aduanaCompleta.pesoLiquidoOficial || 0 | number:'1.2-2' }}</td>
+                      <td>{{ l.aduanaCompleta.canal || '-' }}</td>
+                      <td>{{ l.aduanaCompleta.totalDespesas | currency:'BRL' }}</td>
+                      <td>{{ l.aduanaCompleta.desembolsoTotal | currency:'BRL' }}</td>
                       <td>
-                        <button class="btn btn-secondary" (click)="removerLancamento(l.id)">Excluir</button>
+                        <div class="row-actions">
+                          <button class="btn-icon info" (click)="abrirDetalhesLancamento(l)" title="Visualizar detalhes">👁️</button>
+                          <button class="btn btn-secondary" (click)="removerLancamento(l.id)" [disabled]="!podeEditar">Excluir</button>
+                        </div>
                       </td>
                     </tr>
                   </tbody>
@@ -264,8 +271,104 @@ interface AduanaLancamento {
 
       <div class="actions">
         <button class="btn btn-secondary" (click)="voltar()">Cancelar</button>
+        <button class="btn btn-secondary" (click)="salvarRascunho()" [disabled]="!podeEditar">Salvar rascunho</button>
         <button class="btn btn-secondary" (click)="registrarLancamento()" [disabled]="!podeEditar">Registrar Lançamento</button>
         <button class="btn btn-primary" (click)="salvar()" [disabled]="!podeFinalizar">Finalizar Aduana</button>
+      </div>
+
+      <div class="modal-backdrop" *ngIf="modalDetalhes && lancamentoSelecionado">
+        <div class="modal modal-lg">
+          <div class="modal-header-flex">
+            <div>
+              <h3>Detalhes do Lançamento</h3>
+              <p style="margin: 4px 0 0 0; font-size: 12px; color: rgba(255,255,255,0.7);">{{ lancamentoSelecionado.data | date:'dd/MM/yyyy HH:mm' }}</p>
+            </div>
+            <button class="btn-close" (click)="fecharDetalhesLancamento()" title="Fechar">✕</button>
+          </div>
+          <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 24px;">
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #666;">Câmbio USD/BRL</label>
+                <div style="font-size: 16px; font-weight: 600; margin-top: 4px;">{{ lancamentoSelecionado.aduanaCompleta.taxaUsdOficial | number:'1.4-4' }}</div>
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #666;">Peso Oficial (kg)</label>
+                <div style="font-size: 16px; font-weight: 600; margin-top: 4px;">{{ lancamentoSelecionado.aduanaCompleta.pesoLiquidoOficial | number:'1.2-2' }}</div>
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #666;">Porto de Origem</label>
+                <div style="font-size: 14px; margin-top: 4px;">{{ lancamentoSelecionado.aduanaCompleta.portoOrigem }}</div>
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #666;">Porto de Destino</label>
+                <div style="font-size: 14px; margin-top: 4px;">{{ lancamentoSelecionado.aduanaCompleta.portoDestino }}</div>
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #666;">Data de Embarque</label>
+                <div style="font-size: 14px; margin-top: 4px;">{{ lancamentoSelecionado.aduanaCompleta.dataEmbarque | date:'dd/MM/yyyy' }}</div>
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #666;">Data de Chegada (ETA)</label>
+                <div style="font-size: 14px; margin-top: 4px;">{{ lancamentoSelecionado.aduanaCompleta.dataChegada | date:'dd/MM/yyyy' }}</div>
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #666;">Canal</label>
+                <div style="font-size: 14px; margin-top: 4px;">{{ lancamentoSelecionado.aduanaCompleta.canal }}</div>
+              </div>
+              <div>
+                <label style="font-size: 12px; font-weight: 600; color: #666;">Status</label>
+                <div style="font-size: 14px; margin-top: 4px;">{{ lancamentoSelecionado.aduanaCompleta.encerrado ? 'Encerrado' : 'Aberto' }}</div>
+              </div>
+            </div>
+            <div *ngIf="lancamentoSelecionado.aduanaCompleta.observacoes" style="margin-bottom: 24px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
+              <label style="font-size: 12px; font-weight: 600; color: #666; display: block; margin-bottom: 8px;">Observações</label>
+              <div style="font-size: 14px;">{{ lancamentoSelecionado.aduanaCompleta.observacoes }}</div>
+            </div>
+            <div style="margin-bottom: 24px;">
+              <h4 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600;">Despesas Registradas</h4>
+              <div class="table-wrapper">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Categoria</th>
+                      <th>Item</th>
+                      <th>Fornecedor</th>
+                      <th>Valor (R$)</th>
+                      <th>Observação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngIf="!lancamentoSelecionado.aduanaCompleta.despesas || lancamentoSelecionado.aduanaCompleta.despesas.length === 0">
+                      <td colspan="5">Nenhuma despesa registrada</td>
+                    </tr>
+                    <tr *ngFor="let d of lancamentoSelecionado.aduanaCompleta.despesas">
+                      <td>{{ d.categoria }}</td>
+                      <td>{{ d.item }}</td>
+                      <td>{{ d.fornecedor || '-' }}</td>
+                      <td>{{ d.valor | currency:'BRL' }}</td>
+                      <td>{{ d.observacao || '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div style="padding: 16px; background: #f0f7ff; border-radius: 8px; border-left: 4px solid #2563eb;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div>
+                  <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Total Despesas</div>
+                  <div style="font-size: 18px; font-weight: 700;">{{ lancamentoSelecionado.aduanaCompleta.totalDespesas | currency:'BRL' }}</div>
+                </div>
+                <div>
+                  <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Desembolso Total</div>
+                  <div style="font-size: 18px; font-weight: 700; color: #2563eb;">{{ lancamentoSelecionado.aduanaCompleta.desembolsoTotal | currency:'BRL' }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" (click)="fecharDetalhesLancamento()">Fechar</button>
+          </div>
+        </div>
       </div>
 
       <div class="modal-backdrop" *ngIf="showSaved">
@@ -331,9 +434,16 @@ interface AduanaLancamento {
     `.usd{color:#3b82f6}`,
     `.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000}`,
     `.modal{width:360px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;overflow:hidden;box-shadow:0 10px 20px rgba(0,0,0,.2)}`,
+    `.modal-lg{width:90%;max-width:900px;height:auto;max-height:90vh}`,
     `.modal-header{background:var(--color-header-bg);color:#fff;padding:12px 16px;font-weight:800}`,
+    `.modal-header-flex{display:flex;justify-content:space-between;align-items:flex-start;background:var(--color-header-bg);color:#fff;padding:16px;border-bottom:1px solid var(--color-border)}`,
+    `.modal-header-flex h3{margin:0;font-size:18px}`,
+    `.btn-close{background:transparent;border:none;color:#fff;cursor:pointer;font-size:20px;padding:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center}`,
+    `.btn-close:hover{opacity:.8}`,
+    `.btn-icon{background:transparent;border:none;cursor:pointer;font-size:16px;padding:4px 8px;border-radius:4px;transition:.2s}`,
+    `.btn-icon.info{color:#2563eb}`,
     `.modal-body{padding:16px}`,
-    `.modal-actions{display:flex;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--color-border)}`,
+    `.modal-actions{display:flex;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--color-border);gap:8px}`,
     `.table-wrapper{overflow-x:auto;margin-top:12px}`
   ]
 })
@@ -385,6 +495,8 @@ export class AduanaDetailComponent implements OnInit {
   lancamentos: AduanaLancamento[] = [];
 
   showSaved = false;
+  lancamentoSelecionado: AduanaLancamento | null = null;
+  modalDetalhes = false;
   acc = { premissas: false, oficial: false, despesas: false, timeline: false, lancamentos: false };
   aduanaHabilitada = false;
   packlistStatus: 'pendente' | 'em-andamento' | 'concluido' = 'pendente';
@@ -522,25 +634,48 @@ export class AduanaDetailComponent implements OnInit {
     const lancamento: AduanaLancamento = {
       id,
       data,
-      taxaUsdOficial: this.aduanaData.taxaUsdOficial || 0,
-      pesoLiquidoOficial: this.aduanaData.pesoLiquidoOficial || 0,
-      portoOrigem: this.aduanaData.portoOrigem || '',
-      portoDestino: this.aduanaData.portoDestino || '',
-      dataEmbarque: this.aduanaData.dataEmbarque || '',
-      dataChegada: this.aduanaData.dataChegada || '',
-      canal: this.aduanaData.canal || '',
-      observacoes: this.aduanaData.observacoes || '',
-      totalDespesas: this.totalDespesas,
-      desembolsoTotal: this.desembolsoTotal
+      aduanaCompleta: {
+        taxaUsdOficial: this.aduanaData.taxaUsdOficial || 0,
+        pesoLiquidoOficial: this.aduanaData.pesoLiquidoOficial || 0,
+        portoOrigem: this.aduanaData.portoOrigem || '',
+        portoDestino: this.aduanaData.portoDestino || '',
+        dataEmbarque: this.aduanaData.dataEmbarque || '',
+        dataChegada: this.aduanaData.dataChegada || '',
+        canal: this.aduanaData.canal || '',
+        observacoes: this.aduanaData.observacoes || '',
+        encerrado: this.aduanaData.encerrado || false,
+        despesas: JSON.parse(JSON.stringify(this.despesas)),
+        totalDespesas: this.totalDespesas,
+        desembolsoTotal: this.desembolsoTotal
+      }
     };
     this.lancamentos.unshift(lancamento);
     this.persistir();
+    this.showSaved = true;
+    setTimeout(() => this.confirmSaved(), 1500);
   }
 
   removerLancamento(id: string): void {
     if (!this.podeEditar) return;
     this.lancamentos = this.lancamentos.filter(l => l.id !== id);
     this.persistir();
+  }
+
+  abrirDetalhesLancamento(lancamento: AduanaLancamento): void {
+    this.lancamentoSelecionado = lancamento;
+    this.modalDetalhes = true;
+  }
+
+  fecharDetalhesLancamento(): void {
+    this.modalDetalhes = false;
+    this.lancamentoSelecionado = null;
+  }
+
+  salvarRascunho(): void {
+    if (!this.podeEditar) return;
+    this.persistir();
+    this.showSaved = true;
+    setTimeout(() => this.confirmSaved(), 1500);
   }
 
   get taxaUsdAtual(): number {
