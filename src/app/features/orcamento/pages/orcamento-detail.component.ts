@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { PacklistService } from '../../packlist/services/packlist.service';
 import { PacklistDetalheComponent } from '../../packlist/pages/packlist-detail-new.component';
 import { CustoDetailComponent } from '../../custo/pages/custo-detail.component';
+import { VendaDetailComponent } from '../../venda/pages/venda-detail.component';
 import { readJSON, keys } from '../data/storage.helper';
 
 interface OrçamentoDetalhe {
@@ -21,7 +22,7 @@ interface OrçamentoDetalhe {
     criacao: { status: 'concluido' | 'em-andamento' | 'pendente'; data: string };
     packlist: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; itens?: number; arquivoNome?: string; arquivoCaminho?: string };
     custo: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; valor?: number };
-    venda: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string };
+    venda: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string; valor?: number };
     aduana: { status: 'concluido' | 'em-andamento' | 'pendente'; data?: string };
   };
   historico: Array<{
@@ -36,7 +37,7 @@ interface OrçamentoDetalhe {
 @Component({
   standalone: true,
   selector: 'app-orcamento-detail-v2',
-  imports: [CommonModule, RouterModule, FormsModule, PacklistDetalheComponent, CustoDetailComponent],
+  imports: [CommonModule, RouterModule, FormsModule, PacklistDetalheComponent, CustoDetailComponent, VendaDetailComponent],
   template: `
     <div class="detail-container" *ngIf="modo === 'overview'">
       <!-- Header -->
@@ -111,9 +112,10 @@ interface OrçamentoDetalhe {
           </div>
         </div>
 
-        <div class="phase-card">
+        <div class="phase-card" [ngClass]="{'disabled-card': (orcamento?.fases?.custo?.status !== 'concluido')}" (click)="navigarParaVenda()">
           <div class="card-header">🛍️ Venda</div>
-          <div class="card-value">R$ 52.500,00</div>
+          <div class="card-value">R$ {{ formatCurrency(orcamento?.fases?.venda?.valor) }}</div>
+          <div class="card-note warn" *ngIf="orcamento?.fases?.custo?.status !== 'concluido'">Disponível após definir custo</div>
           <div class="card-status" [ngClass]="'status-' + (orcamento?.fases?.venda?.status || 'pendente')">
             {{ formatStatusLabel(orcamento?.fases?.venda?.status) }}
           </div>
@@ -151,6 +153,11 @@ interface OrçamentoDetalhe {
     <!-- Modo Custo -->
     <div *ngIf="modo === 'custo'">
       <app-custo-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-custo-detail>
+    </div>
+
+    <!-- Modo Venda -->
+    <div *ngIf="modo === 'venda'">
+      <app-venda-detail [orcamentoIdInput]="orcamento?.id || ''" (voltarClicked)="voltarParaOverview()"></app-venda-detail>
     </div>
   `,
   styles: [`
@@ -511,7 +518,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
   orcamento: OrçamentoDetalhe | null = null;
   historicoResumido: any[] = [];
   interacoes: Array<{ id: string; titulo: string; descricao: string; nivel: 'info' | 'warning' | 'danger'; acao?: { label: string; rota: any[]; query?: Record<string, any> } }> = [];
-  modo: 'overview' | 'packlist' | 'custo' = 'overview';
+  modo: 'overview' | 'packlist' | 'custo' | 'venda' = 'overview';
 
   fases = [
     { key: 'criacao', label: 'Criação', status: 'concluido' },
@@ -553,7 +560,7 @@ export class OrçamentoDetailComponentV2 implements OnInit {
         criacao: { status: 'concluido', data: meta.createdAt || hoje.toISOString() },
         packlist: { status: 'pendente', itens: 0, data: undefined },
         custo: { status: 'pendente', valor: 0, data: undefined },
-        venda: { status: 'pendente' },
+        venda: { status: 'pendente', valor: 0, data: undefined },
         aduana: { status: 'pendente' }
       },
       historico: [
@@ -589,6 +596,14 @@ export class OrçamentoDetailComponentV2 implements OnInit {
       this.orcamento.fases.custo.valor = valorCusto;
       this.orcamento.fases.custo.status = 'concluido';
       this.orcamento.fases.custo.data = custoSnap.data || new Date().toISOString();
+    }
+
+    const vendaSnap = readJSON<any>(keys.vendaSnapshot(id));
+    if (vendaSnap) {
+      const valorVenda = vendaSnap.precoVenda ?? vendaSnap.valorTotal ?? vendaSnap.valor ?? 0;
+      this.orcamento.fases.venda.valor = valorVenda;
+      this.orcamento.fases.venda.status = 'concluido';
+      this.orcamento.fases.venda.data = vendaSnap.data || new Date().toISOString();
     }
 
     this.historicoResumido = this.orcamento.historico.slice(0, 5);
@@ -687,6 +702,13 @@ export class OrçamentoDetailComponentV2 implements OnInit {
     const packlistItens = this.orcamento.fases.packlist?.itens || 0;
     if (packlistItens <= 0) return; // bloquear se não houver packlist
     this.modo = 'custo';
+  }
+
+  navigarParaVenda(): void {
+    if (!this.orcamento?.id) return;
+    const custoStatus = this.orcamento.fases.custo?.status;
+    if (custoStatus !== 'concluido') return; // bloquear se custo não foi concluído
+    this.modo = 'venda';
   }
 
   voltarParaOverview(): void {
