@@ -1,0 +1,129 @@
+o
+🎯 Propósito
+
+Capturar os dados iniciais do processo: packlist, custo e venda.
+
+
+
+
+ “Avançar para Planilha de Custo”.
+
+Planilha de Custo
+
+Campos: frete, armazenagem, taxas, impostos estimados.
+
+Regras:
+Cálculo automático de total_custo = Σ itens + taxas.
+Gera objeto planilhaCustoId.
+
+
+Comportamento:
+
+Botão “Gerar Planilha de Venda” libera próxima etapa.
+
+Planilha de Venda
+
+Campos: margem, honorários, valor final.
+
+Regras:
+
+Calcula valor_final = total_custo + margem + honorários.
+
+status_venda = "Em aprovação".
+
+Comportamento:
+
+Ao clicar em “Enviar para Aprovação” → cria flag aprovadoCliente = false.
+
+Quando marcado como aprovado → muda statusProcesso = "Aduana".
+
+📘 Regra de liberação:
+Grupo 3 (Aduana) só é liberado quando aprovadoCliente = true.
+
+
+
+No processo vamos ajustar os status para facilitar habilitar/desabilitar ou criar registros. Todo processo nasce como CRIADO que ainda indica que não foram feito o cadastro completo que obrigatorio para cadastro de um novo pro
+
+
+
+[13:34, 12/2/2025] +55 11 98793-8888: https://drive.google.com/file/d/10CurA1U2f-CRYc2AjtgjMdtVkae6YWsB/view?usp=sharing
+[13:34, 12/2/2025] +55 11 98793-8888: - O Calculo nao deve vir pronto somento pela importacao da planilha de orcamento.
+[13:40, 12/2/2025] +55 11 98793-8888: Processo completo exemplo:
+[13:41, 12/2/2025] +55 11 98793-8888: fase ORCAMENTO:
+[13:42, 12/2/2025] +55 11 98793-8888: 1º Receber o packlist do cliente (lista de mercadoria)
+Lista de mercadoria
+[13:42, 12/2/2025] +55 11 98793-8888: O despachante vai olhar essa lista, os produtos pesos e todos detalhes. e
+2º Criar a planilha de custo do despachante
+3º a Empresa Consultoria(eu) vai criar a planilha de venda pra o Cliente
+[13:44, 12/2/2025] +55 11 98793-8888: ----- acabou fase orcamento
+[13:45, 12/2/2025] +55 11 98793-8888: SE cliente aprovar a tabela de venda da OMINIUM
+tudo isso ai vira embarque. e aparece na planilha ADUANA, aquela que aparece todos os processos
+[13:45, 12/2/2025] +55 11 98793-8888: OK VIROU EMBARQUE
+
+agora temos 30 dias para ir tomando conta desse processo que entra as inputacoes de dados normal na planilha aduana
+[13:46, 12/2/2025] +55 11 98793-8888: depois de 30 dias que chegar no porto sera atualizado a planilha de custo do despachate (porque pode ter alteracao na mercadoria, no peso na taxa do dolar
+
+Isso entao eh a fase oficial, o que foi feito no orcamento, pode ser replicado para fase oficial, caso n ter muita mudancas, se tiver tera que ser atualiza todas planilhas( nao pode sumir os da fase orcamento, pq vira historico)
+[13:47, 12/2/2025] +55 11 98793-8888: atualizou todos os documento, chegou o momento de pedir dinheiro
+--- FASE SOLICITACAO DE NUMERARIO (PEDIR DINHEIRO)
+
+1º O Despachante pede para Ominium ( eu)
+2º Eu vou pedir para o cliente
+[13:49, 12/2/2025] +55 11 98793-8888: ----FASE FECHAMENTO
+APos isso o processo sera registrado, e seguira as coisas de nacionalizacao
+
+
+apos entregar para o cliente, vem a parte do fechamento
+que sao esses modelos de planilha acima, descontando o que foi pago na na fase de SINAL
+[13:49, 12/2/2025] +55 11 98793-8888: @Leandro Marcos
+[14:00, 12/2/2025] +55 11 98793-8888: cade vc kkk
+[17:50, 12/2/2025] +55 11 98793-8888: Fez sentido para voce @Leandro Marcos ?
+
+
+
+
+
+
+Visão Geral
+
+- A “Planilha de Custo” pertence à fase de Orçamento e consome dados do Packlist para estimar custos do processo.
+- Objetivo: calcular custos previstos (frete, armazenagem, taxas, impostos) com base nos itens do packlist (quantidade, peso, valor) e preparar a etapa de venda.
+- Avanço de fases: após salvar a planilha de custo, libera “Gerar Planilha de Venda” e, quando aprovada, segue para Aduana.
+Perfil
+
+- Perfil principal: Admin para acesso completo ao pipeline e edição nas fases. Perfis operacionais podem ter escopo reduzido (edição guiada).
+- Referência: “Perfil: apenas Admin acessa pipeline completo” no documento (docs/versao-final.txt:133).
+Jornada de Preenchimento
+
+- Novo Processo → Packlist → Planilha de Custo → Planilha de Venda Referências:
+  - Novo Processo e Packlist (docs/versao-final.txt:163–189)
+  - Planilha de Custo (docs/versao-final.txt:191–203)
+  - Planilha de Venda (docs/versao-final.txt:205–219)
+- Comportamento esperado de UI:
+  - “Ao salvar Packlist” exibir “Avançar para Planilha de Custo” (docs/versao-final.txt:187–189).
+  - “Planilha de Custo” exibe botão “Gerar Planilha de Venda” (docs/versao-final.txt:201–203).
+Dependência com Packlist
+
+- A planilha de custo “consome dados de quantidade, peso e valor” do Packlist para montar os campos previstos e realizar cálculos (docs/versao-final.txt:23).
+- Cálculo principal: total_custo = Σ itens + taxas (docs/versao-final.txt:197–199).
+- Nosso estado atual já cria um registro de custo quando o packlist é salvo:
+  - Criação do registro: ensureCustoForProcess(id) em src/app/nova-versao/services/processo.service.ts:146 .
+  - Listagem simples na tela “Planilha de Custo”: src/app/nova-versao/processo/custo.component.ts:22 .
+Dados e Cálculos
+
+- Campos previstos na “Planilha de Custo”: frete, armazenagem, taxas e impostos estimados; resultado soma custo de itens + taxas (docs/versao-final.txt:193–199).
+- O repositório já contém um “modelo rico” de planilha em src/app/features/planilha/planilha.component.ts que exibe taxas (IPI, ICMS, PIS, COFINS) e resumo financeiro, servindo como blueprint visual e de design:
+  - Exibição de impostos: src/app/features/planilha/planilha.component.ts:106–128
+  - Seções de análise e formação de custo unitário: src/app/features/planilha/planilha.component.ts:288–307
+Estado e Navegação
+
+- Nosso fluxo e regras (alinhado às suas diretrizes mais recentes):
+  - Status inicial do processo é CRIADO (conforme seu pedido; implementado em src/app/nova-versao/services/processo.service.ts:51 ).
+  - Ao salvar o packlist, atualiza para Orçamento e gera o registro de custo ( src/app/nova-versao/services/processo.service.ts:104–116 ).
+  - A UI deve apresentar “Avançar para Planilha de Custo” após packlist (documentado em docs/versao-final.txt:187–203).
+Entendimento Consolidado
+
+- A “Planilha de Custo” é o coração do orçamento: agrega custos operacionais e tributos a partir do packlist, calcula total e prepara a planilha de venda.
+- Depende diretamente do ProcessoId e de um packlist válido; sem packlist, a fase não avança.
+- O perfil Admin lidera a edição e avanço; a navegação e liberação de botões é dirigida por flags/status do processo.
+Se quiser, posso mapear os campos mínimos para a primeira versão funcional da Planilha de Custo (frete, armazenagem, taxas, impostos, e total) e desenhar o fluxo de “Avançar” conforme seu design system antes de iniciar a implementação

@@ -1,0 +1,587 @@
+MAPEAMENTO GERAL DE RELACIONAMENTOS
+🔹 Visão Hierárquica (Macrofluxo)
+Login → Dashboard → Orçamento → Aduana → Numerário → Fechamento → Histórico
+                                 ↓
+                           Telas Auxiliares
+
+
+As telas seguem um fluxo linear (pipeline principal).
+
+O Dashboard e as telas Auxiliares funcionam como “portas de entrada” e “apoio” ao fluxo principal.
+
+🧩 1. Grupo 1 — Acesso e Estrutura Base
+Tela	Relacionamentos	Observações
+Login	→ Dashboard	Autenticação libera acesso ao Dashboard. Pode armazenar token / sessão.
+Dashboard	↔ Orçamento, Aduana, Numerário, Fechamento	Exibe status geral e links para cada fase do processo. Centraliza indicadores e atalhos.
+
+📘 Regra: O Dashboard lê dados agregados das fases (via ProcessoId).
+
+🧩 2. Grupo 2 — Fase de Orçamento
+Tela	Relacionamentos	Observações
+Novo Processo	Cria registro ProcessoId	É a tela inicial do fluxo; define chaves primárias e metadados.
+Packlist	↔ Novo Processo	Importa ou edita itens do packlist relacionados ao ProcessoId.
+Planilha de Custo	↔ Packlist	Consome dados de quantidade, peso e valor.
+Planilha de Venda	↔ Planilha de Custo	Calcula margem e gera proposta ao cliente.
+
+📘 Regra:
+
+ProcessoId é criado no início e usado em todas as telas seguintes.
+
+Cada subetapa gera uma versão de planilha (orcamento_v1, orcamento_v2, etc.).
+
+⚓ 3. Grupo 3 — Fase Aduana (Embarque)
+Tela	Relacionamentos	Observações
+Cadastro Aduana	← Planilha de Venda	É desbloqueada quando o cliente aprova o orçamento.
+Atualização de Custos	↔ Cadastro Aduana, ↔ Planilha de Custo	Faz comparação entre valores previstos (orçamento) e realizados (oficial).
+
+📘 Regra:
+
+Dados de embarque e chegada criam FaseAduanaId associada ao ProcessoId.
+
+Mantém logs de atualização cambial, peso e taxas.
+
+💵 4. Grupo 4 — Fase Solicitação de Numerário
+Tela	Relacionamentos	Observações
+Solicitação de Numerário	← Aduana	Criada quando o embarque está ativo e custos atualizados.
+Acompanhamento de Numerário	↔ Solicitação de Numerário	Lê e registra status de repasses (solicitado, aguardando, pago).
+
+📘 Regra:
+
+Cada solicitação gera um NumerarioId vinculado ao ProcessoId.
+
+Acompanhamento permite reprocessar pendências e atualizar status.
+
+📑 5. Grupo 5 — Fase Fechamento
+Tela	Relacionamentos	Observações
+Fechamento	← Numerário, ← Aduana	Consolida dados financeiros (previsto × realizado).
+Histórico do Processo	↔ Todas as fases anteriores	Exibe linha do tempo e comparativos de versões.
+
+📘 Regra:
+
+Fechamento grava status_final = "Concluído".
+
+Histórico é apenas leitura (somente Admin pode exportar).
+
+⚙️ 6. Grupo 6 — Auxiliares e Gerenciais
+Tela	Relacionamentos	Observações
+Clientes e Despachantes	↔ Todas as fases	Usados como entidades referenciais (Foreign Keys).
+Relatórios e Exportações	↔ Todas as fases	Leitura agregada para comparativos, dashboards e auditoria.
+
+📘 Regra:
+
+Nenhum CRUD do fluxo principal deve criar cliente ou despachante — isso é feito aqui.
+
+Exportações devem considerar filtros por Fase, Data, Cliente, Status.
+
+🧮 Modelo de Relacionamentos Simplificado (ER-Lógico)
+erDiagram
+    CLIENTE ||--o{ PROCESSO : "possui"
+    DESPACHANTE ||--o{ PROCESSO : "atua_em"
+    PROCESSO ||--|{ ORCAMENTO : "tem"
+    PROCESSO ||--|{ ADUANA : "tem"
+    PROCESSO ||--|{ NUMERARIO : "tem"
+    PROCESSO ||--|{ FECHAMENTO : "gera"
+    ORCAMENTO ||--o{ PACKLIST : "composto_por"
+    ORCAMENTO ||--o{ PLANILHA_CUSTO : "usa"
+    ORCAMENTO ||--o{ PLANILHA_VENDA : "gera"
+    ADUANA ||--o{ CUSTO_ATUALIZADO : "atualiza"
+    NUMERARIO ||--o{ HISTORICO_NUMERARIO : "controla"
+    FECHAMENTO ||--o{ HISTORICO_PROCESSO : "salva"
+
+🔄 Fluxo de Dados (Dataflow Simplificado)
+Cliente / Despachante → Processo → Orçamento → Aduana → Numerário → Fechamento → Histórico
+             ↑               ↓
+         Auxiliares ← Relatórios ← Dashboard
+
+
+Fluxo direto: avanço natural das fases.
+
+Fluxo reverso: consulta e reprocessamento.
+
+Auxiliares e Relatórios são módulos independentes de leitura e controle.
+
+Se quiser, posso gerar um diagrama visual completo (1920x1080) mostrando as relações entre grupos, telas e fases, com setas de fluxo e dependências — seria o equivalente a um mapa arquitetural funcional da aplicação.
+
+Quer que eu gere esse diagrama visual agora?
+
+🧭 DOCUMENTAÇÃO DE DESENVOLVIMENTO — APLICAÇÃO DE PROCESSOS DE IMPORTAÇÃO
+🎯 Objetivo
+
+Permitir o acompanhamento completo do ciclo de importação (do orçamento ao fechamento), com rastreabilidade, histórico e controle de status, respeitando o design system já existente.
+
+🧩 ESTRUTURA DE DESENVOLVIMENTO (FASEADA E INCREMENTAL)
+
+Cada grupo abaixo representa um bloco liberável.
+A entrega é incremental — cada fase se apoia na anterior, com dependências explícitas entre dados e telas.
+
+🔹 FASE 1 — Grupo 1: Acesso e Estrutura Base
+🎯 Propósito
+
+Prover autenticação, base de navegação e indicadores globais.
+Essa é a fundação da aplicação: sem ela, nenhuma fase operacional é acessível.
+
+Telas
+
+Login / Acesso
+
+Campos: email, senha
+
+Regras:
+
+Autenticação JWT / Session.
+
+Perfil: apenas Admin acessa pipeline completo.
+
+Comportamento:
+
+Após login válido → redireciona para DashboardPrincipal.
+
+Dashboard Principal
+
+Componentes do Design System: Cards de KPI, pipeline progress bar, tabela compacta, botões primários padrão.
+
+Regras:
+
+Exibir resumo dos processos agrupados por status (Ativo, Concluído, Atrasado).
+
+Exibir pipeline visual:
+Orçamento → Aduana → Numerário → Fechamento.
+
+Comportamento:
+
+Cada card do pipeline redireciona para a primeira tela da fase correspondente.
+
+Botão “Novo Processo” cria registro inicial (redireciona p/ Orçamento).
+
+🔹 FASE 2 — Grupo 2: Fase de Orçamento
+🎯 Propósito
+
+Capturar os dados iniciais do processo: packlist, custo e venda.
+
+Telas
+
+Novo Processo
+
+Campos: Cliente, Despachante, Código, Data.
+
+Regras:
+
+Cria registro ProcessoId.
+
+status = "Orçamento".
+
+Comportamento:
+
+Ao salvar → exibe botão “Avançar para Packlist”.
+
+Packlist
+
+Componentes: Tabela editável, upload CSV, botão de ação.
+
+Regras:
+
+Cada item vinculado ao ProcessoId.
+
+Importação valida duplicidades e formato.
+
+Comportamento:
+
+Ao salvar → grava tabela no backend e exibe botão “Avançar para Planilha de Custo”.
+
+Planilha de Custo
+
+Campos: frete, armazenagem, taxas, impostos estimados.
+
+Regras:
+
+Cálculo automático de total_custo = Σ itens + taxas.
+
+Gera objeto planilhaCustoId.
+
+Comportamento:
+
+Botão “Gerar Planilha de Venda” libera próxima etapa.
+
+Planilha de Venda
+
+Campos: margem, honorários, valor final.
+
+Regras:
+
+Calcula valor_final = total_custo + margem + honorários.
+
+status_venda = "Em aprovação".
+
+Comportamento:
+
+Ao clicar em “Enviar para Aprovação” → cria flag aprovadoCliente = false.
+
+Quando marcado como aprovado → muda statusProcesso = "Aduana".
+
+📘 Regra de liberação:
+Grupo 3 (Aduana) só é liberado quando aprovadoCliente = true.
+
+🔹 FASE 3 — Grupo 3: Fase Aduana (Embarque)
+🎯 Propósito
+
+Registrar embarque, atualizações cambiais e comparações com orçamento.
+
+Telas
+
+Cadastro da Fase Aduana
+
+Campos: Data Embarque, Data Chegada, Código, Status.
+
+Regras:
+
+Cria entidade aduanaId associada ao ProcessoId.
+
+Calcula prazo = data_chegada - data_embarque.
+
+Comportamento:
+
+Exibe alerta se prazo > 30 dias.
+
+Atualização de Custos
+
+Campos: Câmbio Atual, Peso Atual, Taxas Atualizadas.
+
+Regras:
+
+Comparação automática entre planilhaCusto.orcamento e planilhaCusto.oficial.
+
+Armazena diferença percentual e valor.
+
+Comportamento:
+
+Botão “Salvar Versão Oficial” grava nova planilha e bloqueia edição da versão anterior.
+
+Ao salvar → habilita Fase de Numerário.
+
+📘 Regra de liberação:
+Grupo 4 (Numerário) só é liberado quando versaoOficial = true.
+
+🔹 FASE 4 — Grupo 4: Fase Solicitação de Numerário
+🎯 Propósito
+
+Gerenciar o fluxo financeiro de solicitação e repasse de valores.
+
+Telas
+
+Solicitação de Numerário
+
+Campos: Valor, Data, SolicitadoPor, Motivo, Status.
+
+Regras:
+
+Cria entidade numerarioId vinculada ao ProcessoId.
+
+statusNumerario = solicitado / aguardando / pago.
+
+Comportamento:
+
+Botão “Registrar Solicitação” grava entrada e atualiza dashboard financeiro.
+
+Acompanhamento de Numerário
+
+Componentes: Tabela de histórico, badge de status, botão de atualização.
+
+Regras:
+
+Mostra histórico cronológico por numerarioId.
+
+Calcula total pendente e pago.
+
+Comportamento:
+
+Atualização manual do status.
+
+Ao marcar todas como “pagas” → libera Fase de Fechamento.
+
+📘 Regra de liberação:
+Grupo 5 (Fechamento) só é liberado quando statusNumerario = pago.
+
+🔹 FASE 5 — Grupo 5: Fechamento
+🎯 Propósito
+
+Encerrar o processo consolidando custos, receitas e diferenças.
+
+Telas
+
+Fechamento
+
+Campos: valor_pago_sinal, valor_final_realizado, diferenca.
+
+Regras:
+
+Calcula lucro_prejuizo = valor_venda - valor_realizado.
+
+Atualiza statusProcesso = "Fechado".
+
+Comportamento:
+
+Botão “Concluir Processo” → bloqueia todas as edições.
+
+Backend gera resumo financeiro (para dashboard e relatórios).
+
+Histórico do Processo
+
+Componentes: Linha do tempo, botões de visualização, tabela de versões.
+
+Regras:
+
+Consulta versões vinculadas a cada fase (orcamentoId, aduanaId, numerarioId, fechamentoId).
+
+Comportamento:
+
+Leitura apenas.
+
+Botão “Exportar Histórico” → gera CSV consolidado.
+
+📘 Regra:
+Somente Admin pode reabrir um processo concluído.
+
+🔹 FASE 6 — Grupo 6: Auxiliares e Gerenciais
+🎯 Propósito
+
+Dar suporte ao fluxo principal (cadastros, relatórios e exportações).
+
+Telas
+
+Clientes e Despachantes
+
+CRUD: Adicionar / Editar / Remover / Pesquisar.
+
+Regras:
+
+Entidades base referenciadas em ProcessoId.
+
+Não permitir exclusão se houver vínculo ativo.
+
+Comportamento:
+
+Integra com autocomplete em todas as telas de processo.
+
+Relatórios e Exportações
+
+Filtros: Fase, Período, Cliente, Status.
+
+Regras:
+
+Consulta agregada das tabelas orcamento, aduana, numerario, fechamento.
+
+Gera relatórios em CSV/Excel.
+
+Comportamento:
+
+Botão “Exportar CSV” → chama endpoint /report/export.
+
+Dashboard secundário exibe gráficos (tempo médio, volume, lucro líquido).
+
+🔄 ORDEM DE LIBERAÇÃO DE DESENVOLVIMENTO
+Etapa	Grupo	Foco	Dependência
+1	Grupo 1	Login + Dashboard	Nenhuma
+2	Grupo 2	Orçamento completo	Login
+3	Grupo 3	Aduana	Orçamento aprovado
+4	Grupo 4	Numerário	Aduana oficializada
+5	Grupo 5	Fechamento	Numerário pago
+6	Grupo 6	Auxiliares + Relatórios	Todas as fases anteriores
+🧠 Considerações Técnicas para o Frontend
+
+Design System: utilizar componentes padrão (Cards, Inputs, Tables, Modals, Tabs, Alerts).
+
+Gestão de Estado:
+
+processoStore (ou useProcessoContext) para controlar o ID e status atual.
+
+Cada fase atualiza o mesmo store.
+
+Rotas sugeridas:
+
+/login
+/dashboard
+/processo/:id/orcamento
+/processo/:id/aduana
+/processo/:id/numerario
+/processo/:id/fechamento
+/processo/:id/historico
+/clientes
+/relatorios
+
+
+Comportamentos padronizados:
+
+Botão “Salvar” → PATCH na fase.
+
+Botão “Avançar” → muda statusProcesso e redireciona próxima rota.
+
+Cada tela deve exibir breadcrumb + status do processo.
+
+Segurança: validar perfis (Admin ou Operacional) para restringir edição.
+
+
+🧭 FLUXO DE NAVEGAÇÃO DA APLICAÇÃO
+
+(para implementação e roteamento no frontend)
+
+⚙️ Princípios Gerais de Navegação
+
+Toda navegação depende do estado do processo (statusProcesso).
+
+O Dashboard é a entrada e centro de controle.
+
+Cada fase (Orçamento, Aduana, Numerário, Fechamento) tem rotas dedicadas, liberadas conforme flags.
+
+O Histórico e as telas auxiliares são rotas independentes (apenas leitura e suporte).
+
+🔐 1️⃣ Acesso e Estrutura Base
+Rotas
+Caminho	Tela	Acesso	Próxima Ação
+/login	Login / Acesso	Pública	Redireciona p/ /dashboard ao autenticar
+/dashboard	Dashboard Principal	Admin	Acesso a todos os grupos via cards ou pipeline
+Comportamento
+
+O dashboard exibe cards clicáveis representando cada fase.
+
+Os cards são desabilitados conforme o status do processo.
+
+Exemplo:
+
+Se statusProcesso = "Orçamento", apenas a fase de orçamento fica ativa.
+
+Se statusProcesso = "Fechado", todas as fases são leitura.
+
+📋 2️⃣ Fase de Orçamento
+Rotas
+Caminho	Tela	Requisitos	Próxima
+/processo/novo	Novo Processo	Nenhum	/processo/:id/packlist
+/processo/:id/packlist	Packlist	statusProcesso = "Orçamento"	/processo/:id/custo
+/processo/:id/custo	Planilha de Custo	ProcessoId ativo	/processo/:id/venda
+/processo/:id/venda	Planilha de Venda	Custo gerado	/processo/:id/aduana (quando aprovadoCliente = true)
+Flags e Comportamento
+
+Criação de Processo → gera ProcessoId e define statusProcesso = "Orçamento".
+
+Cada tela armazena progresso incremental (auto-save).
+
+PlanilhaVenda.aprovadoCliente = true → muda statusProcesso = "Aduana".
+
+Ao mudar o status, o botão “Avançar” redireciona automaticamente.
+
+⚓ 3️⃣ Fase de Aduana (Embarque)
+Rotas
+Caminho	Tela	Requisitos	Próxima
+/processo/:id/aduana	Cadastro da Fase Aduana	statusProcesso = "Aduana"	/processo/:id/aduana/atualizar
+/processo/:id/aduana/atualizar	Atualização de Custos	aduanaId válido	/processo/:id/numerario
+Flags e Comportamento
+
+Cadastro Aduana cria aduanaId.
+
+Atualização de Custos compara dados da planilha e grava versaoOficial = true.
+
+Ao gravar versão oficial → statusProcesso = "Numerário".
+
+Botões disponíveis:
+
+Salvar Rascunho
+
+Salvar Versão Oficial (lock)
+
+💰 4️⃣ Fase Solicitação de Numerário
+Rotas
+Caminho	Tela	Requisitos	Próxima
+/processo/:id/numerario	Solicitação de Numerário	statusProcesso = "Numerário"	/processo/:id/numerario/historico
+/processo/:id/numerario/historico	Acompanhamento de Numerário	numerarioId válido	/processo/:id/fechamento (quando statusNumerario = "pago")
+Flags e Comportamento
+
+SolicitaçãoNumerário cria numerarioId e statusNumerario = solicitado.
+
+Quando o valor é confirmado como “pago”, a aplicação atualiza:
+
+statusNumerario = "pago"
+statusProcesso = "Fechamento"
+
+
+Histórico mostra todas as solicitações associadas ao processo.
+
+🧾 5️⃣ Fase de Fechamento
+Rotas
+Caminho	Tela	Requisitos	Próxima
+/processo/:id/fechamento	Fechamento	statusProcesso = "Fechamento"	/processo/:id/historico
+/processo/:id/historico	Histórico do Processo	ProcessoId válido	Final do fluxo
+Flags e Comportamento
+
+Fechamento consolida todas as planilhas e define:
+
+status_final = "Concluído"
+statusProcesso = "Fechado"
+
+
+Após concluir, bloqueia edição em todas as fases.
+
+Histórico exibe todas as versões (orcamento_v1, aduana_v1, etc.) e disponibiliza exportação CSV.
+
+🧮 6️⃣ Auxiliares e Gerenciais
+Rotas
+Caminho	Tela	Requisitos
+/clientes	Gestão de Clientes e Despachantes	Perfil Admin
+/relatorios	Relatórios e Exportações	Perfil Admin
+Comportamento
+
+Acesso independente (menu lateral).
+
+Clientes alimenta autocomplete em todas as telas de processo.
+
+Relatórios cruza dados de todas as fases, via filtros.
+
+🔁 Navegação e Flags Dinâmicas
+Controle de Fase (Status Machine)
+stateDiagram-v2
+    [*] --> Orcamento
+    Orcamento --> Aduana: aprovadoCliente = true
+    Aduana --> Numerario: versaoOficial = true
+    Numerario --> Fechamento: statusNumerario = "pago"
+    Fechamento --> Fechado: status_final = "Concluído"
+
+Regra de Edição
+Fase	Pode Editar	Condição
+Orçamento	✅	statusProcesso = "Orçamento"
+Aduana	✅	statusProcesso = "Aduana"
+Numerário	✅	statusProcesso = "Numerário"
+Fechamento	✅	statusProcesso = "Fechamento"
+Histórico	❌	statusProcesso = "Fechado"
+🧱 Interação entre Telas e Flags
+Origem	Destino	Ação	Efeito
+Dashboard	Novo Processo	Novo	Cria ProcessoId
+Planilha de Venda	Aduana	Aprovação	Atualiza statusProcesso
+Aduana Atualizada	Numerário	Versão oficial salva	Cria numerarioId
+Numerário Pago	Fechamento	Atualização automática	Libera fechamento
+Fechamento Concluído	Dashboard	Encerramento	Atualiza KPIs e bloqueia edições
+💡 Fluxo de Usuário Completo
+
+1️⃣ Login → Dashboard
+2️⃣ Novo Processo (Orçamento)
+3️⃣ Packlist → Custo → Venda → Aprovação
+4️⃣ Aduana → Atualização de Custos → Versão Oficial
+5️⃣ Solicitação de Numerário → Acompanhamento → Pagamento Confirmado
+6️⃣ Fechamento → Histórico → Processo Concluído
+
+📦 Considerações Técnicas
+
+Gestão de estado:
+
+Cada fase sincroniza processoStore global.
+
+Flags controlam visibilidade de botões e rotas.
+
+Design System:
+
+Breadcrumb superior: Dashboard / Processo / Fase atual
+
+Cards, tabelas e modais com comportamento unificado.
+
+Transição visual:
+
+fade-in/out entre fases.
+
+Estado bloqueado exibe 🔒 Fase encerrada.
