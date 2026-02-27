@@ -4,10 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { OrcamentoService } from '../services/orcamento.service';
 import { ClientesService } from '../../clientes/services/clientes.service';
-import { TemplatesPacklistService } from '../../templates-packlist/services/templates-packlist.service';
 import { OrcamentoListItem, TipoOrcamento } from '../models/orcamento.models';
 import { Cliente } from '../../clientes/models/cliente.models';
-import { TemplatePacklist } from '../../templates-packlist/models/templates-packlist.models';
 import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
 @Pipe({name:'orcamentoFilter', standalone: true})
@@ -87,115 +85,51 @@ export class OrcamentoFilterPipe implements PipeTransform {
             <button class="btn-close" (click)="fecharModalCriar()">✕</button>
           </div>
           <div class="modal-body">
-            <div class="field">
-              <label>Selecione o Cliente *</label>
-              <div class="dropdown-wrapper">
-                <input 
-                  type="text" 
-                  [(ngModel)]="formCriar.clienteBusca" 
-                  (input)="buscarClientes(formCriar.clienteBusca)"
-                  (focus)="abrirDropdown()"
-                  [placeholder]="formCriar.clienteSelecionado ? formCriar.clienteSelecionado.nome : 'Digite para buscar ou selecionar'"
-                  class="input-dropdown">
-                <div class="dropdown" *ngIf="showDropdown">
-                  <div 
-                    *ngFor="let c of clientesFiltrados" 
-                    class="dropdown-item"
-                    [class.active]="formCriar.clienteSelecionado?.id === c.id"
-                    (click)="selecionarCliente(c)">
-                    <div class="dropdown-nome">{{ c.nome }}</div>
-                    <div class="dropdown-sub">{{ c.documento }}</div>
-                  </div>
-                  <div class="dropdown-empty" *ngIf="clientesFiltrados.length === 0 && formCriar.clienteBusca">
-                    Nenhum cliente encontrado
+            <div class="form-section">
+              <div class="field">
+                <label>Tipo de Orçamento *</label>
+                <select [(ngModel)]="formCriar.tipoOrcamento" class="select-input">
+                  <option value=""></option>
+                  <option value="Maritimo">🚢 Marítimo</option>
+                  <option value="Aereo" disabled>✈️ Aéreo (Indisponível)</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label>Selecione o Cliente *</label>
+                <div class="dropdown-wrapper">
+                  <input 
+                    type="text" 
+                    [(ngModel)]="formCriar.clienteBusca" 
+                    (input)="buscarClientes(formCriar.clienteBusca)"
+                    (focus)="abrirDropdown()"
+                    [placeholder]="formCriar.clienteSelecionado ? formCriar.clienteSelecionado.nome : 'Digite para buscar ou selecionar'"
+                    class="input-dropdown">
+                  <div class="dropdown" *ngIf="showDropdown">
+                    <div 
+                      *ngFor="let c of clientesFiltrados" 
+                      class="dropdown-item"
+                      [class.active]="formCriar.clienteSelecionado?.id === c.id"
+                      (click)="selecionarCliente(c)">
+                      <div class="dropdown-nome">{{ c.nome }}</div>
+                      <div class="dropdown-sub">{{ c.contato }}</div>
+                    </div>
+                    <div class="dropdown-empty" *ngIf="clientesFiltrados.length === 0 && formCriar.clienteBusca">
+                      Nenhum cliente encontrado
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div class="field" *ngIf="formCriar.clienteSelecionado">
-              <label>Tipo de Orçamento *</label>
-              <select [(ngModel)]="formCriar.tipoOrcamento" class="select-input">
-                <option value=""></option>
-                <option value="Maritimo">🚢 Marítimo</option>
-                <option value="Aereo" disabled>✈️ Aéreo (Indisponível)</option>
-              </select>
-            </div>
-
-            <div class="cliente-details" *ngIf="formCriar.clienteSelecionado">
-              <h4 style="margin-bottom: 16px; color: var(--color-text);">Informações do Cliente</h4>
-              <div class="details-grid">
+              <div class="form-grid" *ngIf="formCriar.clienteSelecionado">
                 <div class="detail-field">
                   <label>Nome</label>
                   <input type="text" [value]="formCriar.clienteSelecionado.nome" readonly class="readonly-input">
                 </div>
                 <div class="detail-field">
-                  <label>Documento</label>
-                  <input type="text" [value]="formCriar.clienteSelecionado.documento" readonly class="readonly-input">
-                </div>
-                <div class="detail-field">
                   <label>Contato</label>
                   <input type="text" [value]="formCriar.clienteSelecionado.contato" readonly class="readonly-input">
                 </div>
-              </div>
-
-              <div class="template-info" *ngIf="templateAssociado">
-                <h4 style="margin: 20px 0 12px 0; color: var(--color-text);">📋 Template Packlist Associado</h4>
-                <div class="template-card">
-                  <div class="template-header">
-                    <div class="template-nome">{{ templateAssociado.nome }}</div>
-                    <span class="template-badge">Template Configurado</span>
-                  </div>
-                  <div class="template-details-grid">
-                    <div class="template-field">
-                      <label>Arquivo Referência</label>
-                      <div class="template-value">{{ templateAssociado.nomeArquivo }}</div>
-                    </div>
-                    <div class="template-field">
-                      <label>Linha de Início</label>
-                      <div class="template-value">Linha {{ templateAssociado.config.linhaInicio }}</div>
-                    </div>
-                    <div class="template-field">
-                      <label>Descrição</label>
-                      <div class="template-value">{{ templateAssociado.descricao || '—' }}</div>
-                    </div>
-                  </div>
-                  <div class="template-mapping">
-                    <div class="mapping-title">Mapeamento de Campos:</div>
-                    <div class="mapping-tags">
-                      <span class="mapping-tag" *ngIf="templateAssociado.config.fieldMapping?.numeroSequencial">
-                        🔢 Nº Seq: Col {{ templateAssociado.config.fieldMapping.numeroSequencial }}
-                      </span>
-                      <span class="mapping-tag" *ngIf="templateAssociado.config.fieldMapping?.volumes">
-                        📦 Volumes: Col {{ templateAssociado.config.fieldMapping.volumes }}
-                      </span>
-                      <span class="mapping-tag" *ngIf="templateAssociado.config.fieldMapping?.peso">
-                        ⚖️ Peso: Col {{ templateAssociado.config.fieldMapping.peso }}
-                      </span>
-                      <span class="mapping-tag" *ngIf="templateAssociado.config.fieldMapping?.cbm">
-                        📏 CBM: Col {{ templateAssociado.config.fieldMapping.cbm }}
-                      </span>
-                      <span class="mapping-tag" *ngIf="templateAssociado.config.fieldMapping?.descricaoComercial">
-                        📝 Descrição: Col {{ templateAssociado.config.fieldMapping.descricaoComercial }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="no-template-info" *ngIf="!templateAssociado && formCriar.clienteSelecionado">
-                <div class="no-template-message">
-                  ℹ️ Este cliente não possui template de packlist associado
-                </div>
-              </div>
-              <div class="flow-hint" *ngIf="formCriar.clienteSelecionado">
-                <span class="flow-title">Fluxo do orçamento:</span>
-                <span class="flow-chip" [ngClass]="templateAssociado ? 'flow-packlist' : 'flow-manual'">
-                  {{ templateAssociado ? 'Com packlist (importação guiada)' : 'Manual (sem packlist)' }}
-                </span>
-                <span class="flow-note">
-                  {{ templateAssociado ? 'O custo e a venda serão pré-calculados após importar o packlist.' : 'Custos e venda serão lançados manualmente.' }}
-                </span>
               </div>
             </div>
           </div>
@@ -236,14 +170,16 @@ export class OrcamentoFilterPipe implements PipeTransform {
     `.btn-close{background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:0;width:24px;height:24px}`,
     `.modal-body{padding:16px;flex:1;overflow-y:auto}`,
     `.modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--color-border);flex-shrink:0}`,
-    `.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}`,
     `.field{display:flex;flex-direction:column;gap:6px}`,
     `.field label{font-size:13px;font-weight:600;color:var(--color-text)}`,
     `.field input{padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;transition:.2s}`,
     `.field input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`,
+    `.form-section{display:flex;flex-direction:column;gap:16px;padding-bottom:16px;border-bottom:2px solid var(--color-border);margin-bottom:16px}`,
+    `.form-section .field{margin:0}`,
     `.select-input{width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;transition:.2s;background:var(--color-surface);color:var(--color-text);cursor:pointer;font-family:inherit}`,
     `.select-input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`,
     `.select-input option:disabled{color:#999;background:var(--color-bg)}`,
+    `.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;padding:12px 0;border-top:1px solid var(--color-border)}`,
     `.dropdown-wrapper{position:relative}`,
     `.input-dropdown{width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;transition:.2s}`,
     `.input-dropdown:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`,
@@ -255,32 +191,9 @@ export class OrcamentoFilterPipe implements PipeTransform {
     `.dropdown-empty{padding:10px 12px;color:#999;text-align:center}`,
     `.dropdown-nome{font-weight:600;font-size:14px}`,
     `.dropdown-sub{font-size:12px;color:#999}`,
-    `.cliente-details{background:var(--color-bg);padding:16px;border-radius:8px;margin-top:20px;border:2px solid var(--color-border)}`,
-    `.details-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}`,
     `.detail-field{display:flex;flex-direction:column;gap:4px}`,
     `.detail-field label{font-size:12px;font-weight:600;color:var(--color-text);text-transform:uppercase}`,
-    `.readonly-input{width:100%;padding:8px 10px;border:1px solid var(--color-border);border-radius:6px;font-size:13px;background:var(--color-surface);color:var(--color-text);cursor:default}`,
-    `.template-info{margin-top:20px}`,
-    `.template-card{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:16px;border-radius:10px;color:#fff}`,
-    `.template-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}`,
-    `.template-nome{font-size:16px;font-weight:700}`,
-    `.template-badge{background:rgba(255,255,255,0.25);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600}`,
-    `.template-details-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}`,
-    `.template-field{display:flex;flex-direction:column;gap:4px}`,
-    `.template-field label{font-size:11px;font-weight:600;text-transform:uppercase;opacity:0.8}`,
-    `.template-value{font-size:13px;font-weight:500}`,
-    `.template-mapping{border-top:1px solid rgba(255,255,255,0.2);padding-top:12px}`,
-    `.mapping-title{font-size:12px;font-weight:600;margin-bottom:8px;opacity:0.9}`,
-    `.mapping-tags{display:flex;flex-wrap:wrap;gap:6px}`,
-    `.mapping-tag{background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:500}`,
-    `.no-template-info{margin-top:16px}`,
-    `.no-template-message{background:#f8f9fa;border:2px dashed #dee2e6;padding:12px;border-radius:8px;text-align:center;color:#6c757d;font-size:13px}`,
-    `.flow-hint{margin-top:16px;display:flex;flex-direction:column;gap:6px}`,
-    `.flow-title{font-size:12px;font-weight:700;color:var(--color-text);text-transform:uppercase}`,
-    `.flow-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;width:max-content}`,
-    `.flow-packlist{background:rgba(102,126,234,.12);color:#4c5fd8;border:1px solid rgba(102,126,234,.35)}`,
-    `.flow-manual{background:rgba(16,185,129,.12);color:#0f9d71;border:1px solid rgba(16,185,129,.35)}`,
-    `.flow-note{font-size:12px;color:#6c757d}`
+    `.readonly-input{width:100%;padding:8px 10px;border:1px solid var(--color-border);border-radius:6px;font-size:13px;background:var(--color-surface);color:var(--color-text);cursor:default}`
   ]
 })
 export class NovoProcessoNovaComponent implements OnInit {
@@ -291,7 +204,6 @@ export class NovoProcessoNovaComponent implements OnInit {
   showModalCriar = false;
   showDropdown = false;
   dataHoraAtual = new Date();
-  templateAssociado: TemplatePacklist | null = null;
   q = '';
 
   formCriar = {
@@ -303,21 +215,15 @@ export class NovoProcessoNovaComponent implements OnInit {
   constructor(
     private s: OrcamentoService,
     private clientesService: ClientesService,
-    private templatesService: TemplatesPacklistService,
     private router: Router
   ) {
     this.list = this.s.list$();
   }
 
   ngOnInit() {
-    // Carrega clientes (sem criar fake data)
+    // Carrega clientes
     this.clientesService.list$().subscribe(clientes => {
       this.clientes = clientes;
-      console.log('Clientes carregados no orçamento:', clientes);
-      console.log('Verificando templatePacklistId dos clientes:', clientes.map(c => ({ 
-        nome: c.nome, 
-        templateId: c.templatePacklistId 
-      })));
     });
   }
 
@@ -339,28 +245,10 @@ export class NovoProcessoNovaComponent implements OnInit {
   }
 
   selecionarCliente(cliente: Cliente) {
-    console.log('Cliente selecionado:', cliente);
-    console.log('Template ID associado:', cliente.templatePacklistId);
-    
     this.formCriar.clienteSelecionado = cliente;
     this.formCriar.clienteBusca = '';
     this.clientesFiltrados = [];
     this.showDropdown = false;
-    
-    // Buscar template associado ao cliente
-    this.carregarTemplateAssociado(cliente);
-  }
-
-  carregarTemplateAssociado(cliente: Cliente): void {
-    if (cliente.templatePacklistId) {
-      this.templatesService.getById$(cliente.templatePacklistId).subscribe(template => {
-        this.templateAssociado = template;
-        console.log('Template encontrado:', template);
-      });
-    } else {
-      this.templateAssociado = null;
-      console.log('Cliente não possui template associado');
-    }
   }
 
   abrirModalCriar() {
