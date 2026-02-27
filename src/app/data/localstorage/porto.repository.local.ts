@@ -21,9 +21,9 @@ export class LocalStoragePortoRepository implements PortoRepository {
     if(existing.length){ this.subject.next(existing); }
     else {
       const seed: Porto[] = [
-        { id: 'p1', nome: 'Porto de Santos', codigo: 'BRSSZ', pais: 'Brasil' },
-        { id: 'p2', nome: 'Porto de Itapoá', codigo: 'BRIOA', pais: 'Brasil' },
-        { id: 'p3', nome: 'Shanghai Port', codigo: 'CNSHA', pais: 'China' }
+        { id: 'p1', nome: 'Porto de Santos' },
+        { id: 'p2', nome: 'Porto de Itapoá' },
+        { id: 'p3', nome: 'Shanghai Port' }
       ];
       this.subject.next(seed);
       writePorts(seed);
