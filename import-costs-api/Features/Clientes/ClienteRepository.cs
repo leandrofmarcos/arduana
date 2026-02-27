@@ -48,16 +48,6 @@ public class ClienteRepository
     }
 
     /// <summary>
-    /// Verificar se cliente com documento já existe
-    /// </summary>
-    public async Task<bool> ExistsByDocumento(string documento)
-    {
-        var documentoLimpo = new string(documento.Where(char.IsDigit).ToArray());
-        return await _context.Clientes
-            .AnyAsync(c => c.Documento == documentoLimpo && !c.IsDeleted);
-    }
-
-    /// <summary>
     /// Verificar se cliente possui orçamentos vinculados
     /// </summary>
     public async Task<bool> HasOrcamentos(string clienteId)

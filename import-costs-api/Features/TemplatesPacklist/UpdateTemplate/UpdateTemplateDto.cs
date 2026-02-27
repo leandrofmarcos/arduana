@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.Http;
-
 namespace ImportCostsApi.Features.TemplatesPacklist.UpdateTemplate;
 
 /// <summary>
@@ -10,5 +8,6 @@ public class UpdateTemplateDto
     public string? Nome { get; set; }
     public string? Descricao { get; set; }
     public string? Config { get; set; }
+    public string? NomeArquivo { get; set; }
     public IFormFile? Arquivo { get; set; }
 }

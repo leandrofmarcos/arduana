@@ -18,11 +18,10 @@ public class CreateTemplateController : ControllerBase
     }
 
     [HttpPost]
-    [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ApiResponse<TemplateResponseDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Create([FromForm] CreateTemplateDto dto, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create([FromBody] CreateTemplateDto dto, CancellationToken cancellationToken)
     {
         var template = await _handler.Handle(dto, cancellationToken);
 
@@ -37,9 +36,7 @@ public class CreateTemplateController : ControllerBase
             DataAtualizacao = template.DataAtualizacao
         };
 
-        return CreatedAtAction(
-            "GetById",
-            new { id = template.Id, controller = "TemplatesPacklist" },
+        return StatusCode(StatusCodes.Status201Created, 
             ApiResponse<TemplateResponseDto>.Created(response, "Template criado com sucesso"));
     }
 }

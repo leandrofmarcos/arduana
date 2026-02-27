@@ -1,5 +1,4 @@
 using ImportCostsApi.Core.Exceptions;
-using ImportCostsApi.Core.Storage;
 using ImportCostsApi.Domain.Entities;
 using FluentValidation;
 using Microsoft.Extensions.Logging;
@@ -13,18 +12,15 @@ namespace ImportCostsApi.Features.TemplatesPacklist.CreateTemplate;
 public class CreateTemplateHandler
 {
     private readonly TemplateRepository _repository;
-    private readonly IStorageService _storage;
     private readonly IValidator<CreateTemplateDto> _validator;
     private readonly ILogger<CreateTemplateHandler> _logger;
 
     public CreateTemplateHandler(
         TemplateRepository repository,
-        IStorageService storage,
         IValidator<CreateTemplateDto> validator,
         ILogger<CreateTemplateHandler> logger)
     {
         _repository = repository;
-        _storage = storage;
         _validator = validator;
         _logger = logger;
     }
@@ -52,25 +48,16 @@ public class CreateTemplateHandler
         {
             Nome = dto.Nome.Trim(),
             Descricao = dto.Descricao?.Trim(),
-            NomeArquivo = dto.Arquivo.FileName,
+            NomeArquivo = dto.NomeArquivo,
             Config = dto.Config,
             DataCriacao = DateTime.UtcNow,
             DataAtualizacao = DateTime.UtcNow
         };
-
-        var relativePath = BuildStoragePath(template.Id, template.NomeArquivo);
-        await using var stream = dto.Arquivo.OpenReadStream();
-        await _storage.SaveAsync(relativePath, stream, cancellationToken);
 
         await _repository.Add(template);
 
         _logger.LogInformation("Template de packlist criado com sucesso. ID: {TemplateId}", template.Id);
 
         return template;
-    }
-
-    private static string BuildStoragePath(string templateId, string fileName)
-    {
-        return $"templates-packlist/{templateId}/{fileName}";
     }
 }

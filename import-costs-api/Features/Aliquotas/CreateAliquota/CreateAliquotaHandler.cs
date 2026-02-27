@@ -27,6 +27,9 @@ public class CreateAliquotaHandler
 
     public async Task<AliquotaPerfil> Handle(CreateAliquotaDto dto)
     {
+        _logger.LogInformation("Recebendo DTO: Nome={Nome}, II={II}, IPI={IPI}, ICMS={ICMS}, PIS={PIS}, COFINS={COFINS}",
+            dto.Nome, dto.II, dto.IPI, dto.ICMS, dto.PIS, dto.COFINS);
+        
         var validationResult = await _validator.ValidateAsync(dto);
         if (!validationResult.IsValid)
         {

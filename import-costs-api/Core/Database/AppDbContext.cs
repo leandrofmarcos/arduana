@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<Porto> Portos => Set<Porto>();
     public DbSet<AliquotaPerfil> AliquotasPerfis => Set<AliquotaPerfil>();
     public DbSet<TemplatePacklist> TemplatesPacklist => Set<TemplatePacklist>();
+    public DbSet<Funcionario> Funcionarios => Set<Funcionario>();
 
     // Entidades do Fluxo de Orçamento
     public DbSet<OrcamentoLancamento> Orcamentos => Set<OrcamentoLancamento>();

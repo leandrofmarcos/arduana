@@ -39,15 +39,13 @@ public class CreateClienteController : ControllerBase
         {
             Id = cliente.Id,
             Nome = cliente.Nome,
-            Documento = cliente.Documento,
             Contato = cliente.Contato,
             TemplatePacklistId = cliente.TemplatePacklistId,
             CreatedAt = cliente.CreatedAt
         };
 
-        return CreatedAtAction(
-            "GetById",
-            new { id = cliente.Id, controller = "Clientes" },
-            ApiResponse<ClienteResponseDto>.Created(response, $"Cliente criado com sucesso"));
+        return StatusCode(
+            StatusCodes.Status201Created,
+            ApiResponse<ClienteResponseDto>.Created(response, "Cliente criado com sucesso"));
     }
 }

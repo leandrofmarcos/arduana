@@ -11,11 +11,6 @@ public class CreateClienteDto
     public string Nome { get; set; } = string.Empty;
 
     /// <summary>
-    /// Documento do cliente (CPF ou CNPJ)
-    /// </summary>
-    public string Documento { get; set; } = string.Empty;
-
-    /// <summary>
     /// Contato do cliente
     /// </summary>
     public string Contato { get; set; } = string.Empty;

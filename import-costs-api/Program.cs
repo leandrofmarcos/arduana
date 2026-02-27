@@ -7,6 +7,12 @@ using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configurar URLs
+if (builder.Environment.IsDevelopment())
+{
+    builder.WebHost.UseUrls("http://localhost:5000");
+}
+
 // Add services to the container
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -49,12 +55,25 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
-            ?? new[] { "http://localhost:4200" };
-        
-        policy.WithOrigins(origins)
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.SetIsOriginAllowed(origin => 
+        {
+            if (string.IsNullOrEmpty(origin)) return false;
+            
+            // Permitir qualquer localhost em desenvolvimento
+            if (builder.Environment.IsDevelopment())
+            {
+                var uri = new Uri(origin);
+                return uri.Host == "localhost" || uri.Host == "127.0.0.1";
+            }
+            
+            // Em produção, usar lista configurada
+            var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+                ?? Array.Empty<string>();
+            return origins.Contains(origin);
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });
 

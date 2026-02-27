@@ -14,23 +14,23 @@ public class UpdateAliquotaValidator : AbstractValidator<UpdateAliquotaDto>
             .When(x => !string.IsNullOrWhiteSpace(x.Nome));
 
         RuleFor(x => x.II)
-            .InclusiveBetween(0, 100).WithMessage("II deve estar entre 0 e 100")
-            .When(x => x.II.HasValue);
+            .Must(value => !value.HasValue || (value.Value >= 0 && value.Value <= 100))
+            .WithMessage("II deve estar entre 0 e 100");
 
         RuleFor(x => x.IPI)
-            .InclusiveBetween(0, 100).WithMessage("IPI deve estar entre 0 e 100")
-            .When(x => x.IPI.HasValue);
+            .Must(value => !value.HasValue || (value.Value >= 0 && value.Value <= 100))
+            .WithMessage("IPI deve estar entre 0 e 100");
 
         RuleFor(x => x.ICMS)
-            .InclusiveBetween(0, 100).WithMessage("ICMS deve estar entre 0 e 100")
-            .When(x => x.ICMS.HasValue);
+            .Must(value => !value.HasValue || (value.Value >= 0 && value.Value <= 100))
+            .WithMessage("ICMS deve estar entre 0 e 100");
 
         RuleFor(x => x.PIS)
-            .InclusiveBetween(0, 100).WithMessage("PIS deve estar entre 0 e 100")
-            .When(x => x.PIS.HasValue);
+            .Must(value => !value.HasValue || (value.Value >= 0 && value.Value <= 100))
+            .WithMessage("PIS deve estar entre 0 e 100");
 
         RuleFor(x => x.COFINS)
-            .InclusiveBetween(0, 100).WithMessage("COFINS deve estar entre 0 e 100")
-            .When(x => x.COFINS.HasValue);
+            .Must(value => !value.HasValue || (value.Value >= 0 && value.Value <= 100))
+            .WithMessage("COFINS deve estar entre 0 e 100");
     }
 }

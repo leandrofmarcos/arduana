@@ -74,6 +74,12 @@ using ImportCostsApi.Features.Orcamentos.Update;
 using ImportCostsApi.Features.Orcamentos.Delete;
 using ImportCostsApi.Features.Orcamentos.TransicaoFase;
 using ImportCostsApi.Features.Orcamentos.Resumo;
+using ImportCostsApi.Features.Funcionarios;
+using ImportCostsApi.Features.Funcionarios.CreateFuncionario;
+using ImportCostsApi.Features.Funcionarios.UpdateFuncionario;
+using ImportCostsApi.Features.Funcionarios.GetFuncionario;
+using ImportCostsApi.Features.Funcionarios.GetFuncionarios;
+using ImportCostsApi.Features.Funcionarios.DeleteFuncionario;
 using ImportCostsApi.Core.Storage;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -139,6 +145,9 @@ public static class ServiceCollectionExtensions
 
         // Feature: Orcamentos
         services.AddScoped<OrcamentoRepository>();
+
+        // Feature: Funcionarios
+        services.AddScoped<FuncionarioRepository>();
 
         return services;
     }
@@ -234,6 +243,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<TransicaoFaseHandler>();
         services.AddScoped<GetResumoOrcamentoHandler>();
 
+        // Feature: Funcionarios
+        services.AddScoped<GetFuncionariosHandler>();
+        services.AddScoped<GetFuncionarioHandler>();
+        services.AddScoped<CreateFuncionarioHandler>();
+        services.AddScoped<UpdateFuncionarioHandler>();
+        services.AddScoped<DeleteFuncionarioHandler>();
+
         return services;
     }
 
@@ -290,6 +306,10 @@ public static class ServiceCollectionExtensions
         // Feature: Orcamentos
         services.AddScoped<IValidator<CreateOrcamentoDto>, CreateOrcamentoValidator>();
         services.AddScoped<IValidator<UpdateOrcamentoDto>, UpdateOrcamentoValidator>();
+
+        // Feature: Funcionarios
+        services.AddScoped<IValidator<CreateFuncionarioDto>, CreateFuncionarioValidator>();
+        services.AddScoped<IValidator<UpdateFuncionarioDto>, UpdateFuncionarioValidator>();
 
         return services;
     }

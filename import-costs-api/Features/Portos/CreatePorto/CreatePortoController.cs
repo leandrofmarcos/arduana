@@ -38,9 +38,8 @@ public class CreatePortoController : ControllerBase
             CreatedAt = porto.CreatedAt
         };
 
-        return CreatedAtAction(
-            "GetById",
-            new { id = porto.Id, controller = "Portos" },
+        return StatusCode(
+            StatusCodes.Status201Created,
             ApiResponse<PortoResponseDto>.Created(response, "Porto criado com sucesso"));
     }
 }

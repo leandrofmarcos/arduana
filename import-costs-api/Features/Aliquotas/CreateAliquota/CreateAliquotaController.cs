@@ -39,9 +39,8 @@ public class CreateAliquotaController : ControllerBase
             CreatedAt = perfil.CreatedAt
         };
 
-        return CreatedAtAction(
-            "GetById",
-            new { id = perfil.Id, controller = "Aliquotas" },
+        return StatusCode(
+            StatusCodes.Status201Created,
             ApiResponse<AliquotaResponseDto>.Created(response, "Perfil de alíquotas criado com sucesso"));
     }
 }

@@ -37,7 +37,6 @@ public class GetClientesController : ControllerBase
         {
             Id = c.Id,
             Nome = c.Nome,
-            Documento = c.Documento,
             Contato = c.Contato,
             TemplatePacklistId = c.TemplatePacklistId,
             CreatedAt = c.CreatedAt

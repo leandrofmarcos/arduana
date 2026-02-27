@@ -49,18 +49,10 @@ public class CreateClienteHandler
             );
         }
 
-        // Verificar duplicidade de documento
-        if (await _repository.ExistsByDocumento(dto.Documento))
-        {
-            _logger.LogWarning("Cliente com documento {Documento} já existe", dto.Documento);
-            throw new BusinessException("Cliente com este documento já existe");
-        }
-
         // Criar entidade
         var cliente = new Cliente
         {
             Nome = dto.Nome.Trim(),
-            Documento = new string(dto.Documento.Where(char.IsDigit).ToArray()),
             Contato = dto.Contato.Trim(),
             TemplatePacklistId = dto.TemplatePacklistId
         };

@@ -16,7 +16,7 @@ public class CreateTemplateValidator : AbstractValidator<CreateTemplateDto>
         RuleFor(x => x.Config)
             .NotEmpty().WithMessage("Config é obrigatória");
 
-        RuleFor(x => x.Arquivo)
-            .NotNull().WithMessage("Arquivo do template é obrigatório");
+        RuleFor(x => x.NomeArquivo)
+            .NotEmpty().WithMessage("Nome do arquivo é obrigatório");
     }
 }

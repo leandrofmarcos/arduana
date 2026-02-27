@@ -27,6 +27,9 @@ public class UpdateAliquotaHandler
 
     public async Task<AliquotaPerfil> Handle(string aliquotaId, UpdateAliquotaDto dto)
     {
+        _logger.LogInformation("Atualizando alíquota {Id}. DTO: Nome={Nome}, II={II}, IPI={IPI}, ICMS={ICMS}, PIS={PIS}, COFINS={COFINS}, Padrao={Padrao}",
+            aliquotaId, dto.Nome, dto.II, dto.IPI, dto.ICMS, dto.PIS, dto.COFINS, dto.Padrao);
+        
         var validationResult = await _validator.ValidateAsync(dto);
         if (!validationResult.IsValid)
         {
