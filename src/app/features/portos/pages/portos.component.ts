@@ -11,7 +11,7 @@ export class PortoFilterPipe implements PipeTransform {
     if(!list) return [];
     if(!q) return list;
     const s = q.toLowerCase();
-    return list.filter(p => (p.nome||'').toLowerCase().includes(s) || (p.codigo||'').toLowerCase().includes(s) || (p.pais||'').toLowerCase().includes(s));
+    return list.filter(p => (p.nome||'').toLowerCase().includes(s));
   }
 }
 
@@ -37,15 +37,6 @@ export class PortoFilterPipe implements PipeTransform {
           <div class="modal-body">
             <div class="grid">
               <div class="field"><label>Nome *</label><input type="text" [(ngModel)]="nome" placeholder="Porto de Santos" required></div>
-              <div class="field">
-                <label>Código UN/LOCODE *</label>
-                <input type="text" [(ngModel)]="codigo" placeholder="BRSSZ" maxlength="5" 
-                       pattern="[A-Za-z0-9]{5}" 
-                       title="Código deve ter exatamente 5 caracteres alfanuméricos"
-                       required>
-                <small style="font-size:11px;color:var(--color-muted);margin-top:4px">5 caracteres (ex: BRSSZ, USNYC)</small>
-              </div>
-              <div class="field"><label>País *</label><input type="text" [(ngModel)]="pais" placeholder="Brasil" required></div>
             </div>
           </div>
           <div class="modal-actions">
@@ -57,15 +48,13 @@ export class PortoFilterPipe implements PipeTransform {
 
       <div class="content-section">
         <div class="toolbar">
-          <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome, código ou país" />
+          <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome" />
         </div>
         <table class="data-table">
-          <thead><tr><th>Nome</th><th>Código</th><th>País</th><th>Ações</th></tr></thead>
+          <thead><tr><th>Nome</th><th>Ações</th></tr></thead>
           <tbody>
             <tr *ngFor="let p of (portos$ | async) | portoFilter:q">
               <td>{{ p.nome }}</td>
-              <td>{{ p.codigo }}</td>
-              <td>{{ p.pais }}</td>
               <td>
                 <div class="row-actions">
                   <button class="btn-icon" title="Editar" (click)="editar(p)">✏️</button>
@@ -90,7 +79,7 @@ export class PortoFilterPipe implements PipeTransform {
     `.btn-secondary{background:var(--color-surface);color:var(--color-primary);border:2px solid var(--color-primary)}`,
     `.toolbar{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap}`,
     `.search{flex:1;min-width:200px;padding:13px 16px;border:2px solid var(--color-border);border-radius:8px;font-size:15px}`,
-    `.data-table th:last-child,.data-table td:last-child{text-align:right;width:120px}`,
+    `.data-table th:last-child,.data-table td:last-child{text-align:right;width:100px}`,
     `.row-actions{display:flex;justify-content:flex-end;gap:0;align-items:center}`,
     `.row-actions .btn-icon{padding:6px 8px}`,
     `.btn-icon{background:none;border:none;cursor:pointer;font-size:16px;padding:6px 8px;border-radius:4px;transition:.2s}`,
@@ -109,8 +98,6 @@ export class PortosComponent {
   portos$ = this.service.list$();
   id = '';
   nome = '';
-  codigo = '';
-  pais = '';
   q = '';
   showModalCadastro = false;
   modoEdicao = false;
@@ -120,39 +107,29 @@ export class PortosComponent {
   
   editar(p: Porto){ 
     this.id = p.id;
-    this.nome = p.nome; 
-    this.codigo = p.codigo;
-    this.pais = p.pais;
+    this.nome = p.nome;
     this.modoEdicao = true; 
     this.showModalCadastro = true; 
   }
   
   salvar(){ 
-    if(!this.nome || !this.codigo || !this.pais) {
-      alert('Preencha todos os campos obrigatórios');
-      return;
-    }
-    // Validação UN/LOCODE: exatamente 5 caracteres alfanuméricos
-    const codigoLimpo = this.codigo.trim().toUpperCase();
-    if(!/^[A-Z0-9]{5}$/.test(codigoLimpo)) {
-      alert('Código deve seguir o padrão UN/LOCODE:\n- Exatamente 5 caracteres\n- Apenas letras e números\n\nExemplos: BRSSZ, USNYC, CNSHA');
+    if(!this.nome) {
+      alert('Preencha o nome do porto');
       return;
     }
     
     if(this.modoEdicao){
       this.service.update(this.id, { 
-        nome: this.nome,
-        codigo: codigoLimpo,
-        pais: this.pais
+        nome: this.nome
       });
     } else {
-      this.service.create(this.nome, codigoLimpo, this.pais); 
+      this.service.create(this.nome); 
     }
     
     this.limpar(); 
     this.showModalCadastro = false; 
   }
   
-  limpar(){ this.id=''; this.nome=''; this.codigo=''; this.pais=''; }
+  limpar(){ this.id=''; this.nome=''; }
   remove(id:string){ this.service.remove(id); }
 }

@@ -16,11 +16,11 @@ export class PortosService {
     );
   }
   
-  create(nome: string, codigo: string, pais: string){ 
-    return this.repo.create({ nome, codigo, pais }); 
+  create(nome: string){ 
+    return this.repo.create({ nome }); 
   }
   
-  update(id: string, data: Partial<Pick<Porto,'nome'|'codigo'|'pais'>>){ 
+  update(id: string, data: Partial<Pick<Porto,'nome'>>){ 
     this.repo.update(id, data); 
   }
   
