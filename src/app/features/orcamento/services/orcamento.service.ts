@@ -26,6 +26,10 @@ export class OrcamentoService {
    * @param tipoOrcamento (Opcional) Tipo do orçamento (Aéreo ou Marítimo)
    * @param despachanteId (Opcional) ID do despachante
    * @param despachante (Opcional) Nome do despachante
+   * @param portoDestinoId (Opcional) ID do porto de destino
+   * @param portoDestino (Opcional) Nome do porto de destino
+   * @param funcionarioId (Opcional) ID do funcionário responsável
+   * @param funcionario (Opcional) Nome completo do funcionário responsável
    */
   criar(
     clienteId: string,
@@ -37,7 +41,11 @@ export class OrcamentoService {
     aliquotaPadrao?: number,
     tipoOrcamento: 'Aereo' | 'Maritimo' = 'Maritimo',
     despachanteId?: string,
-    despachante?: string
+    despachante?: string,
+    portoDestinoId?: string,
+    portoDestino?: string,
+    funcionarioId?: string,
+    funcionario?: string
   ) {
     const id = randomId();
     const createdAt = data ? new Date(data).toISOString() : new Date().toISOString();
@@ -52,6 +60,8 @@ export class OrcamentoService {
       oficializado: false,
       clienteId,
       despachanteId,
+      portoDestinoId,
+      funcionarioId,
       templatePacklistId
     };
     writeJSON(keys.orcamento(id), meta);
@@ -59,8 +69,12 @@ export class OrcamentoService {
       id,
       cliente,
       despachante,
+      portoDestino,
+      funcionario,
       clienteId,
       despachanteId,
+      portoDestinoId,
+      funcionarioId,
       tipoOrcamento,
       codigo: codigoFinal,
       data: meta.createdAt,

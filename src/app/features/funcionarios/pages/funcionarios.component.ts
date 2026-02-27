@@ -52,7 +52,7 @@ export class FuncFilterPipe implements PipeTransform {
                 <input type="text" [(ngModel)]="username" placeholder="joao.silva">
               </div>
               <div class="field">
-                <label>Email *</label>
+                <label>Email</label>
                 <input type="email" [(ngModel)]="email" placeholder="joao@empresa.com">
               </div>
               <div class="field">
@@ -64,11 +64,11 @@ export class FuncFilterPipe implements PipeTransform {
                 <input type="text" [(ngModel)]="contatoWeChat" placeholder="joaosilva123">
               </div>
               <div class="field">
-                <label>Setor *</label>
+                <label>Setor</label>
                 <input type="text" [(ngModel)]="setor" placeholder="Comercial, Logística, etc.">
               </div>
               <div class="field">
-                <label>Cargo *</label>
+                <label>Cargo</label>
                 <input type="text" [(ngModel)]="cargo" placeholder="Analista, Gerente, etc.">
               </div>
             </div>
@@ -186,7 +186,7 @@ export class FuncionariosComponent {
   }
 
   salvar(){ 
-    if(!this.nomeCompleto || !this.username || !this.email || !this.setor || !this.cargo) {
+    if(!this.nomeCompleto || !this.username) {
       alert('Preencha todos os campos obrigatórios (*)');
       return;
     }

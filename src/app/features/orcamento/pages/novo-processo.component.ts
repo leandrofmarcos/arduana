@@ -5,9 +5,13 @@ import { RouterModule, Router } from '@angular/router';
 import { OrcamentoService } from '../services/orcamento.service';
 import { ClientesService } from '../../clientes/services/clientes.service';
 import { DespachantesService } from '../../despachantes/services/despachantes.service';
+import { PortosService } from '../../portos/services/portos.service';
+import { FuncionariosService } from '../../funcionarios/services/funcionarios.service';
 import { OrcamentoListItem, TipoOrcamento } from '../models/orcamento.models';
 import { Cliente } from '../../clientes/models/cliente.models';
 import { Despachante } from '../../despachantes/models/despachante.models';
+import { Porto } from '../../portos/models/porto.models';
+import { Funcionario } from '../../../domain/funcionario.models';
 import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
 @Pipe({name:'orcamentoFilter', standalone: true})
@@ -164,9 +168,67 @@ export class OrcamentoFilterPipe implements PipeTransform {
                   <input type="text" [value]="formCriar.despachanteSelecionado ? formCriar.despachanteSelecionado.contato : ''" readonly class="readonly-input">
                 </div>
               </div>
-            </div>
-          </div>
-          <div class="modal-actions">
+
+              <div class="section-label">🛳️ Porto Destino <span style="font-weight:400;opacity:.7">(opcional)</span></div>
+              <div class="field">
+                  <label>Porto Destino</label>
+                  <div class="dropdown-wrapper">
+                    <input 
+                      type="text" 
+                      [(ngModel)]="formCriar.portoBusca" 
+                      (input)="buscarPortos(formCriar.portoBusca)"
+                      (focus)="abrirDropdownPorto()"
+                      [placeholder]="formCriar.portoSelecionado ? formCriar.portoSelecionado.nome : 'Digite para buscar ou selecionar'"
+                      class="input-dropdown">
+                    <div class="dropdown" *ngIf="showDropdownPorto">
+                      <div 
+                        *ngFor="let p of portosFiltrados" 
+                        class="dropdown-item"
+                        [class.active]="formCriar.portoSelecionado?.id === p.id"
+                        (click)="selecionarPorto(p)">
+                        <div class="dropdown-nome">{{ p.nome }}</div>
+                      </div>
+                      <div class="dropdown-empty" *ngIf="portosFiltrados.length === 0 && formCriar.portoBusca">
+                        Nenhum porto encontrado
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              <div class="section-label">👤 Funcionário <span style="font-weight:400;opacity:.7">(opcional)</span></div>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Nome Completo</label>
+                  <div class="dropdown-wrapper">
+                    <input 
+                      type="text" 
+                      [(ngModel)]="formCriar.funcBusca" 
+                      (input)="buscarFuncionarios(formCriar.funcBusca)"
+                      (focus)="abrirDropdownFuncionario()"
+                      [placeholder]="formCriar.funcSelecionado ? formCriar.funcSelecionado.nomeCompleto : 'Digite para buscar ou selecionar'"
+                      class="input-dropdown">
+                    <div class="dropdown" *ngIf="showDropdownFuncionario">
+                      <div 
+                        *ngFor="let f of funcionariosFiltrados" 
+                        class="dropdown-item"
+                        [class.active]="formCriar.funcSelecionado?.id === f.id"
+                        (click)="selecionarFuncionario(f)">
+                        <div class="dropdown-nome">{{ f.nomeCompleto }}</div>
+                        <div class="dropdown-sub">{{ f.username }}{{ f.cargo ? ' • ' + f.cargo : '' }}</div>
+                      </div>
+                      <div class="dropdown-empty" *ngIf="funcionariosFiltrados.length === 0 && formCriar.funcBusca">
+                        Nenhum funcionário encontrado
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="detail-field">
+                  <label>Username</label>
+                  <input type="text" [value]="formCriar.funcSelecionado?.username || ''" readonly class="readonly-input">
+                  <label style="margin-top:8px">Cargo</label>
+                  <input type="text" [value]="formCriar.funcSelecionado?.cargo || ''" readonly class="readonly-input">
+                </div>
+              </div>
             <button class="btn btn-secondary" (click)="fecharModalCriar()">Cancelar</button>
             <button class="btn btn-primary" (click)="criarNovoOrcamento()" [disabled]="!formCriar.clienteSelecionado">Criar Orçamento</button>
           </div>
@@ -236,10 +298,16 @@ export class NovoProcessoNovaComponent implements OnInit {
   clientesFiltrados: Cliente[] = [];
   despachantes: Despachante[] = [];
   despachangesFiltrados: Despachante[] = [];
+  portos: Porto[] = [];
+  portosFiltrados: Porto[] = [];
+  funcionarios: Funcionario[] = [];
+  funcionariosFiltrados: Funcionario[] = [];
   confirmId: string | null = null;
   showModalCriar = false;
   showDropdown = false;
   showDropdownDespachante = false;
+  showDropdownPorto = false;
+  showDropdownFuncionario = false;
   dataHoraAtual = new Date();
   q = '';
 
@@ -248,6 +316,10 @@ export class NovoProcessoNovaComponent implements OnInit {
     clienteSelecionado: null as Cliente | null,
     despachanteBusca: '',
     despachanteSelecionado: null as Despachante | null,
+    portoBusca: '',
+    portoSelecionado: null as Porto | null,
+    funcBusca: '',
+    funcSelecionado: null as Funcionario | null,
     tipoOrcamento: 'Maritimo' as TipoOrcamento
   };
 
@@ -255,6 +327,8 @@ export class NovoProcessoNovaComponent implements OnInit {
     private s: OrcamentoService,
     private clientesService: ClientesService,
     private despachantesService: DespachantesService,
+    private portosService: PortosService,
+    private funcionariosService: FuncionariosService,
     private router: Router
   ) {
     this.list = this.s.list$();
@@ -266,6 +340,12 @@ export class NovoProcessoNovaComponent implements OnInit {
     });
     this.despachantesService.list$().subscribe(despachantes => {
       this.despachantes = despachantes;
+    });
+    this.portosService.list$().subscribe(portos => {
+      this.portos = portos;
+    });
+    this.funcionariosService.list$().subscribe(funcionarios => {
+      this.funcionarios = funcionarios;
     });
   }
 
@@ -283,6 +363,8 @@ export class NovoProcessoNovaComponent implements OnInit {
   abrirDropdown() {
     this.showDropdown = true;
     this.showDropdownDespachante = false;
+    this.showDropdownPorto = false;
+    this.showDropdownFuncionario = false;
     this.buscarClientes(this.formCriar.nomeBusca);
   }
 
@@ -307,6 +389,8 @@ export class NovoProcessoNovaComponent implements OnInit {
   abrirDropdownDespachante() {
     this.showDropdownDespachante = true;
     this.showDropdown = false;
+    this.showDropdownPorto = false;
+    this.showDropdownFuncionario = false;
     this.buscarDespachantes(this.formCriar.despachanteBusca);
   }
 
@@ -317,12 +401,69 @@ export class NovoProcessoNovaComponent implements OnInit {
     this.showDropdownDespachante = false;
   }
 
-  abrirModalCriar() {
-    this.formCriar = { nomeBusca: '', clienteSelecionado: null, despachanteBusca: '', despachanteSelecionado: null, tipoOrcamento: 'Maritimo' };
-    this.clientesFiltrados = [];
-    this.despachangesFiltrados = [];
+  buscarPortos(termo: string) {
+    const busca = termo.toLowerCase().trim();
+    if (!busca) {
+      this.portosFiltrados = this.portos;
+    } else {
+      this.portosFiltrados = this.portos.filter(p =>
+        p.nome.toLowerCase().includes(busca)
+      );
+    }
+  }
+
+  abrirDropdownPorto() {
+    this.showDropdownPorto = true;
     this.showDropdown = false;
     this.showDropdownDespachante = false;
+    this.showDropdownFuncionario = false;
+    this.buscarPortos(this.formCriar.portoBusca);
+  }
+
+  selecionarPorto(porto: Porto) {
+    this.formCriar.portoSelecionado = porto;
+    this.formCriar.portoBusca = '';
+    this.portosFiltrados = [];
+    this.showDropdownPorto = false;
+  }
+
+  buscarFuncionarios(termo: string) {
+    const busca = termo.toLowerCase().trim();
+    if (!busca) {
+      this.funcionariosFiltrados = this.funcionarios;
+    } else {
+      this.funcionariosFiltrados = this.funcionarios.filter(f =>
+        f.nomeCompleto.toLowerCase().includes(busca) ||
+        f.username.toLowerCase().includes(busca)
+      );
+    }
+  }
+
+  abrirDropdownFuncionario() {
+    this.showDropdownFuncionario = true;
+    this.showDropdown = false;
+    this.showDropdownDespachante = false;
+    this.showDropdownPorto = false;
+    this.buscarFuncionarios(this.formCriar.funcBusca);
+  }
+
+  selecionarFuncionario(func: Funcionario) {
+    this.formCriar.funcSelecionado = func;
+    this.formCriar.funcBusca = '';
+    this.funcionariosFiltrados = [];
+    this.showDropdownFuncionario = false;
+  }
+
+  abrirModalCriar() {
+    this.formCriar = { nomeBusca: '', clienteSelecionado: null, despachanteBusca: '', despachanteSelecionado: null, portoBusca: '', portoSelecionado: null, funcBusca: '', funcSelecionado: null, tipoOrcamento: 'Maritimo' };
+    this.clientesFiltrados = [];
+    this.despachangesFiltrados = [];
+    this.portosFiltrados = [];
+    this.funcionariosFiltrados = [];
+    this.showDropdown = false;
+    this.showDropdownDespachante = false;
+    this.showDropdownPorto = false;
+    this.showDropdownFuncionario = false;
     this.showModalCriar = true;
     this.dataHoraAtual = new Date();
   }
@@ -336,6 +477,8 @@ export class NovoProcessoNovaComponent implements OnInit {
 
     const cliente = this.formCriar.clienteSelecionado;
     const despachante = this.formCriar.despachanteSelecionado;
+    const porto = this.formCriar.portoSelecionado;
+    const func = this.formCriar.funcSelecionado;
     const novoId = this.s.criar(
       cliente.id,
       cliente.nome,
@@ -346,7 +489,11 @@ export class NovoProcessoNovaComponent implements OnInit {
       undefined,
       this.formCriar.tipoOrcamento,
       despachante?.id,
-      despachante?.nome
+      despachante?.nome,
+      porto?.id,
+      porto?.nome,
+      func?.id,
+      func?.nomeCompleto
     );
 
     this.fecharModalCriar();

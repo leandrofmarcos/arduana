@@ -12,6 +12,8 @@ export interface OrcamentoMeta {
   createdAt: string;
   clienteId?: string;
   despachanteId?: string;
+  portoDestinoId?: string;
+  funcionarioId?: string;
   templatePacklistId?: string;
 }
 
@@ -19,8 +21,12 @@ export interface OrcamentoListItem {
   id: string;
   cliente?: string;
   despachante?: string;
+  portoDestino?: string;
+  funcionario?: string;
   clienteId?: string;
   despachanteId?: string;
+  portoDestinoId?: string;
+  funcionarioId?: string;
   templatePacklistId?: string;
   tipoOrcamento: TipoOrcamento;
   codigo?: string;
