@@ -15,6 +15,8 @@ Compress-Archive -Path release\* -DestinationPath release.zip -Force
 az webapp deployment source config-zip --resource-group pocs --name sistemaaduaneiro --src release.zip
 
 
+agora seguindo pardrão microsoft, quero desenvolver tanto api quando client em um projeto, como tinha nos projetos de template do visual studio o angular + webapoi, assim quando eu fizer a inicialização ou deploy num ambiente azure isso seja capa de sburi minha api e meu angualr dentro do porjeto, faça essas alterações para que isso aconteça, não troque endpoint nada do client, apenas garantir que seja um projeto capaz de iniciar juntos e seja capaz no deploy de garntir o angular dentro do webapi para usar o web
+
 
 
 = Orçamento 

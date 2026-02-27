@@ -31,7 +31,6 @@ public class GetDespachantesController : ControllerBase
         {
             Id = d.Id,
             Nome = d.Nome,
-            Documento = d.Documento,
             Contato = d.Contato,
             CreatedAt = d.CreatedAt
         }).ToList();

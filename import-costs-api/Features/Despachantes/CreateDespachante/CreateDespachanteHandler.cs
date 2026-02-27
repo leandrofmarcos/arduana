@@ -30,6 +30,7 @@ public class CreateDespachanteHandler
     /// </summary>
     public async Task<Despachante> Handle(CreateDespachanteDto dto)
     {
+        // Validar DTO
         var validationResult = await _validator.ValidateAsync(dto);
         if (!validationResult.IsValid)
         {
@@ -47,16 +48,9 @@ public class CreateDespachanteHandler
             );
         }
 
-        if (await _repository.ExistsByDocumento(dto.Documento))
-        {
-            _logger.LogWarning("Despachante com documento {Documento} já existe", dto.Documento);
-            throw new BusinessException("Despachante com este documento já existe");
-        }
-
         var despachante = new Despachante
         {
             Nome = dto.Nome.Trim(),
-            Documento = new string(dto.Documento.Where(char.IsDigit).ToArray()),
             Contato = dto.Contato.Trim()
         };
 

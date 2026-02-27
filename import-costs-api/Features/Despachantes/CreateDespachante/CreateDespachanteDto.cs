@@ -11,11 +11,6 @@ public class CreateDespachanteDto
     public string Nome { get; set; } = string.Empty;
 
     /// <summary>
-    /// Documento do despachante (CPF ou CNPJ)
-    /// </summary>
-    public string Documento { get; set; } = string.Empty;
-
-    /// <summary>
     /// Contato do despachante
     /// </summary>
     public string Contato { get; set; } = string.Empty;

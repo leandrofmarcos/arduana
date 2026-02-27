@@ -46,16 +46,6 @@ public class DespachanteRepository
     }
 
     /// <summary>
-    /// Verificar se despachante com documento já existe
-    /// </summary>
-    public async Task<bool> ExistsByDocumento(string documento)
-    {
-        var documentoLimpo = new string(documento.Where(char.IsDigit).ToArray());
-        return await _context.Despachantes
-            .AnyAsync(d => d.Documento == documentoLimpo && !d.IsDeleted);
-    }
-
-    /// <summary>
     /// Verificar se despachante possui orçamentos vinculados
     /// </summary>
     public async Task<bool> HasOrcamentos(string despachanteId)

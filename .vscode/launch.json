@@ -1,0 +1,39 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug import-costs (Angular)",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:4200",
+      "webRoot": "${workspaceFolder}/import-costs",
+      "preLaunchTask": "start:import-costs"
+    },
+    {
+      "name": "Debug import-costs-api (.NET)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "start:import-costs-api",
+      "program": "dotnet",
+      "args": [
+        "run"
+      ],
+      "cwd": "${workspaceFolder}/import-costs-api",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "console": "internalConsole"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug import-costs + api",
+      "configurations": [
+        "Debug import-costs (Angular)",
+        "Debug import-costs-api (.NET)"
+      ],
+      "stopAll": true
+    }
+  ]
+}
