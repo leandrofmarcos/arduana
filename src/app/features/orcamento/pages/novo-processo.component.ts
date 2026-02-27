@@ -4,8 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { OrcamentoService } from '../services/orcamento.service';
 import { ClientesService } from '../../clientes/services/clientes.service';
+import { DespachantesService } from '../../despachantes/services/despachantes.service';
 import { OrcamentoListItem, TipoOrcamento } from '../models/orcamento.models';
 import { Cliente } from '../../clientes/models/cliente.models';
+import { Despachante } from '../../despachantes/models/despachante.models';
 import { PageHeaderComponent } from '../../../core/layout/page-header.component';
 
 @Pipe({name:'orcamentoFilter', standalone: true})
@@ -95,6 +97,7 @@ export class OrcamentoFilterPipe implements PipeTransform {
                 </select>
               </div>
 
+              <div class="section-label">👤 Cliente</div>
               <div class="form-grid">
                 <div class="field">
                   <label>Nome do Cliente *</label>
@@ -125,6 +128,40 @@ export class OrcamentoFilterPipe implements PipeTransform {
                 <div class="detail-field">
                   <label>Contato</label>
                   <input type="text" [value]="formCriar.clienteSelecionado ? formCriar.clienteSelecionado.contato : ''" readonly class="readonly-input">
+                </div>
+              </div>
+
+              <div class="section-label">🧭 Despachante <span style="font-weight:400;opacity:.7">(opcional)</span></div>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Nome do Despachante</label>
+                  <div class="dropdown-wrapper">
+                    <input 
+                      type="text" 
+                      [(ngModel)]="formCriar.despachanteBusca" 
+                      (input)="buscarDespachantes(formCriar.despachanteBusca)"
+                      (focus)="abrirDropdownDespachante()"
+                      [placeholder]="formCriar.despachanteSelecionado ? formCriar.despachanteSelecionado.nome : 'Digite para buscar ou selecionar'"
+                      class="input-dropdown">
+                    <div class="dropdown" *ngIf="showDropdownDespachante">
+                      <div 
+                        *ngFor="let d of despachangesFiltrados" 
+                        class="dropdown-item"
+                        [class.active]="formCriar.despachanteSelecionado?.id === d.id"
+                        (click)="selecionarDespachante(d)">
+                        <div class="dropdown-nome">{{ d.nome }}</div>
+                        <div class="dropdown-sub">{{ d.contato }}</div>
+                      </div>
+                      <div class="dropdown-empty" *ngIf="despachangesFiltrados.length === 0 && formCriar.despachanteBusca">
+                        Nenhum despachante encontrado
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="detail-field">
+                  <label>Contato</label>
+                  <input type="text" [value]="formCriar.despachanteSelecionado ? formCriar.despachanteSelecionado.contato : ''" readonly class="readonly-input">
                 </div>
               </div>
             </div>
@@ -172,6 +209,7 @@ export class OrcamentoFilterPipe implements PipeTransform {
     `.field input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`,
     `.form-section{display:flex;flex-direction:column;gap:16px;padding-bottom:16px;border-bottom:2px solid var(--color-border);margin-bottom:16px}`,
     `.form-section .field{margin:0}`,
+    `.section-label{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--color-primary);letter-spacing:.5px;padding-bottom:4px;border-bottom:1px solid var(--color-border);margin-bottom:-4px}`,
     `.select-input{width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;transition:.2s;background:var(--color-surface);color:var(--color-text);cursor:pointer;font-family:inherit}`,
     `.select-input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`,
     `.select-input option:disabled{color:#999;background:var(--color-bg)}`,
@@ -196,30 +234,38 @@ export class NovoProcessoNovaComponent implements OnInit {
   list!: import('rxjs').Observable<OrcamentoListItem[]>;
   clientes: Cliente[] = [];
   clientesFiltrados: Cliente[] = [];
+  despachantes: Despachante[] = [];
+  despachangesFiltrados: Despachante[] = [];
   confirmId: string | null = null;
   showModalCriar = false;
   showDropdown = false;
+  showDropdownDespachante = false;
   dataHoraAtual = new Date();
   q = '';
 
   formCriar = {
     nomeBusca: '',
     clienteSelecionado: null as Cliente | null,
+    despachanteBusca: '',
+    despachanteSelecionado: null as Despachante | null,
     tipoOrcamento: 'Maritimo' as TipoOrcamento
   };
 
   constructor(
     private s: OrcamentoService,
     private clientesService: ClientesService,
+    private despachantesService: DespachantesService,
     private router: Router
   ) {
     this.list = this.s.list$();
   }
 
   ngOnInit() {
-    // Carrega clientes
     this.clientesService.list$().subscribe(clientes => {
       this.clientes = clientes;
+    });
+    this.despachantesService.list$().subscribe(despachantes => {
+      this.despachantes = despachantes;
     });
   }
 
@@ -236,6 +282,7 @@ export class NovoProcessoNovaComponent implements OnInit {
 
   abrirDropdown() {
     this.showDropdown = true;
+    this.showDropdownDespachante = false;
     this.buscarClientes(this.formCriar.nomeBusca);
   }
 
@@ -246,10 +293,36 @@ export class NovoProcessoNovaComponent implements OnInit {
     this.showDropdown = false;
   }
 
-  abrirModalCriar() {
-    this.formCriar = { nomeBusca: '', clienteSelecionado: null, tipoOrcamento: 'Maritimo' };
-    this.clientesFiltrados = [];
+  buscarDespachantes(termo: string) {
+    const busca = termo.toLowerCase().trim();
+    if (!busca) {
+      this.despachangesFiltrados = this.despachantes;
+    } else {
+      this.despachangesFiltrados = this.despachantes.filter(d =>
+        d.nome.toLowerCase().includes(busca)
+      );
+    }
+  }
+
+  abrirDropdownDespachante() {
+    this.showDropdownDespachante = true;
     this.showDropdown = false;
+    this.buscarDespachantes(this.formCriar.despachanteBusca);
+  }
+
+  selecionarDespachante(despachante: Despachante) {
+    this.formCriar.despachanteSelecionado = despachante;
+    this.formCriar.despachanteBusca = '';
+    this.despachangesFiltrados = [];
+    this.showDropdownDespachante = false;
+  }
+
+  abrirModalCriar() {
+    this.formCriar = { nomeBusca: '', clienteSelecionado: null, despachanteBusca: '', despachanteSelecionado: null, tipoOrcamento: 'Maritimo' };
+    this.clientesFiltrados = [];
+    this.despachangesFiltrados = [];
+    this.showDropdown = false;
+    this.showDropdownDespachante = false;
     this.showModalCriar = true;
     this.dataHoraAtual = new Date();
   }
@@ -262,7 +335,7 @@ export class NovoProcessoNovaComponent implements OnInit {
     if (!this.formCriar.clienteSelecionado) return;
 
     const cliente = this.formCriar.clienteSelecionado;
-    // Serviço gera código automaticamente
+    const despachante = this.formCriar.despachanteSelecionado;
     const novoId = this.s.criar(
       cliente.id,
       cliente.nome,
@@ -271,7 +344,9 @@ export class NovoProcessoNovaComponent implements OnInit {
       cliente.templatePacklistId,
       undefined,
       undefined,
-      this.formCriar.tipoOrcamento
+      this.formCriar.tipoOrcamento,
+      despachante?.id,
+      despachante?.nome
     );
 
     this.fecharModalCriar();
