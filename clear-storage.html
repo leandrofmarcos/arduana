@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear LocalStorage - Import Costs</title>
+</head>
+<body>
+    <h1>Clear LocalStorage</h1>
+    <button onclick="clearAll()">Clear All LocalStorage</button>
+    <button onclick="clearAliquotas()">Clear Only Aliquotas</button>
+    <pre id="output"></pre>
+    
+    <script>
+        function clearAll() {
+            const keys = Object.keys(localStorage);
+            const output = document.getElementById('output');
+            output.textContent = 'Before clear:\n' + JSON.stringify(keys, null, 2);
+            localStorage.clear();
+            output.textContent += '\n\nAfter clear:\n' + JSON.stringify(Object.keys(localStorage), null, 2);
+            output.textContent += '\n\nLocalStorage cleared! Refresh the app.';
+        }
+        
+        function clearAliquotas() {
+            const output = document.getElementById('output');
+            const key = 'import_costs_aliquotas';
+            const before = localStorage.getItem(key);
+            output.textContent = 'Aliquotas before:\n' + before;
+            localStorage.removeItem(key);
+            output.textContent += '\n\nAliquotas removed!';
+        }
+        
+        // Show current localStorage on load
+        window.onload = function() {
+            const output = document.getElementById('output');
+            const keys = Object.keys(localStorage);
+            output.textContent = 'Current localStorage keys:\n' + JSON.stringify(keys, null, 2);
+            
+            // Show aliquotas if exists
+            const aliquotas = localStorage.getItem('import_costs_aliquotas');
+            if (aliquotas) {
+                output.textContent += '\n\nAliquotas data found:\n' + aliquotas.substring(0, 500);
+            }
+        };
+    </script>
+</body>
+</html>

@@ -26,7 +26,9 @@ export class TemplatesPacklistComponent implements OnInit {
   }
 
   loadTemplates(): void {
-    this.templates = this.service.getAll();
+    this.service.list$().subscribe(templates => {
+      this.templates = templates;
+    });
   }
 
   abrirNovoTemplate(): void {
@@ -36,7 +38,9 @@ export class TemplatesPacklistComponent implements OnInit {
 
   abrirEditar(template: TemplatePacklistListItem): void {
     this.showModal = true;
-    this.selectedTemplate = this.service.getById(template.id);
+    this.service.getById$(template.id).subscribe(t => {
+      this.selectedTemplate = t;
+    });
   }
 
   fecharModal(): void {
@@ -56,7 +60,7 @@ export class TemplatesPacklistComponent implements OnInit {
   deleteTemplate(id: string, event: Event): void {
     event.preventDefault();
     if (confirm('Deseja realmente deletar este template?')) {
-      this.service.delete(id);
+      this.service.remove(id);
       this.loadTemplates();
     }
   }

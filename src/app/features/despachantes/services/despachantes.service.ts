@@ -9,6 +9,6 @@ export class DespachantesService {
   private repo = inject<DespachanteRepository>(DESPACHANTE_REPOSITORY);
   list$(): Observable<Despachante[]> { return this.repo.list$(); }
   create(nome: string, documento: string, contato: string){ return this.repo.create({ nome, documento, contato }); }
-  update(id: string, data: Partial<Pick<Despachante,'nome'|'documento'|'contato'>>){ this.repo.update(id, data); }
+  update(id: string, data: Partial<Pick<Despachante,'nome'|'contato'>>){ this.repo.update(id, data); }
   remove(id: string){ this.repo.remove(id); }
 }

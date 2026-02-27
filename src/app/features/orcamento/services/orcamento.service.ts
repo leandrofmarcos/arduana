@@ -23,6 +23,7 @@ export class OrcamentoService {
    * @param templatePacklistId (Opcional) Template packlist associado ao cliente
    * @param packlistTemplate (Opcional) Array de itens do packlist/template
    * @param aliquotaPadrao (Opcional) Aliquota padrão para cálculo automático
+   * @param tipoOrcamento (Opcional) Tipo do orçamento (Aéreo ou Marítimo)
    */
   criar(
     clienteId: string,
@@ -31,7 +32,8 @@ export class OrcamentoService {
     data?: string,
     templatePacklistId?: string,
     packlistTemplate?: any[],
-    aliquotaPadrao?: number
+    aliquotaPadrao?: number,
+    tipoOrcamento: 'Aereo' | 'Maritimo' = 'Maritimo'
   ) {
     const id = randomId();
     const createdAt = data ? new Date(data).toISOString() : new Date().toISOString();
@@ -40,6 +42,7 @@ export class OrcamentoService {
       id,
       title: cliente ? `${cliente} • ${codigoFinal}`.trim() : 'Novo Orçamento',
       faseAtual: 'Orcamento',
+      tipoOrcamento,
       createdAt,
       aprovado: false,
       oficializado: false,
@@ -54,6 +57,7 @@ export class OrcamentoService {
       despachante: undefined,
       clienteId,
       despachanteId: undefined,
+      tipoOrcamento,
       codigo: codigoFinal,
       data: meta.createdAt,
       status: 'CRIADO' as const,

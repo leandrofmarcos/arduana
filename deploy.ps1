@@ -1,8 +1,10 @@
-$projectPath = "c:\dev\prototipos-html\import-costs"
+    $projectPath = "c:\dev\prototipos-html\import-costs"
 $ftpHost = "www.comex133.com.br"
 $ftpUser = "304_leandro"
 $ftpPassword = "leandro123"
-$targetPath = "comex133.com.br/wwwroot" # Caminho relativo a partir da raiz do FTP
+$ftpDomainPath = "comex133.com.br"
+$ftpAppPath = "wwwroot"
+$targetPath = "$ftpDomainPath/$ftpAppPath" # Estrutura a partir da raiz do usuario (ja esta em 304_leandro)
 
 function Get-FtpListing($uri, $credentials) {
     try {
@@ -113,28 +115,57 @@ if (Test-Path $browserPath) {
 }
 Write-Host "Build encontrado em: $publishSource" -ForegroundColor Cyan
 
-# 3. Prepare Remote Structure
+# 3. Prepare Remote FTP Structure (Create comex133.com.br/wwwroot dentro de 304_leandro)
 $creds = New-Object System.Net.NetworkCredential($ftpUser, $ftpPassword)
 $baseUri = "ftp://$ftpHost/"
 
-# Garantir estrutura comex133.com.br/wwwroot passo a passo
-$level1 = Ensure-FtpDirectory $baseUri "comex133.com.br" $creds
-$targetUri = Ensure-FtpDirectory $level1 "wwwroot" $creds
+# Criar estrutura: comex133.com.br (dentro da raiz do usuario 304_leandro)
+$level1Uri = Ensure-FtpDirectory $baseUri $ftpDomainPath $creds
+
+# Criar estrutura: comex133.com.br/wwwroot
+$level2Uri = Ensure-FtpDirectory $level1Uri $ftpAppPath $creds
+
+Write-Host "Estrutura FTP preparada: $targetPath" -ForegroundColor Cyan
+$targetUri = $level2Uri
 
 # 4. Clean Target Directory
 Remove-FtpDirectoryRecursive $targetUri $creds
 
-# 5. Deploy
+# 5. Deploy - Upload apenas arquivos do build
 $root = (Resolve-Path $publishSource).Path
 $items = Get-ChildItem -Path $root -Recurse -Force
 
-Write-Host "Iniciando upload para $targetUri..." -ForegroundColor Green
+Write-Host "Iniciando upload dos arquivos de build para $targetUri..." -ForegroundColor Green
+Write-Host "Origem: $publishSource" -ForegroundColor Cyan
+
+# Variáveis de controle
+$uploadedCount = 0
+$skippedCount = 0
+$errorCount = 0
+
+# Extensões e pastas desnecessárias para pular
+$skipExtensions = @('.ps1', '.md', '.txt', '.spec.ts', '.map')
+$skipDirectoryPrefixes = @('docs/')
+$skipFilePatterns = @('*/.~lock*', '.~lock*')
 
 foreach ($item in $items) {
     $relativePath = $item.FullName.Substring($root.Length).TrimStart('\', '/')
     $relativePath = $relativePath.Replace("\", "/")
     
     if ([string]::IsNullOrWhiteSpace($relativePath)) { continue }
+
+    $skipFile = $false
+
+    # Pular pastas desnecessárias (ex: docs/ no build)
+    foreach ($dirPrefix in $skipDirectoryPrefixes) {
+        if ($relativePath -like "$dirPrefix*") {
+            $skipFile = $true
+            $skippedCount++
+            break
+        }
+    }
+    
+    if ($skipFile) { continue }
 
     $remotePath = "$targetPath/$relativePath"
     $uri = "ftp://$ftpHost/$remotePath"
@@ -153,7 +184,6 @@ foreach ($item in $items) {
             Write-Host "Diretório verificado: $relativePath" -ForegroundColor DarkGray
         }
     } else {
-        Write-Host "Enviando arquivo: $relativePath" -ForegroundColor Green
         try {
             $content = [System.IO.File]::ReadAllBytes($item.FullName)
             $request = [System.Net.FtpWebRequest]::Create($uri)
@@ -169,10 +199,31 @@ foreach ($item in $items) {
             
             $response = $request.GetResponse()
             $response.Close()
+            
+            $uploadedCount++
+            Write-Host "[OK] Enviado: $relativePath ($([math]::Round($content.Length/1KB, 2)) KB)" -ForegroundColor Green
         } catch {
-            Write-Host "Erro ao enviar arquivo: $relativePath. Erro: $($_.Exception.Message)" -ForegroundColor Red
+            $errorCount++
+            Write-Host "[ERRO] Erro ao enviar: $relativePath. Erro: $($_.Exception.Message)" -ForegroundColor Red
         }
     }
 }
 
-Write-Host "Deploy concluído com sucesso em $targetPath!" -ForegroundColor Green
+Write-Host "`n" -NoNewline
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host "   DEPLOY CONCLUIDO COM SUCESSO" -ForegroundColor Green
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Resumo do Deploy:" -ForegroundColor Yellow
+Write-Host "   [OK] Arquivos enviados: $uploadedCount" -ForegroundColor Green
+Write-Host "   [-] Arquivos ignorados: $skippedCount" -ForegroundColor Gray
+Write-Host "   [ERRO] Erros: $errorCount" -ForegroundColor $(if ($errorCount -gt 0) { "Red" } else { "Green" })
+Write-Host ""
+Write-Host "Localizacao no servidor:" -ForegroundColor Yellow
+Write-Host "   ftp://$ftpHost/$targetPath" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "URL da aplicacao:" -ForegroundColor Yellow
+Write-Host "   https://comex133.com.br" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "[OK] Deploy finalizado com sucesso. IIS sera reiniciado automaticamente." -ForegroundColor Green
+Write-Host ""

@@ -36,11 +36,15 @@ export const routes: Routes = [
       },
       {
         path: 'clientes',
-        loadComponent: () => import('./features/clientes/components/clientes-list.component').then(m => m.ClientesListComponent)
+        loadComponent: () => import('./features/clientes/pages/clientes.component').then(m => m.ClientesComponent)
       },
       {
         path: 'despachantes',
         loadComponent: () => import('./features/despachantes/pages/despachantes.component').then(m => m.DespachantesComponent)
+      },
+      {
+        path: 'funcionarios',
+        loadComponent: () => import('./features/funcionarios/pages/funcionarios.component').then(m => m.FuncionariosComponent)
       },
       {
         path: 'templates-packlist',

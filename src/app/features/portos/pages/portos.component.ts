@@ -31,19 +31,26 @@ export class PortoFilterPipe implements PipeTransform {
       <div class="modal-backdrop" *ngIf="showModalCadastro">
         <div class="modal">
           <div class="modal-header">
-            <div class="modal-title">Novo Porto</div>
+            <div class="modal-title">{{ modoEdicao ? 'Editar Porto' : 'Novo Porto' }}</div>
             <button class="btn btn-secondary" (click)="fecharModalCadastro()">Fechar</button>
           </div>
           <div class="modal-body">
             <div class="grid">
-              <div class="field"><label>Nome</label><input type="text" [(ngModel)]="nome" placeholder="Porto de Santos"></div>
-              <div class="field"><label>Código</label><input type="text" [(ngModel)]="codigo" placeholder="BRSSZ"></div>
-              <div class="field"><label>País</label><input type="text" [(ngModel)]="pais" placeholder="Brasil"></div>
+              <div class="field"><label>Nome *</label><input type="text" [(ngModel)]="nome" placeholder="Porto de Santos" required></div>
+              <div class="field">
+                <label>Código UN/LOCODE *</label>
+                <input type="text" [(ngModel)]="codigo" placeholder="BRSSZ" maxlength="5" 
+                       pattern="[A-Za-z0-9]{5}" 
+                       title="Código deve ter exatamente 5 caracteres alfanuméricos"
+                       required>
+                <small style="font-size:11px;color:var(--color-muted);margin-top:4px">5 caracteres (ex: BRSSZ, USNYC)</small>
+              </div>
+              <div class="field"><label>País *</label><input type="text" [(ngModel)]="pais" placeholder="Brasil" required></div>
             </div>
           </div>
           <div class="modal-actions">
             <button class="btn btn-secondary" (click)="fecharModalCadastro()">Cancelar</button>
-            <button class="btn btn-primary" (click)="salvar()">Salvar</button>
+            <button class="btn btn-primary" (click)="salvar()">{{ modoEdicao ? 'Salvar' : 'Criar' }}</button>
           </div>
         </div>
       </div>
@@ -61,6 +68,7 @@ export class PortoFilterPipe implements PipeTransform {
               <td>{{ p.pais }}</td>
               <td>
                 <div class="row-actions">
+                  <button class="btn-icon" title="Editar" (click)="editar(p)">✏️</button>
                   <button class="btn-icon danger" title="Excluir porto" (click)="remove(p.id)">🗑️</button>
                 </div>
               </td>
@@ -85,9 +93,11 @@ export class PortoFilterPipe implements PipeTransform {
     `.data-table th:last-child,.data-table td:last-child{text-align:right;width:120px}`,
     `.row-actions{display:flex;justify-content:flex-end;gap:0;align-items:center}`,
     `.row-actions .btn-icon{padding:6px 8px}`,
+    `.btn-icon{background:none;border:none;cursor:pointer;font-size:16px;padding:6px 8px;border-radius:4px;transition:.2s}`,
+    `.btn-icon:hover{background:var(--color-hover)}`,
     `.btn-icon.danger{color:var(--color-danger)}`,
     `.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000}`,
-    `.modal{width:min(700px,92vw);background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.2);overflow:hidden}`,
+    `.modal{width:min(900px,95vw);max-height:90vh;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.2)}`,
     `.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--color-border)}`,
     `.modal-title{font-size:16px;font-weight:700}`,
     `.modal-body{padding:20px}`,
@@ -97,15 +107,52 @@ export class PortoFilterPipe implements PipeTransform {
 export class PortosComponent {
   private service = inject(PortosService);
   portos$ = this.service.list$();
+  id = '';
   nome = '';
   codigo = '';
   pais = '';
   q = '';
   showModalCadastro = false;
-  abrirModalCadastro(){ this.limpar(); this.showModalCadastro = true; }
+  modoEdicao = false;
+  
+  abrirModalCadastro(){ this.limpar(); this.modoEdicao = false; this.showModalCadastro = true; }
   fecharModalCadastro(){ this.showModalCadastro = false; this.limpar(); }
-  salvar(){ if(!this.nome || !this.codigo || !this.pais) return; this.service.create(this.nome, this.codigo, this.pais); this.limpar(); this.showModalCadastro = false; }
-  limpar(){ this.nome=''; this.codigo=''; this.pais=''; }
-  update(p:any){ this.service.update(p.id, { nome: p.nome, codigo: p.codigo, pais: p.pais }); }
+  
+  editar(p: Porto){ 
+    this.id = p.id;
+    this.nome = p.nome; 
+    this.codigo = p.codigo;
+    this.pais = p.pais;
+    this.modoEdicao = true; 
+    this.showModalCadastro = true; 
+  }
+  
+  salvar(){ 
+    if(!this.nome || !this.codigo || !this.pais) {
+      alert('Preencha todos os campos obrigatórios');
+      return;
+    }
+    // Validação UN/LOCODE: exatamente 5 caracteres alfanuméricos
+    const codigoLimpo = this.codigo.trim().toUpperCase();
+    if(!/^[A-Z0-9]{5}$/.test(codigoLimpo)) {
+      alert('Código deve seguir o padrão UN/LOCODE:\n- Exatamente 5 caracteres\n- Apenas letras e números\n\nExemplos: BRSSZ, USNYC, CNSHA');
+      return;
+    }
+    
+    if(this.modoEdicao){
+      this.service.update(this.id, { 
+        nome: this.nome,
+        codigo: codigoLimpo,
+        pais: this.pais
+      });
+    } else {
+      this.service.create(this.nome, codigoLimpo, this.pais); 
+    }
+    
+    this.limpar(); 
+    this.showModalCadastro = false; 
+  }
+  
+  limpar(){ this.id=''; this.nome=''; this.codigo=''; this.pais=''; }
   remove(id:string){ this.service.remove(id); }
 }

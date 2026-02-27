@@ -41,6 +41,7 @@ import { Router } from '@angular/router';
             <a routerLink="/portos" routerLinkActive="active"><span class="icon">🛳️</span><span>Portos</span></a>
             <a routerLink="/clientes" routerLinkActive="active"><span class="icon">👥</span><span>Clientes</span></a>
             <a routerLink="/despachantes" routerLinkActive="active"><span class="icon">🧭</span><span>Despachantes</span></a>
+            <a routerLink="/funcionarios" routerLinkActive="active"><span class="icon">👤</span><span>Funcionários</span></a>
             <a routerLink="/templates-packlist" routerLinkActive="active"><span class="icon">📋</span><span>Templates Packlist</span></a>
           </div>
         </nav>

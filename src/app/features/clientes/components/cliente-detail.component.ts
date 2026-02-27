@@ -20,7 +20,6 @@ export class ClienteDetailComponent implements OnInit {
 
   form = {
     nome: '',
-    documento: '',
     contato: '',
     templatePacklistId: ''
   };
@@ -41,7 +40,6 @@ export class ClienteDetailComponent implements OnInit {
       console.log('📝 Editando cliente existente:', this.cliente);
       this.form = {
         nome: this.cliente.nome || '',
-        documento: this.cliente.documento || '',
         contato: this.cliente.contato || '',
         templatePacklistId: this.cliente.templatePacklistId || ''
       };
@@ -60,13 +58,12 @@ export class ClienteDetailComponent implements OnInit {
   save(): void {
     this.showErrors = true;
 
-    if (!this.form.nome.trim() || !this.form.documento.trim()) {
+    if (!this.form.nome.trim()) {
       return;
     }
 
     const dataToSave = {
       nome: this.form.nome.trim(),
-      documento: this.form.documento.trim(),
       contato: this.form.contato.trim(),
       templatePacklistId: this.form.templatePacklistId || undefined
     };
@@ -81,7 +78,7 @@ export class ClienteDetailComponent implements OnInit {
       // Criar novo cliente
       const novoId = this.service.create(
         this.form.nome.trim(),
-        this.form.documento.trim(),
+        '',
         this.form.contato.trim(),
         this.form.templatePacklistId || undefined
       );

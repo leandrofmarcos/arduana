@@ -91,24 +91,25 @@ export class TemplatesPacklistDetailComponent implements OnInit {
       return;
     }
 
-    const toSave: TemplatePacklist = {
-      id: this.template.id || '',
+    const toSave = {
       nome: this.form.nome.trim(),
       descricao: this.form.descricao?.trim() || '',
       nomeArquivo: this.template.nomeArquivo,
       config: {
         linhaInicio: this.template.config.linhaInicio,
         fieldMapping: { ...this.template.config.fieldMapping }
-      },
-      dataCriacao: this.template.dataCriacao || new Date(),
-      dataAtualizacao: new Date()
+      }
     };
 
     try {
-      this.storageService.save(toSave);
+      if (this.isEditMode && this.template.id) {
+        this.storageService.update(this.template.id, toSave);
+      } else {
+        this.storageService.create(toSave);
+      }
       this.saved.emit();
     } catch (error) {
-      this.validationError = 'Erro ao salvar template no localStorage';
+      this.validationError = 'Erro ao salvar template';
       console.error('Erro ao salvar:', error);
     }
   }

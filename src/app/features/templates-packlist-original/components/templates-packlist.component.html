@@ -1,0 +1,68 @@
+<div class="container-standard">
+  <app-page-header
+    icon="📋"
+    title="Templates Packlist"
+    subtitle="Gerencie templates para uso nos clientes">
+    <button class="btn btn-primary" (click)="abrirNovoTemplate()">+ Novo Template</button>
+  </app-page-header>
+
+  <div class="content-section">
+    <div class="search-toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔎</span>
+        <input 
+          type="text" 
+          placeholder="Buscar templates..."
+          [(ngModel)]="searchTerm"
+          class="search-input">
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nome do Template</th>
+            <th>Descrição</th>
+            <th>Arquivo</th>
+            <th>Data Criação</th>
+            <th style="width: 80px; text-align: right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngIf="filteredTemplates.length === 0">
+            <td colspan="5" class="empty-state">Nenhum template encontrado</td>
+          </tr>
+          <tr *ngFor="let template of filteredTemplates">
+            <td>{{ template.nome }}</td>
+            <td [title]="template.descricao || ''">{{ template.descricao || '—' }}</td>
+            <td>{{ template.nomeArquivo }}</td>
+            <td>{{ template.dataCriacao | date:'dd/MM/yyyy' }}</td>
+            <td class="text-right">
+              <button class="btn-icon" title="Editar" (click)="abrirEditar(template)">✏️</button>
+              <button class="btn-icon" title="Excluir" (click)="deleteTemplate(template.id, $event)">🗑️</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Popup -->
+  <div class="modal-backdrop" *ngIf="showModal" (click)="fecharModal()">
+    <div class="modal modal-xl" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ selectedTemplate ? 'Editar Template' : 'Novo Template' }}</h2>
+        <button class="btn-close" (click)="fecharModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <app-templates-packlist-detail 
+          [template]="selectedTemplate"
+          (saved)="onSaveTemplate()"
+          (cancelled)="onCancelTemplate()">
+        </app-templates-packlist-detail>
+      </div>
+    </div>
+  </div>
+</div>

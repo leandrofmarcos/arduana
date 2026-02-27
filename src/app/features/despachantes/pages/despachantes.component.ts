@@ -12,7 +12,7 @@ export class DespFilterPipe implements PipeTransform {
     if(!list) return [];
     if(!q) return list;
     const s = q.toLowerCase();
-    return list.filter(c => (c.nome||'').toLowerCase().includes(s) || (c.documento||'').toLowerCase().includes(s));
+    return list.filter(c => (c.nome||'').toLowerCase().includes(s));
   }
 }
 
@@ -38,7 +38,6 @@ export class DespFilterPipe implements PipeTransform {
           <div class="modal-body">
             <div class="grid">
               <div class="field"><label>Nome</label><input type="text" [(ngModel)]="nome" placeholder="Despachante XPTO"></div>
-              <div class="field"><label>Documento</label><input type="text" [(ngModel)]="documento" placeholder="00.000.000/0001-00"></div>
               <div class="field"><label>Contato</label><input type="text" [(ngModel)]="contato" placeholder="(11) 90000-0000"></div>
             </div>
           </div>
@@ -51,14 +50,13 @@ export class DespFilterPipe implements PipeTransform {
 
       <div class="content-section">
         <div class="toolbar">
-          <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome ou documento" />
+          <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome" />
         </div>
         <table class="data-table">
-          <thead><tr><th>Nome</th><th>Documento</th><th>Contato</th><th style="width:80px">Ações</th></tr></thead>
+          <thead><tr><th>Nome</th><th>Contato</th><th style="width:80px">Ações</th></tr></thead>
           <tbody>
             <tr *ngFor="let c of (list$ | async) | despFilter:q">
               <td>{{ c.nome }}</td>
-              <td>{{ c.documento }}</td>
               <td>{{ c.contato || '—' }}</td>
               <td>
                 <div class="row-actions">
@@ -98,13 +96,12 @@ export class DespachantesComponent {
   private service = inject(DespachantesService);
   list$ = this.service.list$();
   nome = '';
-  documento = '';
   contato = '';
   q = '';
   showModalCadastro = false;
   abrirModalCadastro(){ this.limpar(); this.showModalCadastro = true; }
   fecharModalCadastro(){ this.showModalCadastro = false; this.limpar(); }
-  salvar(){ if(!this.nome || !this.documento) return; this.service.create(this.nome, this.documento, this.contato); this.limpar(); this.showModalCadastro = false; }
-  limpar(){ this.nome=''; this.documento=''; this.contato=''; }
+  salvar(){ if(!this.nome) return; this.service.create(this.nome, '', this.contato); this.limpar(); this.showModalCadastro = false; }
+  limpar(){ this.nome=''; this.contato=''; }
   remove(id: string){ this.service.remove(id); }
 }

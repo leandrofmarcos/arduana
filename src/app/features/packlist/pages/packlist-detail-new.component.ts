@@ -231,8 +231,10 @@ export class PacklistDetalheComponent implements OnInit {
       console.log('Template ID do cliente:', cliente.templatePacklistId);
 
       if (cliente.templatePacklistId) {
-        this.templateAssociado = this.templatesService.getById(cliente.templatePacklistId);
-        console.log('✅ Template packlist associado encontrado:', this.templateAssociado);
+        this.templatesService.getById$(cliente.templatePacklistId).subscribe(template => {
+          this.templateAssociado = template;
+          console.log('✅ Template packlist associado encontrado:', this.templateAssociado);
+        });
       } else {
         console.log('ℹ️ Cliente não possui template packlist associado');
       }

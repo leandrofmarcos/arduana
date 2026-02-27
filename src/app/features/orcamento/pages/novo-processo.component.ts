@@ -5,7 +5,7 @@ import { RouterModule, Router } from '@angular/router';
 import { OrcamentoService } from '../services/orcamento.service';
 import { ClientesService } from '../../clientes/services/clientes.service';
 import { TemplatesPacklistService } from '../../templates-packlist/services/templates-packlist.service';
-import { OrcamentoListItem } from '../models/orcamento.models';
+import { OrcamentoListItem, TipoOrcamento } from '../models/orcamento.models';
 import { Cliente } from '../../clientes/models/cliente.models';
 import { TemplatePacklist } from '../../templates-packlist/models/templates-packlist.models';
 import { PageHeaderComponent } from '../../../core/layout/page-header.component';
@@ -111,6 +111,15 @@ export class OrcamentoFilterPipe implements PipeTransform {
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div class="field" *ngIf="formCriar.clienteSelecionado">
+              <label>Tipo de Orçamento *</label>
+              <select [(ngModel)]="formCriar.tipoOrcamento" class="select-input">
+                <option value=""></option>
+                <option value="Maritimo">🚢 Marítimo</option>
+                <option value="Aereo" disabled>✈️ Aéreo (Indisponível)</option>
+              </select>
             </div>
 
             <div class="cliente-details" *ngIf="formCriar.clienteSelecionado">
@@ -232,6 +241,9 @@ export class OrcamentoFilterPipe implements PipeTransform {
     `.field label{font-size:13px;font-weight:600;color:var(--color-text)}`,
     `.field input{padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;transition:.2s}`,
     `.field input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`,
+    `.select-input{width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;transition:.2s;background:var(--color-surface);color:var(--color-text);cursor:pointer;font-family:inherit}`,
+    `.select-input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`,
+    `.select-input option:disabled{color:#999;background:var(--color-bg)}`,
     `.dropdown-wrapper{position:relative}`,
     `.input-dropdown{width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;transition:.2s}`,
     `.input-dropdown:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`,
@@ -284,7 +296,8 @@ export class NovoProcessoNovaComponent implements OnInit {
 
   formCriar = {
     clienteBusca: '',
-    clienteSelecionado: null as Cliente | null
+    clienteSelecionado: null as Cliente | null,
+    tipoOrcamento: 'Maritimo' as TipoOrcamento
   };
 
   constructor(
@@ -340,9 +353,10 @@ export class NovoProcessoNovaComponent implements OnInit {
 
   carregarTemplateAssociado(cliente: Cliente): void {
     if (cliente.templatePacklistId) {
-      const template = this.templatesService.getById(cliente.templatePacklistId);
-      this.templateAssociado = template;
-      console.log('Template encontrado:', template);
+      this.templatesService.getById$(cliente.templatePacklistId).subscribe(template => {
+        this.templateAssociado = template;
+        console.log('Template encontrado:', template);
+      });
     } else {
       this.templateAssociado = null;
       console.log('Cliente não possui template associado');
@@ -350,7 +364,7 @@ export class NovoProcessoNovaComponent implements OnInit {
   }
 
   abrirModalCriar() {
-    this.formCriar = { clienteBusca: '', clienteSelecionado: null };
+    this.formCriar = { clienteBusca: '', clienteSelecionado: null, tipoOrcamento: 'Maritimo' };
     this.clientesFiltrados = [];
     this.showDropdown = false;
     this.showModalCriar = true;
@@ -371,7 +385,10 @@ export class NovoProcessoNovaComponent implements OnInit {
       cliente.nome,
       undefined,
       new Date().toISOString(),
-      cliente.templatePacklistId
+      cliente.templatePacklistId,
+      undefined,
+      undefined,
+      this.formCriar.tipoOrcamento
     );
 
     this.fecharModalCriar();
