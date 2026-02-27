@@ -95,40 +95,36 @@ export class OrcamentoFilterPipe implements PipeTransform {
                 </select>
               </div>
 
-              <div class="field">
-                <label>Selecione o Cliente *</label>
-                <div class="dropdown-wrapper">
-                  <input 
-                    type="text" 
-                    [(ngModel)]="formCriar.clienteBusca" 
-                    (input)="buscarClientes(formCriar.clienteBusca)"
-                    (focus)="abrirDropdown()"
-                    [placeholder]="formCriar.clienteSelecionado ? formCriar.clienteSelecionado.nome : 'Digite para buscar ou selecionar'"
-                    class="input-dropdown">
-                  <div class="dropdown" *ngIf="showDropdown">
-                    <div 
-                      *ngFor="let c of clientesFiltrados" 
-                      class="dropdown-item"
-                      [class.active]="formCriar.clienteSelecionado?.id === c.id"
-                      (click)="selecionarCliente(c)">
-                      <div class="dropdown-nome">{{ c.nome }}</div>
-                      <div class="dropdown-sub">{{ c.contato }}</div>
-                    </div>
-                    <div class="dropdown-empty" *ngIf="clientesFiltrados.length === 0 && formCriar.clienteBusca">
-                      Nenhum cliente encontrado
+              <div class="form-grid">
+                <div class="field">
+                  <label>Nome do Cliente *</label>
+                  <div class="dropdown-wrapper">
+                    <input 
+                      type="text" 
+                      [(ngModel)]="formCriar.nomeBusca" 
+                      (input)="buscarClientes(formCriar.nomeBusca)"
+                      (focus)="abrirDropdown()"
+                      [placeholder]="formCriar.clienteSelecionado ? formCriar.clienteSelecionado.nome : 'Digite para buscar ou selecionar'"
+                      class="input-dropdown">
+                    <div class="dropdown" *ngIf="showDropdown">
+                      <div 
+                        *ngFor="let c of clientesFiltrados" 
+                        class="dropdown-item"
+                        [class.active]="formCriar.clienteSelecionado?.id === c.id"
+                        (click)="selecionarCliente(c)">
+                        <div class="dropdown-nome">{{ c.nome }}</div>
+                        <div class="dropdown-sub">{{ c.contato }}</div>
+                      </div>
+                      <div class="dropdown-empty" *ngIf="clientesFiltrados.length === 0 && formCriar.nomeBusca">
+                        Nenhum cliente encontrado
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div class="form-grid" *ngIf="formCriar.clienteSelecionado">
-                <div class="detail-field">
-                  <label>Nome</label>
-                  <input type="text" [value]="formCriar.clienteSelecionado.nome" readonly class="readonly-input">
-                </div>
                 <div class="detail-field">
                   <label>Contato</label>
-                  <input type="text" [value]="formCriar.clienteSelecionado.contato" readonly class="readonly-input">
+                  <input type="text" [value]="formCriar.clienteSelecionado ? formCriar.clienteSelecionado.contato : ''" readonly class="readonly-input">
                 </div>
               </div>
             </div>
@@ -179,7 +175,7 @@ export class OrcamentoFilterPipe implements PipeTransform {
     `.select-input{width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;transition:.2s;background:var(--color-surface);color:var(--color-text);cursor:pointer;font-family:inherit}`,
     `.select-input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`,
     `.select-input option:disabled{color:#999;background:var(--color-bg)}`,
-    `.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;padding:12px 0;border-top:1px solid var(--color-border)}`,
+    `.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}`,
     `.dropdown-wrapper{position:relative}`,
     `.input-dropdown{width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;transition:.2s}`,
     `.input-dropdown:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`,
@@ -207,7 +203,7 @@ export class NovoProcessoNovaComponent implements OnInit {
   q = '';
 
   formCriar = {
-    clienteBusca: '',
+    nomeBusca: '',
     clienteSelecionado: null as Cliente | null,
     tipoOrcamento: 'Maritimo' as TipoOrcamento
   };
@@ -233,26 +229,25 @@ export class NovoProcessoNovaComponent implements OnInit {
       this.clientesFiltrados = this.clientes;
     } else {
       this.clientesFiltrados = this.clientes.filter(c => 
-        c.nome.toLowerCase().includes(busca) || 
-        c.documento.toLowerCase().includes(busca)
+        c.nome.toLowerCase().includes(busca)
       );
     }
   }
 
   abrirDropdown() {
     this.showDropdown = true;
-    this.buscarClientes(this.formCriar.clienteBusca);
+    this.buscarClientes(this.formCriar.nomeBusca);
   }
 
   selecionarCliente(cliente: Cliente) {
     this.formCriar.clienteSelecionado = cliente;
-    this.formCriar.clienteBusca = '';
+    this.formCriar.nomeBusca = '';
     this.clientesFiltrados = [];
     this.showDropdown = false;
   }
 
   abrirModalCriar() {
-    this.formCriar = { clienteBusca: '', clienteSelecionado: null, tipoOrcamento: 'Maritimo' };
+    this.formCriar = { nomeBusca: '', clienteSelecionado: null, tipoOrcamento: 'Maritimo' };
     this.clientesFiltrados = [];
     this.showDropdown = false;
     this.showModalCriar = true;
