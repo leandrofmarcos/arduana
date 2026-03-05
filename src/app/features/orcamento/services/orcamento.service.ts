@@ -32,6 +32,8 @@ export class OrcamentoService {
    * @param funcionario (Opcional) Nome completo do funcionário responsável
    * @param dataSaida (Opcional) Data prevista de saída (ISO string)
    * @param dataChegada (Opcional) Data prevista de chegada (ISO string)
+   * @param descricao (Opcional) Descrição livre do orçamento
+   * @param tipoImportacao (Opcional) Tipo de importação: 'Direta' | 'ContaAOrdem'
    */
   criar(
     clienteId: string,
@@ -49,7 +51,9 @@ export class OrcamentoService {
     funcionarioId?: string,
     funcionario?: string,
     dataSaida?: string,
-    dataChegada?: string
+    dataChegada?: string,
+    descricao?: string,
+    tipoImportacao?: string
   ) {
     const id = randomId();
     const createdAt = data ? new Date(data).toISOString() : new Date().toISOString();
@@ -68,7 +72,9 @@ export class OrcamentoService {
       funcionarioId,
       templatePacklistId,
       dataSaida,
-      dataChegada
+      dataChegada,
+      descricao,
+      tipoImportacao
     };
     writeJSON(keys.orcamento(id), meta);
     const item: OrcamentoListItem = {
@@ -87,7 +93,9 @@ export class OrcamentoService {
       status: 'CRIADO' as const,
       templatePacklistId,
       dataSaida,
-      dataChegada
+      dataChegada,
+      descricao,
+      tipoImportacao
     };
     const next = [item, ...this.loadIndex()];
     this.saveIndex(next);

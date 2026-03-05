@@ -92,13 +92,23 @@ export class OrcamentoFilterPipe implements PipeTransform {
           </div>
           <div class="modal-body">
             <div class="form-section">
-              <div class="field">
-                <label>Tipo de Orçamento *</label>
-                <select [(ngModel)]="formCriar.tipoOrcamento" class="select-input">
-                  <option value=""></option>
-                  <option value="Maritimo">🚢 Marítimo</option>
-                  <option value="Aereo" disabled>✈️ Aéreo (Indisponível)</option>
-                </select>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Tipo de Orçamento *</label>
+                  <select [(ngModel)]="formCriar.tipoOrcamento" class="select-input">
+                    <option value=""></option>
+                    <option value="Maritimo">🚢 Marítimo</option>
+                    <option value="Aereo" disabled>✈️ Aéreo (Indisponível)</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Tipo de Importação</label>
+                  <select [(ngModel)]="formCriar.tipoImportacao" class="select-input">
+                    <option value=""></option>
+                    <option value="Direta">Direta</option>
+                    <option value="ContaAOrdem">Conta a Ordem</option>
+                  </select>
+                </div>
               </div>
 
               <div class="section-label">👤 Cliente</div>
@@ -240,6 +250,10 @@ export class OrcamentoFilterPipe implements PipeTransform {
                   <input type="date" [(ngModel)]="formCriar.dataChegada" class="input-dropdown">
                 </div>
               </div>
+              <div class="field">
+                <label>Descrição</label>
+                <textarea [(ngModel)]="formCriar.descricao" rows="3" placeholder="Informações adicionais sobre o orçamento..." class="textarea-input"></textarea>
+              </div>
             <button class="btn btn-secondary" (click)="fecharModalCriar()">Cancelar</button>
             <button class="btn btn-primary" (click)="criarNovoOrcamento()" [disabled]="!formCriar.clienteSelecionado">Criar Orçamento</button>
           </div>
@@ -300,7 +314,9 @@ export class OrcamentoFilterPipe implements PipeTransform {
     `.dropdown-sub{font-size:12px;color:#999}`,
     `.detail-field{display:flex;flex-direction:column;gap:4px}`,
     `.detail-field label{font-size:12px;font-weight:600;color:var(--color-text);text-transform:uppercase}`,
-    `.readonly-input{width:100%;padding:8px 10px;border:1px solid var(--color-border);border-radius:6px;font-size:13px;background:var(--color-surface);color:var(--color-text);cursor:default}`
+    `.readonly-input{width:100%;padding:8px 10px;border:1px solid var(--color-border);border-radius:6px;font-size:13px;background:var(--color-surface);color:var(--color-text);cursor:default}`,
+    `.textarea-input{width:100%;padding:10px 12px;border:2px solid var(--color-border);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;transition:.2s;background:var(--color-surface);color:var(--color-text);box-sizing:border-box}`,
+    `.textarea-input:focus{outline:none;border-color:var(--color-primary);box-shadow:0 0 0 3px rgba(102,126,234,.1)}`
   ]
 })
 export class NovoProcessoNovaComponent implements OnInit {
@@ -332,8 +348,10 @@ export class NovoProcessoNovaComponent implements OnInit {
     funcBusca: '',
     funcSelecionado: null as Funcionario | null,
     tipoOrcamento: 'Maritimo' as TipoOrcamento,
+    tipoImportacao: '' as string,
     dataSaida: '',
-    dataChegada: ''
+    dataChegada: '',
+    descricao: ''
   };
 
   constructor(
@@ -468,7 +486,7 @@ export class NovoProcessoNovaComponent implements OnInit {
   }
 
   abrirModalCriar() {
-    this.formCriar = { nomeBusca: '', clienteSelecionado: null, despachanteBusca: '', despachanteSelecionado: null, portoBusca: '', portoSelecionado: null, funcBusca: '', funcSelecionado: null, tipoOrcamento: 'Maritimo', dataSaida: '', dataChegada: '' };
+    this.formCriar = { nomeBusca: '', clienteSelecionado: null, despachanteBusca: '', despachanteSelecionado: null, portoBusca: '', portoSelecionado: null, funcBusca: '', funcSelecionado: null, tipoOrcamento: 'Maritimo', tipoImportacao: '', dataSaida: '', dataChegada: '', descricao: '' };
     this.clientesFiltrados = [];
     this.despachangesFiltrados = [];
     this.portosFiltrados = [];
@@ -508,7 +526,9 @@ export class NovoProcessoNovaComponent implements OnInit {
       func?.id,
       func?.nomeCompleto,
       this.formCriar.dataSaida || undefined,
-      this.formCriar.dataChegada || undefined
+      this.formCriar.dataChegada || undefined,
+      this.formCriar.descricao || undefined,
+      this.formCriar.tipoImportacao || undefined
     );
 
     this.fecharModalCriar();

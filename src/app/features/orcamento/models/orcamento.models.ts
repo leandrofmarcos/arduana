@@ -17,6 +17,8 @@ export interface OrcamentoMeta {
   templatePacklistId?: string;
   dataSaida?: string;
   dataChegada?: string;
+  descricao?: string;
+  tipoImportacao?: string;
 }
 
 export interface OrcamentoListItem {
@@ -32,6 +34,8 @@ export interface OrcamentoListItem {
   templatePacklistId?: string;
   dataSaida?: string;
   dataChegada?: string;
+  descricao?: string;
+  tipoImportacao?: string;
   tipoOrcamento: TipoOrcamento;
   codigo?: string;
   data: string;
