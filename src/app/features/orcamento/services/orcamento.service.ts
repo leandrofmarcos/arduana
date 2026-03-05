@@ -30,6 +30,8 @@ export class OrcamentoService {
    * @param portoDestino (Opcional) Nome do porto de destino
    * @param funcionarioId (Opcional) ID do funcionário responsável
    * @param funcionario (Opcional) Nome completo do funcionário responsável
+   * @param dataSaida (Opcional) Data prevista de saída (ISO string)
+   * @param dataChegada (Opcional) Data prevista de chegada (ISO string)
    */
   criar(
     clienteId: string,
@@ -45,7 +47,9 @@ export class OrcamentoService {
     portoDestinoId?: string,
     portoDestino?: string,
     funcionarioId?: string,
-    funcionario?: string
+    funcionario?: string,
+    dataSaida?: string,
+    dataChegada?: string
   ) {
     const id = randomId();
     const createdAt = data ? new Date(data).toISOString() : new Date().toISOString();
@@ -62,7 +66,9 @@ export class OrcamentoService {
       despachanteId,
       portoDestinoId,
       funcionarioId,
-      templatePacklistId
+      templatePacklistId,
+      dataSaida,
+      dataChegada
     };
     writeJSON(keys.orcamento(id), meta);
     const item: OrcamentoListItem = {
@@ -79,7 +85,9 @@ export class OrcamentoService {
       codigo: codigoFinal,
       data: meta.createdAt,
       status: 'CRIADO' as const,
-      templatePacklistId
+      templatePacklistId,
+      dataSaida,
+      dataChegada
     };
     const next = [item, ...this.loadIndex()];
     this.saveIndex(next);

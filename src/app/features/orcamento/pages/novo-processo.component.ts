@@ -195,7 +195,8 @@ export class OrcamentoFilterPipe implements PipeTransform {
                   </div>
                 </div>
 
-              <div class="section-label">👤 Funcionário <span style="font-weight:400;opacity:.7">(opcional)</span></div>
+
+              <div class="section-label">�👤 Funcionário <span style="font-weight:400;opacity:.7">(opcional)</span></div>
               <div class="form-grid">
                 <div class="field">
                   <label>Nome Completo</label>
@@ -229,6 +230,16 @@ export class OrcamentoFilterPipe implements PipeTransform {
                   <input type="text" [value]="formCriar.funcSelecionado?.cargo || ''" readonly class="readonly-input">
                 </div>
               </div>
+              <div class="form-grid">
+                <div class="field">
+                  <label>Saída</label>
+                  <input type="date" [(ngModel)]="formCriar.dataSaida" class="input-dropdown">
+                </div>
+                <div class="field">
+                  <label>Chegada</label>
+                  <input type="date" [(ngModel)]="formCriar.dataChegada" class="input-dropdown">
+                </div>
+              </div>
             <button class="btn btn-secondary" (click)="fecharModalCriar()">Cancelar</button>
             <button class="btn btn-primary" (click)="criarNovoOrcamento()" [disabled]="!formCriar.clienteSelecionado">Criar Orçamento</button>
           </div>
@@ -258,7 +269,7 @@ export class OrcamentoFilterPipe implements PipeTransform {
     `.badge-manual{background:rgba(16,185,129,.12);color:#0f9d71;border:1px solid rgba(16,185,129,.35)}`,
     `.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:1000}`,
     `.modal{background:var(--color-surface);border:1px solid var(--color-border);border-radius:12px;overflow:hidden;box-shadow:0 10px 20px rgba(0,0,0,.2)}`,
-    `.modal-lg{width:650px;height:70vh;max-height:70vh;display:flex;flex-direction:column}`,
+    `.modal-lg{width:650px;height:70vh;min-width:480px;min-height:400px;max-width:95vw;max-height:92vh;display:flex;flex-direction:column;resize:both;overflow:hidden}`,
     `.modal-header{background:var(--color-header-bg);color:#fff;padding:12px 16px;font-weight:800}`,
     `.modal-header-flex{background:var(--color-header-bg);color:#fff;padding:12px 16px;font-weight:800;display:flex;justify-content:space-between;align-items:center}`,
     `.modal-header-flex h3{margin:0;font-size:18px}`,
@@ -320,7 +331,9 @@ export class NovoProcessoNovaComponent implements OnInit {
     portoSelecionado: null as Porto | null,
     funcBusca: '',
     funcSelecionado: null as Funcionario | null,
-    tipoOrcamento: 'Maritimo' as TipoOrcamento
+    tipoOrcamento: 'Maritimo' as TipoOrcamento,
+    dataSaida: '',
+    dataChegada: ''
   };
 
   constructor(
@@ -455,7 +468,7 @@ export class NovoProcessoNovaComponent implements OnInit {
   }
 
   abrirModalCriar() {
-    this.formCriar = { nomeBusca: '', clienteSelecionado: null, despachanteBusca: '', despachanteSelecionado: null, portoBusca: '', portoSelecionado: null, funcBusca: '', funcSelecionado: null, tipoOrcamento: 'Maritimo' };
+    this.formCriar = { nomeBusca: '', clienteSelecionado: null, despachanteBusca: '', despachanteSelecionado: null, portoBusca: '', portoSelecionado: null, funcBusca: '', funcSelecionado: null, tipoOrcamento: 'Maritimo', dataSaida: '', dataChegada: '' };
     this.clientesFiltrados = [];
     this.despachangesFiltrados = [];
     this.portosFiltrados = [];
@@ -493,7 +506,9 @@ export class NovoProcessoNovaComponent implements OnInit {
       porto?.id,
       porto?.nome,
       func?.id,
-      func?.nomeCompleto
+      func?.nomeCompleto,
+      this.formCriar.dataSaida || undefined,
+      this.formCriar.dataChegada || undefined
     );
 
     this.fecharModalCriar();

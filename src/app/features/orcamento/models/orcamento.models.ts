@@ -15,6 +15,8 @@ export interface OrcamentoMeta {
   portoDestinoId?: string;
   funcionarioId?: string;
   templatePacklistId?: string;
+  dataSaida?: string;
+  dataChegada?: string;
 }
 
 export interface OrcamentoListItem {
@@ -28,6 +30,8 @@ export interface OrcamentoListItem {
   portoDestinoId?: string;
   funcionarioId?: string;
   templatePacklistId?: string;
+  dataSaida?: string;
+  dataChegada?: string;
   tipoOrcamento: TipoOrcamento;
   codigo?: string;
   data: string;
