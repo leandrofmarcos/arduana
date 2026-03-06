@@ -28,12 +28,12 @@ public class Funcionario : BaseEntity
     /// <summary>
     /// Email
     /// </summary>
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
 
     /// <summary>
     /// Setor
     /// </summary>
-    public string Setor { get; set; } = string.Empty;
+    public string? Setor { get; set; }
 
     /// <summary>
     /// Cargo

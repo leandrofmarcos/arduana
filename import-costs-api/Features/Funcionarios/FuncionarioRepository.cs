@@ -60,7 +60,7 @@ public class FuncionarioRepository
     public async Task<bool> ExistsByEmail(string email)
     {
         return await _context.Funcionarios
-            .AnyAsync(f => f.Email.ToLower() == email.ToLower() && !f.IsDeleted);
+            .AnyAsync(f => f.Email != null && f.Email.ToLower() == email.ToLower() && !f.IsDeleted);
     }
 
     /// <summary>

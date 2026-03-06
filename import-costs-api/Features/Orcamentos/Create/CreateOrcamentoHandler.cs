@@ -29,7 +29,11 @@ public class CreateOrcamentoHandler
             ClienteId = dto.ClienteId,
             DespachanteId = dto.DespachanteId,
             TemplatePacklistId = dto.TemplatePacklistId,
-            MoedaPadrao = dto.MoedaPadrao ?? "BRL"
+            MoedaPadrao = dto.MoedaPadrao ?? "BRL",
+            DataSaida = dto.DataSaida,
+            DataChegada = dto.DataChegada,
+            Descricao = dto.Descricao,
+            TipoImportacao = dto.TipoImportacao
         };
 
         var criado = await _repository.CreateAsync(orcamento);
@@ -53,6 +57,10 @@ public class CreateOrcamentoHandler
             AprovadoCliente = orcamento.AprovadoCliente,
             Oficializado = orcamento.Oficializado,
             MoedaPadrao = orcamento.MoedaPadrao,
+            DataSaida = orcamento.DataSaida,
+            DataChegada = orcamento.DataChegada,
+            Descricao = orcamento.Descricao,
+            TipoImportacao = orcamento.TipoImportacao,
             DataCriacao = orcamento.DataCriacao,
             DataAtualizacao = orcamento.DataAtualizacao,
             Resumo = orcamento.Resumo

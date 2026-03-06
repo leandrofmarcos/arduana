@@ -57,21 +57,6 @@ public class UpdatePortoHandler
         if (!string.IsNullOrWhiteSpace(dto.Nome))
             porto.Nome = dto.Nome.Trim();
 
-        if (!string.IsNullOrWhiteSpace(dto.Codigo))
-        {
-            var codigo = dto.Codigo.Trim().ToUpperInvariant();
-            if (!string.Equals(porto.Codigo, codigo, StringComparison.OrdinalIgnoreCase))
-            {
-                if (await _repository.ExistsByCodigo(codigo, porto.Id))
-                    throw new BusinessException("Porto com este código já existe");
-
-                porto.Codigo = codigo;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(dto.Pais))
-            porto.Pais = dto.Pais.Trim();
-
         porto.UpdatedAt = DateTime.UtcNow;
 
         await _repository.Update(porto);

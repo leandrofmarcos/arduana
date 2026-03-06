@@ -47,17 +47,9 @@ public class CreatePortoHandler
             );
         }
 
-        if (await _repository.ExistsByCodigo(dto.Codigo))
-        {
-            _logger.LogWarning("Porto com código {Codigo} já existe", dto.Codigo);
-            throw new BusinessException("Porto com este código já existe");
-        }
-
         var porto = new Porto
         {
-            Nome = dto.Nome.Trim(),
-            Codigo = dto.Codigo.Trim().ToUpperInvariant(),
-            Pais = dto.Pais.Trim()
+            Nome = dto.Nome.Trim()
         };
 
         await _repository.Add(porto);

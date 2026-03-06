@@ -31,8 +31,6 @@ public class GetPortosController : ControllerBase
         {
             Id = p.Id,
             Nome = p.Nome,
-            Codigo = p.Codigo,
-            Pais = p.Pais,
             CreatedAt = p.CreatedAt
         }).ToList();
 

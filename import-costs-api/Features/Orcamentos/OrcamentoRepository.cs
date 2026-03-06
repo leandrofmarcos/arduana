@@ -170,6 +170,18 @@ public class OrcamentoRepository
         if (updates.AprovadoCliente != orcamento.AprovadoCliente)
             orcamento.AprovadoCliente = updates.AprovadoCliente;
 
+        if (updates.DataSaida.HasValue)
+            orcamento.DataSaida = updates.DataSaida;
+
+        if (updates.DataChegada.HasValue)
+            orcamento.DataChegada = updates.DataChegada;
+
+        if (!string.IsNullOrWhiteSpace(updates.Descricao))
+            orcamento.Descricao = updates.Descricao;
+
+        if (!string.IsNullOrWhiteSpace(updates.TipoImportacao))
+            orcamento.TipoImportacao = updates.TipoImportacao;
+
         orcamento.DataAtualizacao = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

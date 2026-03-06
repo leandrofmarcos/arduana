@@ -11,4 +11,8 @@ public class UpdateOrcamentoDto
     public string? MoedaPadrao { get; set; }
     public bool? Aprovado { get; set; }
     public bool? AprovadoCliente { get; set; }
+    public DateTime? DataSaida { get; set; }
+    public DateTime? DataChegada { get; set; }
+    public string? Descricao { get; set; }
+    public string? TipoImportacao { get; set; }
 }

@@ -58,6 +58,26 @@ public class OrcamentoLancamento
     public string? TemplatePacklistId { get; set; }
 
     /// <summary>
+    /// Data prevista de saída da mercadoria
+    /// </summary>
+    public DateTime? DataSaida { get; set; }
+
+    /// <summary>
+    /// Data prevista de chegada da mercadoria
+    /// </summary>
+    public DateTime? DataChegada { get; set; }
+
+    /// <summary>
+    /// Descrição livre do orçamento
+    /// </summary>
+    public string? Descricao { get; set; }
+
+    /// <summary>
+    /// Tipo de importação: 'Direta' ou 'ContaAOrdem'
+    /// </summary>
+    public string? TipoImportacao { get; set; }
+
+    /// <summary>
     /// Fase atual do processo
     /// </summary>
     public FaseOrcamento FaseAtual { get; set; } = FaseOrcamento.Orcamento;

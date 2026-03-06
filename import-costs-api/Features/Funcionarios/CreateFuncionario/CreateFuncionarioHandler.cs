@@ -56,8 +56,8 @@ public class CreateFuncionarioHandler
             throw new BusinessException("Funcionário com este username já existe");
         }
 
-        // Verificar duplicidade de email
-        if (await _repository.ExistsByEmail(dto.Email))
+        // Verificar duplicidade de email (apenas se fornecido)
+        if (!string.IsNullOrWhiteSpace(dto.Email) && await _repository.ExistsByEmail(dto.Email))
         {
             _logger.LogWarning("Funcionário com email {Email} já existe", dto.Email);
             throw new BusinessException("Funcionário com este email já existe");
@@ -70,9 +70,9 @@ public class CreateFuncionarioHandler
             Username = dto.Username.Trim(),
             ContatoWhatsApp = dto.ContatoWhatsApp?.Trim(),
             ContatoWeChat = dto.ContatoWeChat?.Trim(),
-            Email = dto.Email.Trim(),
-            Setor = dto.Setor.Trim(),
-            Cargo = dto.Cargo.Trim()
+            Email = dto.Email?.Trim(),
+            Setor = dto.Setor?.Trim(),
+            Cargo = dto.Cargo?.Trim()
         };
 
         // Persistir

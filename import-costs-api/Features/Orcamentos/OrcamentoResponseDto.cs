@@ -17,6 +17,10 @@ public class OrcamentoResponseDto
     public bool AprovadoCliente { get; set; }
     public bool Oficializado { get; set; }
     public string MoedaPadrao { get; set; } = "BRL";
+    public DateTime? DataSaida { get; set; }
+    public DateTime? DataChegada { get; set; }
+    public string? Descricao { get; set; }
+    public string? TipoImportacao { get; set; }
     public DateTime DataCriacao { get; set; }
     public DateTime DataAtualizacao { get; set; }
     public OrcamentoResumoFases? Resumo { get; set; }

@@ -67,14 +67,13 @@ public class UpdateFuncionarioHandler
             }
         }
 
-        // Verificar duplicidade de email (se alterado)
-        if (funcionario.Email.ToLower() != dto.Email.ToLower())
+        // Verificar duplicidade de email (apenas se fornecido e alterado)
+        if (!string.IsNullOrWhiteSpace(dto.Email) &&
+            (funcionario.Email ?? string.Empty).ToLower() != dto.Email.ToLower() &&
+            await _repository.ExistsByEmail(dto.Email))
         {
-            if (await _repository.ExistsByEmail(dto.Email))
-            {
-                _logger.LogWarning("Funcionário com email {Email} já existe", dto.Email);
-                throw new BusinessException("Funcionário com este email já existe");
-            }
+            _logger.LogWarning("Funcionário com email {Email} já existe", dto.Email);
+            throw new BusinessException("Funcionário com este email já existe");
         }
 
         // Atualizar dados
@@ -82,9 +81,9 @@ public class UpdateFuncionarioHandler
         funcionario.Username = dto.Username.Trim();
         funcionario.ContatoWhatsApp = dto.ContatoWhatsApp?.Trim();
         funcionario.ContatoWeChat = dto.ContatoWeChat?.Trim();
-        funcionario.Email = dto.Email.Trim();
-        funcionario.Setor = dto.Setor.Trim();
-        funcionario.Cargo = dto.Cargo.Trim();
+        funcionario.Email = dto.Email?.Trim();
+        funcionario.Setor = dto.Setor?.Trim();
+        funcionario.Cargo = dto.Cargo?.Trim();
 
         // Persistir
         await _repository.Update(funcionario);

@@ -33,8 +33,6 @@ public class CreatePortoController : ControllerBase
         {
             Id = porto.Id,
             Nome = porto.Nome,
-            Codigo = porto.Codigo,
-            Pais = porto.Pais,
             CreatedAt = porto.CreatedAt
         };
 

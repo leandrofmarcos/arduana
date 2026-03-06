@@ -11,4 +11,8 @@ public class CreateOrcamentoDto
     public string? DespachanteId { get; set; }
     public string? TemplatePacklistId { get; set; }
     public string MoedaPadrao { get; set; } = "BRL";
+    public DateTime? DataSaida { get; set; }
+    public DateTime? DataChegada { get; set; }
+    public string? Descricao { get; set; }
+    public string? TipoImportacao { get; set; }
 }

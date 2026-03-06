@@ -46,16 +46,6 @@ public class PortoRepository
     }
 
     /// <summary>
-    /// Verificar se porto com código já existe
-    /// </summary>
-    public async Task<bool> ExistsByCodigo(string codigo, string? ignoreId = null)
-    {
-        var normalized = codigo.Trim().ToUpperInvariant();
-        return await _context.Portos
-            .AnyAsync(p => p.Codigo == normalized && !p.IsDeleted && (ignoreId == null || p.Id != ignoreId));
-    }
-
-    /// <summary>
     /// Adicionar novo porto
     /// </summary>
     public async Task Add(Porto porto)

@@ -20,9 +20,9 @@ public class CreateFuncionarioValidator : AbstractValidator<CreateFuncionarioDto
             .Matches(@"^[a-zA-Z0-9._-]+$").WithMessage("Username pode conter apenas letras, números, ponto, hífen e underscore");
 
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email é obrigatório")
             .EmailAddress().WithMessage("Email inválido")
-            .MaximumLength(150).WithMessage("Email não pode exceder 150 caracteres");
+            .MaximumLength(150).WithMessage("Email não pode exceder 150 caracteres")
+            .When(x => !string.IsNullOrWhiteSpace(x.Email));
 
         RuleFor(x => x.ContatoWhatsApp)
             .MaximumLength(50).WithMessage("Contato WhatsApp não pode exceder 50 caracteres")
@@ -33,11 +33,11 @@ public class CreateFuncionarioValidator : AbstractValidator<CreateFuncionarioDto
             .When(x => !string.IsNullOrWhiteSpace(x.ContatoWeChat));
 
         RuleFor(x => x.Setor)
-            .NotEmpty().WithMessage("Setor é obrigatório")
-            .MaximumLength(100).WithMessage("Setor não pode exceder 100 caracteres");
+            .MaximumLength(100).WithMessage("Setor não pode exceder 100 caracteres")
+            .When(x => !string.IsNullOrWhiteSpace(x.Setor));
 
         RuleFor(x => x.Cargo)
-            .NotEmpty().WithMessage("Cargo é obrigatório")
-            .MaximumLength(100).WithMessage("Cargo não pode exceder 100 caracteres");
+            .MaximumLength(100).WithMessage("Cargo não pode exceder 100 caracteres")
+            .When(x => !string.IsNullOrWhiteSpace(x.Cargo));
     }
 }

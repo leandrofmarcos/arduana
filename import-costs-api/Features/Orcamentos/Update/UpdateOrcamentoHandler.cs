@@ -28,7 +28,11 @@ public class UpdateOrcamentoHandler
             DespachanteId = dto.DespachanteId,
             MoedaPadrao = dto.MoedaPadrao ?? "BRL",
             Aprovado = dto.Aprovado ?? false,
-            AprovadoCliente = dto.AprovadoCliente ?? false
+            AprovadoCliente = dto.AprovadoCliente ?? false,
+            DataSaida = dto.DataSaida,
+            DataChegada = dto.DataChegada,
+            Descricao = dto.Descricao,
+            TipoImportacao = dto.TipoImportacao
         };
 
         var atualizado = await _repository.UpdateAsync(id, orcamento);
@@ -52,6 +56,10 @@ public class UpdateOrcamentoHandler
             AprovadoCliente = orcamento.AprovadoCliente,
             Oficializado = orcamento.Oficializado,
             MoedaPadrao = orcamento.MoedaPadrao,
+            DataSaida = orcamento.DataSaida,
+            DataChegada = orcamento.DataChegada,
+            Descricao = orcamento.Descricao,
+            TipoImportacao = orcamento.TipoImportacao,
             DataCriacao = orcamento.DataCriacao,
             DataAtualizacao = orcamento.DataAtualizacao,
             Resumo = orcamento.Resumo

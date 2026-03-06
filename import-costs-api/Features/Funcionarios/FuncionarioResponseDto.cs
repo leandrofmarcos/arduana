@@ -33,17 +33,17 @@ public class FuncionarioResponseDto
     /// <summary>
     /// Email
     /// </summary>
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
 
     /// <summary>
     /// Setor
     /// </summary>
-    public string Setor { get; set; } = string.Empty;
+    public string? Setor { get; set; }
 
     /// <summary>
     /// Cargo
     /// </summary>
-    public string Cargo { get; set; } = string.Empty;
+    public string? Cargo { get; set; }
 
     /// <summary>
     /// Data de criação
