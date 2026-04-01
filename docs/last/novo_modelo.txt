@@ -1,0 +1,170 @@
+Tabela
+
+Clientes:
+cargos:
+nível_acesso
+usuários:
+-cargos
+-nome
+-nivel_acesso
+
+Despachantes:
+Portos_origem:
+cadastro_fabricantes:
+portos_destino:
+exportadores:
+agentes de carga:
+ncm:
+lista_preco_lcl:
+modelos_packlist:
+arquivo_anexo:
+Controle_navio
+-numero_viagem
+-nome_navio
+-trajeto
+--porto_origem
+--porto_destino
+--etd
+--eta
+
+custos_despachantes:
+-Li
+--ncm
+--descricao
+--valor
+--data
+--despesas
+-ncm_vinculado_orcamento
+--numero_ncm
+--descricao
+--ali_ipi
+--ali_ii
+--ali_pis
+--ali_cofins
+-valor_ impostos
+----ali_ipi
+----valor_ipi
+----ali_ii
+----valor_ii
+----ali_pis
+----valor_pis
+----ali_cofins
+----valor_cofins
+----ali_icms
+----valor_icms
+
+Importadores:
+orçamento_venda:
+
+
+
+Embarques(aduana):
+-REF OMINIUM
+-PORTO ORIGEM
+-PORTO DESTINO
+-AGENTE
+-CLIENTE
+-responsavel
+-ETD
+-ETA
+-AVISO PREVISÃO
+-COBRANÇA SINAL
+-SINAL PAGO P/ QUAL DESPACHANTE
+-FECHAMENTO PAGO
+-AVISO CHEGADA
+-IMP
+-PACKLIST_anexos
+-BL
+-CTNR
+-KG
+-NAVIO
+-STATUS
+-DESPACHANTE
+-LI
+-REGISTRO
+-DATA REGISTRO
+-DESEMB
+-ENTREGA
+-FREE TIME
+-EXPORTADOR
+-Ref Ag
+-custo_despachante
+-orcamento_venda
+
+1º custo_despachante, composto por
+-idOrcamento
+-despachante
+-peso
+-porto_origem
+-porto_destino
+-ncm_vinculado_orcamento
+-despesas
+-Aliquotas_impostos
+-modelo_packlist
+-arquivo_anexo
+-funcionario(responsável)
+-fob_usd
+-cif_reais
+-fob_usd
+-cif_usd
+-seguro_usd
+-taxa_usd
+-taxa_usa_agente
+-Tam_container
+
+
+2ºOrcamento_venda(esse vai para o cliente final)
+*mostra as despesas + impostos total do valor de custo
+-data
+-cliente
+-tipo_produto
+-tam_container
+-impostos
+--ali e valores dos 4 impostos
+-taxa_usd
+-peso_bruto
+-peso_liquido
+-frete_internacional
+-cif_reais
+-cif_usd
+-fob_reais
+-fob_usd
+-despesas
+--desricao
+--valor
+-honorarios
+-despesa_extra
+--descricao
+--valor
+
+
+documento_de_embarque(bl)
+-shipper
+-numero_bl
+-qts_de_caixa
+-peso_bruto
+-valor_frete
+-tipo_de_frete
+-numero_cntr
+-tam_container
+-porto
+-navio
+-agente_de_carga
+-data_bl
+-consignee
+-notify
+-ncm
+--capitulo_ncm
+--descricao
+
+
+
+
+
+
+
+
+
+
+
+
