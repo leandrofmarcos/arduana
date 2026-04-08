@@ -31,9 +31,8 @@ import { Router } from '@angular/router';
         <nav class="menu">
           <div class="menu-group">
             <div class="menu-title">Principal</div>
-            <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"><span class="icon">🛃</span><span>Aduana</span></a>
-            <a routerLink="/processos" routerLinkActive="active"><span class="icon">📊</span><span>Processos</span></a>
-            <a routerLink="/orcamento" routerLinkActive="active"><span class="icon">🧩</span><span>Orçamento</span></a>
+            <a routerLink="/orcamento" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}"><span class="icon">🧩</span><span>Orçamento</span></a>
+            <a routerLink="/orcamento/dash" routerLinkActive="active"><span class="icon">📋</span><span>Orç. Dashboard</span></a>
           </div>
           <div class="menu-group">
             <div class="menu-title">Cadastros</div>

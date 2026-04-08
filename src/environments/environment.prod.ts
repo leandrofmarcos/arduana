@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://www.comex133.com.br/api'
+  apiUrl: 'http://www.viaveritascomex.com.br/api'
 };
