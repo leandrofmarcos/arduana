@@ -1227,6 +1227,234 @@ O gráfico **"Embarques por Status"** mostrará:
 
 ---
 
+### 📦 ETAPA 11: Cadastro de Despesas e Modelos de Despesas
+**Duração:** 3-4 dias  
+**Objetivo:** Criar um catálogo reutilizável de despesas aduaneiras e agrupá-las em modelos pré-definidos, agilizando o preenchimento de custos e orçamentos
+
+#### Justificativa
+
+Na composição de um custo de desembaraço, as despesas seguem padrão por tipo de operação. Manter um catálogo de despesas frequentes e modelos reutilizáveis evita digitação repetitiva e garante consistência nos valores aplicados.
+
+#### Modelo de Dados
+
+```typescript
+export type CategoriaDespesa =
+  | 'Agência Marítima'
+  | 'Despachante'
+  | 'Tributos'
+  | 'Portos'
+  | 'Outras Despesas';
+
+export interface DespesaCadastro {
+  id: string;
+  descricao: string;
+  valor: number;           // valor de referência/sugestão (editável por operação)
+  categoria: CategoriaDespesa;
+  ativo: boolean;
+}
+
+export interface ModeloDespesa {
+  id: string;
+  nome: string;
+  descricao?: string;
+  ativo: boolean;
+}
+
+export interface ModeloDespesaItem {
+  id: string;
+  modeloDespesaId: string;
+  despesaCadastroId: string;
+}
+```
+
+#### Storage Keys
+
+| Key | Storage | Tipo de Seed |
+|---|---|---|
+| `keysV2.despesasCadastro` | `v2_despesas_cadastro` | **Sistema** (carregado via `DespesaCadastroService.initSeed()`) |
+| `keysV2.modelosDespesa` | `v2_modelos_despesa` | **Demo** (via `SeedDemoService.carregarSeedDemo()`) |
+| `keysV2.modelosDespesaItens` | `v2_modelos_despesa_itens` | **Demo** (via `SeedDemoService.carregarSeedDemo()`) |
+
+---
+
+#### Seed de Sistema — Catálogo de Despesas (20 itens)
+
+Baseado na planilha de desembaraço vigente (Ref. V3 — Despesas no Desembaraço / Valores Estimados).
+
+**Agência Marítima (6 itens)**
+
+| ID | Descrição | Valor |
+|---|---|---|
+| DC-001 | Desconsolidação | R$ 1.280,00 |
+| DC-002 | Liberação de B/L | R$ 900,00 |
+| DC-003 | THC | R$ 1.450,00 |
+| DC-004 | ISPS | R$ 100,00 |
+| DC-005 | LOG FEE / TRS / IMP. LOG. FEE / TELEX FEE / IOF | R$ 2.440,00 |
+| DC-006 | Lift Off | R$ 330,00 |
+
+**Despachante (5 itens)**
+
+| ID | Descrição | Valor |
+|---|---|---|
+| DC-007 | Honorários Despachante | R$ 3.000,00 |
+| DC-008 | Honorários Trading | R$ 17.000,00 |
+| DC-009 | S.D.A. | R$ 600,00 |
+| DC-010 | Taxa de Expediente | R$ 500,00 |
+| DC-011 | Taxa Emissão de L.I. | R$ 0,00 |
+
+**Tributos (4 itens)**
+
+| ID | Descrição | Valor |
+|---|---|---|
+| DC-012 | AFRMM + Taxa Sistema Mercante | R$ 3.848,00 |
+| DC-013 | TUS - Taxa de Utilização do Siscomex | R$ 244,00 |
+| DC-014 | Siscoserv | R$ 0,00 |
+| DC-015 | Outras Despesas de Origem | R$ 0,00 |
+
+**Portos (1 item)**
+
+| ID | Descrição | Valor |
+|---|---|---|
+| DC-016 | Armazenagem | R$ 5.200,00 |
+
+**Outras Despesas (4 itens)**
+
+| ID | Descrição | Valor |
+|---|---|---|
+| DC-017 | Frete Marítimo | R$ 0,00 |
+| DC-018 | Outras Despesas | R$ 3.500,00 |
+| DC-019 | Impostos de Saída (PIS e COFINS) | R$ 25.264,00 |
+| DC-020 | Frete Rodoviário Interno | R$ 5.800,00 |
+
+> **Referência de totais (planilha Desembaraço V3):**  
+> Subtotal despesas com desembaraço: **R$ 65.656,00** | Frete rodoviário interno: R$ 5.800,00 | **Total geral: R$ 71.456,00**
+
+---
+
+#### Seed Demo — Modelos de Despesas (3 modelos)
+
+**Modelo 1 — Desembaraço Padrão FCL**
+
+> Modelo completo com as despesas padrão de uma importação FCL. Não inclui Honorários Trading, Siscoserv e despesas zeradas.
+
+| # | ID | Descrição | Categoria | Valor |
+|---|---|---|---|---|
+| 1 | DC-001 | Desconsolidação | Agência Marítima | R$ 1.280,00 |
+| 2 | DC-002 | Liberação de B/L | Agência Marítima | R$ 900,00 |
+| 3 | DC-003 | THC | Agência Marítima | R$ 1.450,00 |
+| 4 | DC-004 | ISPS | Agência Marítima | R$ 100,00 |
+| 5 | DC-005 | LOG FEE / TRS / IMP. LOG. FEE / TELEX FEE / IOF | Agência Marítima | R$ 2.440,00 |
+| 6 | DC-006 | Lift Off | Agência Marítima | R$ 330,00 |
+| 7 | DC-007 | Honorários Despachante | Despachante | R$ 3.000,00 |
+| 8 | DC-009 | S.D.A. | Despachante | R$ 600,00 |
+| 9 | DC-010 | Taxa de Expediente | Despachante | R$ 500,00 |
+| 10 | DC-012 | AFRMM + Taxa Sistema Mercante | Tributos | R$ 3.848,00 |
+| 11 | DC-013 | TUS - Taxa de Utilização do Siscomex | Tributos | R$ 244,00 |
+| 12 | DC-016 | Armazenagem | Portos | R$ 5.200,00 |
+| 13 | DC-018 | Outras Despesas | Outras Despesas | R$ 3.500,00 |
+
+> **Total do modelo: R$ 23.392,00**
+
+---
+
+**Modelo 2 — Agência Marítima + Despachante**
+
+> Modelo parcial com agência e honorários. Adequado para cotações iniciais sem tributos e armazenagem.
+
+| # | ID | Descrição | Categoria | Valor |
+|---|---|---|---|---|
+| 1 | DC-001 | Desconsolidação | Agência Marítima | R$ 1.280,00 |
+| 2 | DC-002 | Liberação de B/L | Agência Marítima | R$ 900,00 |
+| 3 | DC-003 | THC | Agência Marítima | R$ 1.450,00 |
+| 4 | DC-004 | ISPS | Agência Marítima | R$ 100,00 |
+| 5 | DC-007 | Honorários Despachante | Despachante | R$ 3.000,00 |
+| 6 | DC-008 | Honorários Trading | Despachante | R$ 17.000,00 |
+
+> **Total do modelo: R$ 23.730,00**
+
+---
+
+**Modelo 3 — Simplificado (Agência Marítima Básica)**
+
+> Modelo mínimo para cotações rápidas. Apenas as taxas portuárias essenciais da agência marítima.
+
+| # | ID | Descrição | Categoria | Valor |
+|---|---|---|---|---|
+| 1 | DC-001 | Desconsolidação | Agência Marítima | R$ 1.280,00 |
+| 2 | DC-002 | Liberação de B/L | Agência Marítima | R$ 900,00 |
+| 3 | DC-003 | THC | Agência Marítima | R$ 1.450,00 |
+| 4 | DC-006 | Lift Off | Agência Marítima | R$ 330,00 |
+
+> **Total do modelo: R$ 3.960,00**
+
+---
+
+#### Interface das Telas
+
+**Tela 1 — Cadastro de Despesas (CRUD simples)**
+
+```
+┌─ Cadastro de Despesas ────────────────────────────────────┐
+│  [+ Nova Despesa]                    [Buscar...][Cat. ▼]  │
+│                                                            │
+│  Descrição                     Categoria        Valor  ✓  │
+│  Desconsolidação               Agência Marítima 1.280  ✓  │
+│  THC                           Agência Marítima 1.450  ✓  │
+│  Honorários Despachante        Despachante      3.000  ✓  │
+│  AFRMM + Taxa Sistema Mercante Tributos         3.848  ✓  │
+│  Armazenagem                   Portos           5.200  ✓  │
+│  Outras Despesas               Outras Despesas  3.500  ✓  │
+│  ...                                            [✏️][🗑️] │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Tela 2 — Modelos de Despesas (lista expansível + form inline)**
+
+```
+┌─ Modelos de Despesas ─────────────────────────────────────┐
+│  [+ Novo Modelo]                                           │
+│                                                            │
+│  ▼ Desembaraço Padrão FCL   13 itens  R$ 23.392  [✏️][🗑️]│
+│  │  Desconsolidação         Agência Marítima  R$ 1.280    │
+│  │  THC                     Agência Marítima  R$ 1.450    │
+│  │  Honorários Despachante  Despachante       R$ 3.000    │
+│  │  ...                                                   │
+│                                                            │
+│  ▶ Agência + Despachante     6 itens  R$ 23.730  [✏️][🗑️]│
+│  ▶ Simplificado              4 itens  R$ 3.960   [✏️][🗑️]│
+└────────────────────────────────────────────────────────────┘
+
+[Modal Novo/Editar Modelo]
+┌─────────────────────────────────────────────────────┐
+│  Nome:       [Desembaraço Padrão FCL______________]  │
+│  Descrição:  [___________________________________]   │
+│                                                      │
+│  Despesas vinculadas:      [+ Adicionar] [Cat. ▼]   │
+│  ● Desconsolidação      Agência Mar.  R$ 1.280  [🗑️]│
+│  ● THC                  Agência Mar.  R$ 1.450  [🗑️]│
+│  ● Honor. Despachante   Despachante   R$ 3.000  [🗑️]│
+│                                                      │
+│  Total: R$ 5.730,00                                  │
+│  [Salvar]  [Cancelar]                                │
+└──────────────────────────────────────────────────────┘
+```
+
+#### Checklist da Etapa 11
+
+- [ ] `DespesaCadastro`: CRUD completo (lista com filtro por categoria + form)
+- [ ] `ModeloDespesa`: lista expansível com CRUD + form com itens inline
+- [ ] `ModeloDespesaItem`: seleção de despesas cadastradas no form do modelo
+- [ ] Totalizador automático no form de modelo (soma dos valores vinculados)
+- [ ] Filtro por categoria na lista de despesas
+- [ ] `DespesaCadastroService.initSeed()` cria as 20 despesas se não existirem
+- [ ] `DespesaCadastroService.initSeed()` chamado em `ShellV2Component.ngOnInit()`
+- [ ] `SeedDemoService.carregarSeedDemo()` cria os 3 modelos demo com seus itens
+- [ ] Storage keys `despesasCadastro`, `modelosDespesa`, `modelosDespesaItens` adicionadas em `keysV2`
+- [ ] Telas acessíveis pelo menu em "Cadastros"
+- [ ] Build sem erros
+
+---
+
 ## 6. Roadmap de Execução
 
 ```
@@ -1261,16 +1489,23 @@ SEMANA 9 (fim)
   ✅ Etapa 9 — Dashboard Real  [CONCLUÍDO]
 
 SEMANA 10
-  ⏳ Etapa 10 — Seed de Dados para Apresentação  [PENDENTE]
+  ✅ Etapa 10 — Seed de Dados para Apresentação  [CONCLUÍDO]
+
+SEMANA 11
+  ⏳ Etapa 11 — Cadastro de Despesas e Modelos de Despesas  [PENDENTE]
 ```
 
 ### Marco: Sistema V2 Completo ✅
 
 Ao final da Semana 9, o sistema V2 está construído. Todas as funcionalidades implementadas e build verificado com sucesso.
 
-### Marco: Sistema V2 Pronto para Apresentação ⏳
+### Marco: Sistema V2 Pronto para Apresentação ✅
 
-Após a Etapa 10, o sistema terá dados demo realistas que demonstram o valor completo do produto em qualquer apresentação.
+A Etapa 10 foi concluída. O sistema conta com dados demo realistas e o dashboard exibe todos os KPIs com valores corretos.
+
+### Marco: Etapa 11 — Cadastro de Despesas ⏳
+
+Após a Etapa 11, o sistema terá um catálogo de despesas aduaneiras e modelos reutilizáveis para otimizar o preenchimento de custos.
 
 ---
 
@@ -1294,6 +1529,10 @@ Após a Etapa 10, o sistema terá dados demo realistas que demonstram o valor co
 | **FCL** | Full Container Load — contêiner completo |
 | **V1 / Legacy** | Sistema anterior, acessível em `/legacy`, congelado |
 | **V2** | Novo sistema sendo construído neste plano |
+| **DespesaCadastro** | Catálogo de despesas aduaneiras com valor de referência por categoria |
+| **ModeloDespesa** | Agrupamento de despesas cadastradas em um template reutilizável |
+| **ModeloDespesaItem** | Vínculo entre um `ModeloDespesa` e uma `DespesaCadastro` |
+| **CategoriaDespesa** | Classificação da despesa: Agência Marítima, Despachante, Tributos, Portos, Outras Despesas |
 
 ---
 
@@ -1351,9 +1590,10 @@ Definidos como obrigatórios no plano, tornados `string?` na implementação par
 | `NivelAcessoService` | ✅ | `ShellV2Component.ngOnInit()` | 4 níveis |
 | `StatusEmbarqueService` | ✅ | `ShellV2Component.ngOnInit()` | 7 statuses |
 | `TipoDocumentoService` | ✅ | `ShellV2Component.ngOnInit()` | 9 tipos |
-| Dados operacionais (Portos, Clientes, etc.) | ❌ | — | Previsto na **Etapa 10** |
+| `DespesaCadastroService` | ⏳ | `ShellV2Component.ngOnInit()` | 20 despesas *(Etapa 11)* |
+| Dados demo (Portos, Navios, Embarques, etc.) | ✅ | `SeedDemoService.carregarSeedDemo()` | 8 cenários *(Etapa 10)* |
 
-### 8.5 Inventário de Arquivos V2 (59 arquivos)
+### 8.5 Inventário de Arquivos V2 (59+ arquivos)
 
 ```
 v2/
@@ -1373,7 +1613,9 @@ v2/
     │   ├── lista-preco-lcl/   (models/ pages/ services/)
     │   ├── ncm/               (models/ pages/ services/)
     │   ├── portos-destino/    (models/ pages/ services/)
-    │   └── portos-origem/     (models/ pages/ services/)
+    │   ├── portos-origem/     (models/ pages/ services/)
+    │   ├── despesas-cadastro/ (models/ pages/ services/) ⏳ Etapa 11
+    │   └── modelos-despesa/   (models/ pages/ services/) ⏳ Etapa 11
     ├── administracao/
     │   ├── cargos/            (models/ pages/ services/) ✅ seed
     │   └── niveis-acesso/     (models/ pages/ services/) ✅ seed
@@ -1387,4 +1629,4 @@ v2/
 ---
 
 **Fim do Documento**  
-*Versão 2.1 — Revisão de 01/04/2026. Etapa 10 em planejamento.*
+*Versão 2.2 — Revisão de 08/04/2026. Etapa 11 incorporada (Cadastro de Despesas e Modelos de Despesas).*
