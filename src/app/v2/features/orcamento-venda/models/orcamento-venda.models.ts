@@ -2,7 +2,7 @@ export interface OrcamentoVenda {
   id: string;
   codigoInterno: string;          // OV-AAAA-NNN
   clienteId: string;
-  custoDespachanteId: string;     // base do orçamento
+  custoDespachanteId?: string;    // mantido por retrocompatibilidade (seed antigo)
   data: string;                   // ISO YYYY-MM-DD
   tamContainer: string;
   pesoBruto: number;
@@ -33,4 +33,10 @@ export interface OrcamentoVendaDespesaExtra {
   orcamentoVendaId: string;
   descricao: string;
   valor: number;
+}
+
+export interface OrcamentoVendaCusto {
+  id: string;
+  orcamentoVendaId: string;
+  custoDespachanteId: string;
 }

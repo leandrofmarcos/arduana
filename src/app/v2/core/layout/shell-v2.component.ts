@@ -47,6 +47,9 @@ import { DespesaCadastroService } from '../../features/cadastros/despesas-cadast
           <!-- Operação -->
           <div class="menu-group">
             <div class="menu-title">Operação</div>
+            <a routerLink="/solicitacoes" routerLinkActive="active">
+              <span class="icon">📋</span><span>Solicitações</span>
+            </a>
             <a routerLink="/embarques" routerLinkActive="active">
               <span class="icon">🚢</span><span>Embarques</span>
             </a>

@@ -17,6 +17,7 @@ export interface CustoDespachante {
   tamContainer: '20' | '40' | 'LCL';
   data: string;                   // ISO YYYY-MM-DD
   observacao?: string;
+  solicitacaoOrcamentoId?: string; // FK opcional — pré-preenchido ao vir de uma solicitação
 }
 
 export interface CustoDespachanteLi {

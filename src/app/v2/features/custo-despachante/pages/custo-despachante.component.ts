@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { CRUD_STYLES } from '../../../shared/styles/crud-page.styles';
 import {
   CustoDespachante, CustoDespachanteLi, CustoDespachanteDespesa,
@@ -15,6 +16,8 @@ import { PortoDestinoService } from '../../cadastros/portos-destino/services/por
 import { NcmService } from '../../cadastros/ncm/services/ncm.service';
 import { ModeloDespesaService } from '../../cadastros/modelos-despesa/services/modelo-despesa.service';
 import { DespesaCadastroService } from '../../cadastros/despesas-cadastro/services/despesa-cadastro.service';
+import { SolicitacaoOrcamentoService } from '../../solicitacao-orcamento/services/solicitacao-orcamento.service';
+import { SolicitacaoOrcamento } from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
 import { DespachanteV2 } from '../../cadastros/despachantes/models/despachante-v2.models';
 import { Importador } from '../../cadastros/importadores/models/importador.models';
 import { PortoOrigem } from '../../cadastros/portos-origem/models/porto-origem.models';
@@ -87,6 +90,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
     .resumo-total { display: flex; justify-content: space-between; padding: 12px 0; font-size: 15px; font-weight: 800; }
     .imposto-detalhe { font-size: 12px; color: var(--color-text-muted); padding: 4px 0 4px 16px; }
     .cod-badge { background: var(--color-surface); border: 1px solid var(--color-border); padding: 2px 8px; border-radius: 6px; font-family: monospace; font-size: 12px; }
+    .sol-badge { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-size: 11px; }
     `
   ],
   template: `
@@ -113,6 +117,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
                 <th>Código</th>
                 <th>Despachante</th>
                 <th>Importador</th>
+                <th>Solicitação</th>
                 <th>Container</th>
                 <th>Data</th>
                 <th>Total Impostos</th>
@@ -121,12 +126,13 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
             </thead>
             <tbody>
               <tr *ngIf="filtered.length === 0">
-                <td colspan="7" class="empty-state">Nenhum custo cadastrado</td>
+                <td colspan="8" class="empty-state">Nenhum custo cadastrado</td>
               </tr>
               <tr *ngFor="let c of filtered">
                 <td><span class="cod-badge">{{ c.codigoInterno }}</span></td>
                 <td>{{ nomeDespachanteById(c.despachanteId) }}</td>
                 <td>{{ nomeImportadorById(c.importadorId) }}</td>
+                <td><span *ngIf="c.solicitacaoOrcamentoId" class="sol-badge">{{ codSolById(c.solicitacaoOrcamentoId) }}</span><span *ngIf="!c.solicitacaoOrcamentoId" style="color:var(--color-text-muted);font-size:12px">—</span></td>
                 <td><span class="badge">{{ c.tamContainer }}</span></td>
                 <td>{{ c.data | date:'dd/MM/yyyy' }}</td>
                 <td>{{ totalImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</td>
@@ -619,7 +625,8 @@ export class CustoDespachanteComponent implements OnInit {
     despachanteId: '', importadorId: '', portoOrigemId: '', portoDestinoId: '',
     responsavel: '', data: new Date().toISOString().slice(0, 10), tamContainer: '40' as '20' | '40' | 'LCL', peso: 0,
     fobUsd: 0, fobReais: 0, cifUsd: 0, cifReais: 0, seguroUsd: 0,
-    taxaUsd: 0, taxaUsdAgente: undefined as number | undefined, observacao: ''
+    taxaUsd: 0, taxaUsdAgente: undefined as number | undefined, observacao: '',
+    solicitacaoOrcamentoId: undefined as string | undefined
   };
 
   // LI
@@ -649,7 +656,9 @@ export class CustoDespachanteComponent implements OnInit {
     private portoDestinoSvc: PortoDestinoService,
     private ncmSvc: NcmService,
     private modeloSvc: ModeloDespesaService,
-    private despesaCadastroSvc: DespesaCadastroService
+    private despesaCadastroSvc: DespesaCadastroService,
+    private solicitacaoSvc: SolicitacaoOrcamentoService,
+    private route: ActivatedRoute
   ) {}
 
   private todayStr(): string { return new Date().toISOString().slice(0, 10); }
@@ -662,6 +671,18 @@ export class CustoDespachanteComponent implements OnInit {
     this.ncms          = this.ncmSvc.getAtivos();
     this.modelos       = this.modeloSvc.getAll().filter(m => m.ativo);
     this.load();
+    // Pré-preencher wizard se vier de uma Solicitação de Orçamento
+    const qp = this.route.snapshot.queryParams;
+    if (qp['solicitacaoId']) {
+      this.p1.solicitacaoOrcamentoId = qp['solicitacaoId'];
+      this.p1.portoOrigemId  = qp['portoOrigemId']  ?? '';
+      this.p1.portoDestinoId = qp['portoDestinoId'] ?? '';
+      this.p1.importadorId   = qp['importadorId']   ?? '';
+      this.p1.tamContainer   = (['20','40','LCL'].includes(qp['tamContainer']) ? qp['tamContainer'] : '40') as '20'|'40'|'LCL';
+      this.p1.peso           = Number(qp['peso']) || 0;
+      this.p1.responsavel    = qp['responsavel']    ?? '';
+      this.showWizard = true;
+    }
   }
 
   load(): void { this.custos = this.service.getAll(); }
@@ -682,6 +703,10 @@ export class CustoDespachanteComponent implements OnInit {
   nomeImportadorById(id: string): string  { return this.importadores.find(i => i.id === id)?.razaoSocial ?? id; }
   nomePortoOrigemById(id: string): string { return this.portosOrigem.find(p => p.id === id)?.nome ?? id; }
   nomePortoDestinoById(id: string): string { return this.portosDestino.find(p => p.id === id)?.nome ?? id; }
+  codSolById(id: string | undefined): string {
+    if (!id) return '';
+    return this.solicitacaoSvc.getById(id)?.codigoInterno ?? id;
+  }
 
   totalImpostosCusto(custoId: string): number {
     return this.service.getNcmsVinculados(custoId).reduce((acc, nv) => {
@@ -835,6 +860,7 @@ export class CustoDespachanteComponent implements OnInit {
         responsavel:   item.responsavel,
         data:          item.data,
         tamContainer:  item.tamContainer,
+        solicitacaoOrcamentoId: item.solicitacaoOrcamentoId,
         peso:          item.peso,
         fobUsd:        item.fobUsd,
         fobReais:      item.fobReais,
@@ -861,7 +887,8 @@ export class CustoDespachanteComponent implements OnInit {
         despachanteId: '', importadorId: '', portoOrigemId: '', portoDestinoId: '',
         responsavel: '', data: this.todayStr(), tamContainer: '40', peso: 0,
         fobUsd: 0, fobReais: 0, cifUsd: 0, cifReais: 0, seguroUsd: 0,
-        taxaUsd: 0, taxaUsdAgente: undefined, observacao: ''
+        taxaUsd: 0, taxaUsdAgente: undefined, observacao: '',
+        solicitacaoOrcamentoId: undefined
       };
       this.lisForm = [];
       this.despesasForm = [];
@@ -892,7 +919,8 @@ export class CustoDespachanteComponent implements OnInit {
       seguroUsd:      this.p1.seguroUsd || 0,
       taxaUsd:        this.p1.taxaUsd || 0,
       taxaUsdAgente:  this.p1.taxaUsdAgente,
-      observacao:     this.p1.observacao.trim() || undefined
+      observacao:     this.p1.observacao.trim() || undefined,
+      solicitacaoOrcamentoId: this.p1.solicitacaoOrcamentoId || undefined
     };
 
     let custoId: string;

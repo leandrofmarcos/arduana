@@ -36,13 +36,16 @@ import {
   NcmVinculadoOrcamento, ValorImposto
 } from '../../features/custo-despachante/models/custo-despachante.models';
 import {
-  OrcamentoVenda, OrcamentoVendaDespesa, OrcamentoVendaDespesaExtra
+  OrcamentoVenda, OrcamentoVendaDespesa, OrcamentoVendaDespesaExtra, OrcamentoVendaCusto
 } from '../../features/orcamento-venda/models/orcamento-venda.models';
 import {
   EmbarqueAduana, HistoricoStatusEmbarque, FreeTimeEmbarque, PagamentoProcesso, StatusEmbarque
 } from '../../features/embarque-aduana/models/embarque-aduana.models';
 import { ModeloDespesa, ModeloDespesaItem } from '../../features/cadastros/modelos-despesa/models/modelo-despesa.models';
 import { DespesaCadastro } from '../../features/cadastros/despesas-cadastro/models/despesa-cadastro.models';
+import {
+  SolicitacaoOrcamento, SolicitacaoOrcamentoDespachante
+} from '../../features/solicitacao-orcamento/models/solicitacao-orcamento.models';
 
 const DEMO_FLAG = 'v2_demo_carregado';
 
@@ -58,6 +61,8 @@ const DEMO_KEYS = [
   keysV2.orcamentosVenda, keysV2.orcDespesas, keysV2.orcExtras,
   keysV2.embarques, keysV2.historicoStatus, keysV2.freeTimes, keysV2.pagamentos,
   keysV2.modelosDespesa, keysV2.modelosDespesaItens,
+  keysV2.solicitacoes, keysV2.solicitacaoDespachantes, keysV2.solicitacaoDocumentos,
+  keysV2.orcCustos,
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -420,7 +425,50 @@ export class SeedDemoService {
       if (did) this._add<ModeloDespesaItem>(keysV2.modelosDespesaItens, { modeloDespesaId: mod3.id, despesaCadastroId: did });
     });
     [mod1, mod2, mod3]; // linted
-    // ── 15. Marcar flag ─────────────────────────────────────────────────
+    // ── 15. Solicitações de Orçamento ───────────────────────────────────
+    const sol1: SolicitacaoOrcamento = {
+      id: generateV2Id(), codigoInterno: 'SOL-2026-001',
+      portoOrigemId: sha.id, portoDestinoId: stz.id,
+      importadorId: impTech.id, clienteId: cliTech.id,
+      responsavel: 'Leandro Costa',
+      tamContainer: '40', peso: 12500, observacao: 'Eletrônicos Q2 2026',
+      status: 'Aprovada', data: '2026-02-08'
+    };
+    const sol2: SolicitacaoOrcamento = {
+      id: generateV2Id(), codigoInterno: 'SOL-2026-002',
+      portoOrigemId: ngb.id, portoDestinoId: png.id,
+      importadorId: impTextil.id, clienteId: cliTextil.id,
+      responsavel: 'Ana Lima',
+      tamContainer: '40', peso: 9800, observacao: 'Têxteis coleção outono',
+      status: 'EmAnalise', data: '2026-02-20'
+    };
+    writeV2(keysV2.solicitacoes, [sol1, sol2]);
+
+    writeV2(keysV2.solicitacaoDespachantes, [
+      { id: generateV2Id(), solicitacaoOrcamentoId: sol1.id, despachanteId: despCosta.id, status: 'Respondido', dataEnvio: '2026-02-08', dataResposta: '2026-02-10' },
+      { id: generateV2Id(), solicitacaoOrcamentoId: sol1.id, despachanteId: despLog.id,   status: 'Respondido', dataEnvio: '2026-02-08', dataResposta: '2026-02-11' },
+      { id: generateV2Id(), solicitacaoOrcamentoId: sol2.id, despachanteId: despCosta.id, status: 'Pendente',   dataEnvio: '2026-02-20' },
+      { id: generateV2Id(), solicitacaoOrcamentoId: sol2.id, despachanteId: despLog.id,   status: 'Recusado',   dataEnvio: '2026-02-20', dataResposta: '2026-02-22' },
+    ] as SolicitacaoOrcamentoDespachante[]);
+    writeV2(keysV2.solicitacaoDocumentos, []);
+
+    // Vincular custos às solicitações
+    const custosStorage = readV2<CustoDespachante>(keysV2.custos);
+    const cd1Ref = custosStorage.find(c => c.codigoInterno === 'CD-2026-001');
+    const cd2Ref = custosStorage.find(c => c.codigoInterno === 'CD-2026-002');
+    if (cd1Ref) cd1Ref.solicitacaoOrcamentoId = sol1.id;
+    if (cd2Ref) cd2Ref.solicitacaoOrcamentoId = sol2.id;
+    writeV2(keysV2.custos, custosStorage);
+
+    // Junction OrcamentoVenda ↔ CustoDespachante
+    const allOvs = readV2<OrcamentoVenda>(keysV2.orcamentosVenda);
+    writeV2(keysV2.orcCustos, allOvs.map((ov): OrcamentoVendaCusto => ({
+      id: generateV2Id(),
+      orcamentoVendaId: ov.id,
+      custoDespachanteId: ov.custoDespachanteId ?? ''
+    })).filter(oc => oc.custoDespachanteId));
+
+    // ── 16. Marcar flag ───────────────────────────────────────────
     localStorage.setItem(DEMO_FLAG, 'true');
   }
 

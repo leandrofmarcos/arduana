@@ -179,6 +179,10 @@ export const routes: Routes = [
       {
         path: 'modelos-despesa',
         loadComponent: () => import('./v2/features/cadastros/modelos-despesa/pages/modelos-despesa.component').then(m => m.ModelosDespesaComponent)
+      },
+      {
+        path: 'solicitacoes',
+        loadComponent: () => import('./v2/features/solicitacao-orcamento/pages/solicitacao-orcamento.component').then(m => m.SolicitacaoOrcamentoComponent)
       }
     ]
   },

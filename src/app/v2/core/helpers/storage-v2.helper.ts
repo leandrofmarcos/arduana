@@ -39,6 +39,12 @@ export const keysV2 = {
   despesasCadastro:     'v2_despesas_cadastro',
   modelosDespesa:       'v2_modelos_despesa',
   modelosDespesaItens:  'v2_modelos_despesa_itens',
+  // Solicitação de Orçamento — Etapa 12
+  solicitacoes:             'v2_solicitacoes_orcamento',
+  solicitacaoDespachantes:  'v2_solicitacao_despachantes',
+  solicitacaoDocumentos:    'v2_solicitacao_documentos',
+  // Junction OrcamentoVenda ↔ CustoDespachante
+  orcCustos:                'v2_orc_custos',
 } as const;
 
 export function readV2<T>(key: string): T[] {

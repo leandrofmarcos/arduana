@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CRUD_STYLES } from '../../../shared/styles/crud-page.styles';
-import { OrcamentoVenda, OrcamentoVendaDespesa, OrcamentoVendaDespesaExtra } from '../models/orcamento-venda.models';
+import { OrcamentoVenda, OrcamentoVendaDespesa, OrcamentoVendaDespesaExtra, OrcamentoVendaCusto } from '../models/orcamento-venda.models';
 import { OrcamentoVendaService } from '../services/orcamento-venda.service';
 import { CustoDespachanteService } from '../../custo-despachante/services/custo-despachante.service';
 import { CustoDespachante } from '../../custo-despachante/models/custo-despachante.models';
@@ -94,7 +94,7 @@ type LinhaForm = { descricao: string; valor: number };
               <tr *ngFor="let o of filtered">
                 <td><span class="cod-badge">{{ o.codigoInterno }}</span></td>
                 <td>{{ nomeClienteById(o.clienteId) }}</td>
-                <td><span class="cod-badge">{{ codCustoById(o.custoDespachanteId) }}</span></td>
+                <td>{{ codigosCustosDaOrc(o.id) || codCustoById(o.custoDespachanteId) }}</td>
                 <td>{{ o.data | date:'dd/MM/yyyy' }}</td>
                 <td><span class="badge">{{ o.tamContainer }}</span></td>
                 <td style="text-align:right;font-weight:700">{{ o.totalGeral | currency:'BRL':'symbol':'1.2-2' }}</td>
@@ -124,7 +124,7 @@ type LinhaForm = { descricao: string; valor: number };
             <input type="text" [(ngModel)]="custoQuery" placeholder="Buscar por código, despachante ou importador..." />
           </div>
           <div *ngFor="let c of custosFiltrados">
-            <div class="custo-card" [class.selected]="form.custoDespachanteId === c.id" (click)="selecionarCusto(c)">
+            <div class="custo-card" [class.selected]="isCustoSelecionado(c.id)" (click)="toggleCusto(c)">
               <div>
                 <div class="custo-card-cod">{{ c.codigoInterno }}</div>
                 <div class="custo-card-info">
@@ -140,7 +140,7 @@ type LinhaForm = { descricao: string; valor: number };
           <p *ngIf="custosFiltrados.length === 0" style="font-size:13px;color:var(--color-text-muted)">
             Nenhum custo encontrado. <a routerLink="/custos" style="color:var(--color-primary,#3b82f6)">Cadastre um custo primeiro.</a>
           </p>
-          <span class="err-msg" *ngIf="showErr && !form.custoDespachanteId">Selecione um custo base</span>
+          <span class="err-msg" *ngIf="showErr && custosSelecionados.length === 0">Selecione ao menos um custo base</span>
           <div class="actions">
             <button class="btn btn-primary" (click)="nextFormStep()">Próximo →</button>
             <button class="btn btn-secondary" (click)="cancelForm()">Cancelar</button>
@@ -458,8 +458,7 @@ export class OrcamentoVendaComponent implements OnInit {
   custoBase: CustoDespachante | null = null;
 
   // ── Form ──────────────────────────────────────────────────────────────
-  form = this.emptyForm();
-  despesasForm: LinhaForm[] = [];
+  form = this.emptyForm();  custosSelecionados: string[] = [];  despesasForm: LinhaForm[] = [];
   extrasForm: LinhaForm[] = [];
   despesaForm: LinhaForm = { descricao: '', valor: 0 };
   extraForm: LinhaForm = { descricao: '', valor: 0 };
@@ -501,6 +500,7 @@ export class OrcamentoVendaComponent implements OnInit {
     return this.orcamentos.filter(o =>
       o.codigoInterno.toLowerCase().includes(s) ||
       this.nomeClienteById(o.clienteId).toLowerCase().includes(s) ||
+      this.codigosCustosDaOrc(o.id).toLowerCase().includes(s) ||
       this.codCustoById(o.custoDespachanteId).toLowerCase().includes(s)
     );
   }
@@ -520,8 +520,19 @@ export class OrcamentoVendaComponent implements OnInit {
     return this.clientes.find(c => c.id === id)?.razaoSocial ?? id;
   }
 
-  codCustoById(id: string): string {
+  codCustoById(id: string | undefined): string {
+    if (!id) return '—';
     return this.custos.find(c => c.id === id)?.codigoInterno ?? id;
+  }
+
+  isCustoSelecionado(id: string): boolean {
+    return this.custosSelecionados.includes(id);
+  }
+
+  codigosCustosDaOrc(orcId: string): string {
+    return this.service.getOrcCustos(orcId)
+      .map(oc => this.codCustoById(oc.custoDespachanteId))
+      .join(', ');
   }
 
   nomeDespachanteById(id: string): string { return this._despachantes[id] ?? id; }
@@ -547,29 +558,37 @@ export class OrcamentoVendaComponent implements OnInit {
 
   // ── Custo base ────────────────────────────────────────────────────────
 
-  selecionarCusto(c: CustoDespachante): void {
-    this.form.custoDespachanteId = c.id;
-    this.custoBase = c;
-    // Pré-preencher campos do custo
-    this.form.tamContainer       = c.tamContainer;
-    this.form.cifReais           = c.cifReais;
-    this.form.cifUsd             = c.cifUsd;
-    this.form.fobReais           = c.fobReais;
-    this.form.fobUsd             = c.fobUsd;
-    this.form.taxaUsd            = c.taxaUsd;
-    this.form.pesoBruto          = c.peso;
-    // Total impostos do custo base
-    const ncvs = this.custoSvc.getNcmsVinculados(c.id);
-    this.form.totalImpostos = ncvs.reduce((acc, nv) => {
-      return acc + this.custoSvc.getValoresImposto(nv.id).reduce((a, v) => a + v.totalImpostos, 0);
-    }, 0);
+  toggleCusto(c: CustoDespachante): void {
+    const idx = this.custosSelecionados.indexOf(c.id);
+    if (idx >= 0) {
+      this.custosSelecionados.splice(idx, 1);
+    } else {
+      this.custosSelecionados.push(c.id);
+    }
+    // Usar o único ou último selecionado como custo base para pré-preencher campos
+    const ultimoId = this.custosSelecionados[this.custosSelecionados.length - 1];
+    this.custoBase = ultimoId ? (this.custos.find(x => x.id === ultimoId) ?? null) : null;
+    if (this.custoBase) {
+      this.form.tamContainer  = this.custoBase.tamContainer;
+      this.form.cifReais      = this.custoBase.cifReais;
+      this.form.cifUsd        = this.custoBase.cifUsd;
+      this.form.fobReais      = this.custoBase.fobReais;
+      this.form.fobUsd        = this.custoBase.fobUsd;
+      this.form.taxaUsd       = this.custoBase.taxaUsd;
+      this.form.pesoBruto     = this.custoBase.peso;
+      const ncvs = this.custoSvc.getNcmsVinculados(this.custoBase.id);
+      this.form.totalImpostos = ncvs.reduce((acc, nv) => {
+        return acc + this.custoSvc.getValoresImposto(nv.id).reduce((a, v) => a + v.totalImpostos, 0);
+      }, 0);
+    }
+    this.form.custoDespachanteId = ultimoId ?? '';
   }
 
   // ── Form steps ────────────────────────────────────────────────────────
 
   nextFormStep(): void {
     this.showErr = true;
-    if (!this.form.custoDespachanteId) return;
+    if (this.custosSelecionados.length === 0) return;
     this.showErr = false;
     this.formStep = 2;
   }
@@ -610,10 +629,16 @@ export class OrcamentoVendaComponent implements OnInit {
     this.extraErro   = '';
 
     if (item) {
+      const existingLinks = this.service.getOrcCustos(item.id);
+      this.custosSelecionados = existingLinks.map(oc => oc.custoDespachanteId);
+      // retrocompat: se não há junction mas há custoDespachanteId legado
+      if (this.custosSelecionados.length === 0 && item.custoDespachanteId) {
+        this.custosSelecionados = [item.custoDespachanteId];
+      }
       const c = this.custos.find(c => c.id === item.custoDespachanteId) ?? null;
       this.custoBase = c;
       this.form = {
-        custoDespachanteId:  item.custoDespachanteId,
+        custoDespachanteId:  item.custoDespachanteId ?? '',
         clienteId:           item.clienteId,
         data:                item.data,
         tamContainer:        item.tamContainer,
@@ -634,6 +659,7 @@ export class OrcamentoVendaComponent implements OnInit {
     } else {
       this.custoBase = null;
       this.custoQuery = '';
+      this.custosSelecionados = [];
       this.form = this.emptyForm();
       this.despesasForm = [];
       this.extrasForm   = [];
@@ -686,6 +712,7 @@ export class OrcamentoVendaComponent implements OnInit {
 
     this.service.replaceDespesas(orcId, this.despesasForm);
     this.service.replaceExtras(orcId, this.extrasForm);
+    this.service.replaceOrcCustos(orcId, this.custosSelecionados);
 
     this.cancelForm();
     this.load();

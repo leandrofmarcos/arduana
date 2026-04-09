@@ -3,7 +3,7 @@ import {
   keysV2, readV2, addV2, updateV2, deleteV2, generateV2Id, generateCode
 } from '../../../core/helpers/storage-v2.helper';
 import {
-  OrcamentoVenda, OrcamentoVendaDespesa, OrcamentoVendaDespesaExtra
+  OrcamentoVenda, OrcamentoVendaDespesa, OrcamentoVendaDespesaExtra, OrcamentoVendaCusto
 } from '../models/orcamento-venda.models';
 
 @Injectable({ providedIn: 'root' })
@@ -41,6 +41,7 @@ export class OrcamentoVendaService {
     deleteV2(keysV2.orcamentosVenda, id);
     this.getDespesas(id).forEach(d => deleteV2(keysV2.orcDespesas, d.id));
     this.getExtras(id).forEach(e => deleteV2(keysV2.orcExtras, e.id));
+    this.getOrcCustos(id).forEach(c => deleteV2(keysV2.orcCustos, c.id));
   }
 
   // ── Despesas ──────────────────────────────────────────────────────────
@@ -77,6 +78,25 @@ export class OrcamentoVendaService {
     return lista.map(data => {
       const item: OrcamentoVendaDespesaExtra = { id: generateV2Id(), orcamentoVendaId, ...data };
       addV2(keysV2.orcExtras, item);
+      return item;
+    });
+  }
+
+  // ── OrcamentoVendaCusto (junction) ───────────────────────────────────────
+
+  getAllOrcCustos(): OrcamentoVendaCusto[] {
+    return readV2<OrcamentoVendaCusto>(keysV2.orcCustos);
+  }
+
+  getOrcCustos(orcamentoVendaId: string): OrcamentoVendaCusto[] {
+    return this.getAllOrcCustos().filter(c => c.orcamentoVendaId === orcamentoVendaId);
+  }
+
+  replaceOrcCustos(orcamentoVendaId: string, custoIds: string[]): OrcamentoVendaCusto[] {
+    this.getOrcCustos(orcamentoVendaId).forEach(c => deleteV2(keysV2.orcCustos, c.id));
+    return custoIds.map(custoDespachanteId => {
+      const item: OrcamentoVendaCusto = { id: generateV2Id(), orcamentoVendaId, custoDespachanteId };
+      addV2(keysV2.orcCustos, item);
       return item;
     });
   }
