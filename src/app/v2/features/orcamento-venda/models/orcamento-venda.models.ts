@@ -2,6 +2,7 @@ export interface OrcamentoVenda {
   id: string;
   codigoInterno: string;          // OV-AAAA-NNN
   clienteId: string;
+  solicitacaoOrcamentoId?: string; // FK à solicitação de origem
   custoDespachanteId?: string;    // mantido por retrocompatibilidade (seed antigo)
   data: string;                   // ISO YYYY-MM-DD
   tamContainer: string;

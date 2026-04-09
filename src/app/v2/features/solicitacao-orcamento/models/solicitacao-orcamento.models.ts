@@ -1,5 +1,5 @@
-export type StatusSolicitacao = 'Aberta' | 'EmAnalise' | 'Aprovada' | 'Cancelada';
-export type StatusSolicitacaoDespachante = 'Pendente' | 'Respondido' | 'Recusado';
+export type StatusSolicitacao = 'Rascunho' | 'Aberta' | 'EmAnalise' | 'Aprovada' | 'Cancelada';
+export type StatusSolicitacaoDespachante = 'PendenteDespachante' | 'FinalizadoDespachante' | 'Respondido' | 'Recusado';
 
 export interface SolicitacaoOrcamento {
   id: string;
@@ -22,7 +22,6 @@ export interface SolicitacaoOrcamentoDespachante {
   despachanteId: string;
   status: StatusSolicitacaoDespachante;
   dataEnvio: string;              // ISO YYYY-MM-DD
-  dataResposta?: string;          // preenchido quando CustoDespachante é gerado
 }
 
 export interface SolicitacaoOrcamentoDocumento {

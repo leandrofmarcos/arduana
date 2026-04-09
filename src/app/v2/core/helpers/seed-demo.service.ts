@@ -33,7 +33,7 @@ import { ListaPrecoLcl }        from '../../features/cadastros/lista-preco-lcl/m
 import { ControleNavio, ControleNavioTrajeto } from '../../features/logistica/controle-navios/models/controle-navio.models';
 import {
   CustoDespachante, CustoDespachanteLi, CustoDespachanteDespesa,
-  NcmVinculadoOrcamento, ValorImposto
+  NcmVinculadoOrcamento, ValorImposto, StatusCustoDespachante
 } from '../../features/custo-despachante/models/custo-despachante.models';
 import {
   OrcamentoVenda, OrcamentoVendaDespesa, OrcamentoVendaDespesaExtra, OrcamentoVendaCusto
@@ -162,7 +162,8 @@ export class SeedDemoService {
       [{ ncm: '8517.14.00', descricao: 'Smartphones Galaxy A54 (500 un)', valor: 62000, data: '2026-02-10' }],
       [{ descricao: 'Honorário despachante', valor: 3500, data: '2026-02-10', entraBaseIcms: false },
        { descricao: 'AFRMM', valor: 2800, data: '2026-02-10', entraBaseIcms: true }],
-      [{ ncmId: ncmSmartphone.id, numeroNcm: '85171400', descricao: 'Smartphones', aliIi: 20, aliIpi: 15, aliPis: 2.10, aliCofins: 9.65, aliIcms: 18, baseCalculo: 92000 }]
+      [{ ncmId: ncmSmartphone.id, numeroNcm: '85171400', descricao: 'Smartphones', aliIi: 20, aliIpi: 15, aliPis: 2.10, aliCofins: 9.65, aliIcms: 18, baseCalculo: 92000 }],
+      'Finalizado'
     );
     const ov1 = this._orcamento('OV-2026-001', cliTech.id, cd1.id, '40', 12500, 11800, 6200, 85000, 24000, 92000, 1.50, 8500, 68700, 6300, 0, '2026-02-12',
       [{ descricao: 'Capatazia Santos', valor: 1800 }, { descricao: 'THC destino', valor: 1200 }, { descricao: 'Armazenagem porto', valor: 3300 }],
@@ -445,10 +446,10 @@ export class SeedDemoService {
     writeV2(keysV2.solicitacoes, [sol1, sol2]);
 
     writeV2(keysV2.solicitacaoDespachantes, [
-      { id: generateV2Id(), solicitacaoOrcamentoId: sol1.id, despachanteId: despCosta.id, status: 'Respondido', dataEnvio: '2026-02-08', dataResposta: '2026-02-10' },
-      { id: generateV2Id(), solicitacaoOrcamentoId: sol1.id, despachanteId: despLog.id,   status: 'Respondido', dataEnvio: '2026-02-08', dataResposta: '2026-02-11' },
-      { id: generateV2Id(), solicitacaoOrcamentoId: sol2.id, despachanteId: despCosta.id, status: 'Pendente',   dataEnvio: '2026-02-20' },
-      { id: generateV2Id(), solicitacaoOrcamentoId: sol2.id, despachanteId: despLog.id,   status: 'Recusado',   dataEnvio: '2026-02-20', dataResposta: '2026-02-22' },
+      { id: generateV2Id(), solicitacaoOrcamentoId: sol1.id, despachanteId: despCosta.id, status: 'FinalizadoDespachante', dataEnvio: '2026-02-08' },
+      { id: generateV2Id(), solicitacaoOrcamentoId: sol1.id, despachanteId: despLog.id,   status: 'Respondido',          dataEnvio: '2026-02-08' },
+      { id: generateV2Id(), solicitacaoOrcamentoId: sol2.id, despachanteId: despCosta.id, status: 'PendenteDespachante', dataEnvio: '2026-02-20' },
+      { id: generateV2Id(), solicitacaoOrcamentoId: sol2.id, despachanteId: despLog.id,   status: 'Recusado',            dataEnvio: '2026-02-20' },
     ] as SolicitacaoOrcamentoDespachante[]);
     writeV2(keysV2.solicitacaoDocumentos, []);
 
@@ -511,7 +512,8 @@ export class SeedDemoService {
     data: string,
     lis: Array<Omit<CustoDespachanteLi, 'id' | 'custoDespachanteId'>>,
     despesas: Array<Omit<CustoDespachanteDespesa, 'id' | 'custoDespachanteId'>>,
-    ncmsVinculados: Array<Omit<NcmVinculadoOrcamento, 'id' | 'custoDespachanteId'>>
+    ncmsVinculados: Array<Omit<NcmVinculadoOrcamento, 'id' | 'custoDespachanteId'>>,
+    status: StatusCustoDespachante = 'Rascunho'
   ): CustoDespachante {
     // Os parâmetros fobUsd/cifUsd carregam valores em BRL (nomenclatura herdada)
     // Derivamos os valores em USD dividindo pelo câmbio demo de referência
@@ -526,7 +528,7 @@ export class SeedDemoService {
       cifUsd:   Math.round(cifUsd / TAXA_DEMO),     // USD derivado
       seguroUsd: Math.round(cifUsd * 0.003),        // 0,3% CIF como seguro
       taxaUsd:   TAXA_DEMO,                         // câmbio fixo demo
-      tamContainer, data,
+      tamContainer, data, status,
     };
     writeV2(keysV2.custos, [...readV2<CustoDespachante>(keysV2.custos), custo]);
 

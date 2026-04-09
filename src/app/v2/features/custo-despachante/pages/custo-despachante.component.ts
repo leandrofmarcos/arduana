@@ -5,7 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { CRUD_STYLES } from '../../../shared/styles/crud-page.styles';
 import {
   CustoDespachante, CustoDespachanteLi, CustoDespachanteDespesa,
-  NcmVinculadoOrcamento, ValorImposto
+  NcmVinculadoOrcamento, ValorImposto, StatusCustoDespachante
 } from '../models/custo-despachante.models';
 import { CustoDespachanteService } from '../services/custo-despachante.service';
 import { ImpostoCalculatorService } from '../services/imposto-calculator.service';
@@ -91,6 +91,14 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
     .imposto-detalhe { font-size: 12px; color: var(--color-text-muted); padding: 4px 0 4px 16px; }
     .cod-badge { background: var(--color-surface); border: 1px solid var(--color-border); padding: 2px 8px; border-radius: 6px; font-family: monospace; font-size: 12px; }
     .sol-badge { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-size: 11px; }
+    .packlist-box { background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: 8px; padding: 12px 16px; margin-top: 16px; }
+    .packlist-box h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text-muted); margin: 0 0 10px; }
+    .packlist-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--color-border); font-size: 13px; }
+    .packlist-row:last-child { border-bottom: none; }
+    .packlist-name { flex: 1; }
+    .packlist-obs { font-size: 12px; color: var(--color-text-muted); flex: 1; }
+    .packlist-date { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; }
+    .status-custo-badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:11px; font-weight:700; color:#fff; }
     `
   ],
   template: `
@@ -120,13 +128,14 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
                 <th>Solicitação</th>
                 <th>Container</th>
                 <th>Data</th>
+                <th>Status</th>
                 <th>Total Impostos</th>
                 <th style="width:100px">Ações</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="filtered.length === 0">
-                <td colspan="8" class="empty-state">Nenhum custo cadastrado</td>
+                <td colspan="9" class="empty-state">Nenhum custo cadastrado</td>
               </tr>
               <tr *ngFor="let c of filtered">
                 <td><span class="cod-badge">{{ c.codigoInterno }}</span></td>
@@ -135,6 +144,11 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
                 <td><span *ngIf="c.solicitacaoOrcamentoId" class="sol-badge">{{ codSolById(c.solicitacaoOrcamentoId) }}</span><span *ngIf="!c.solicitacaoOrcamentoId" style="color:var(--color-text-muted);font-size:12px">—</span></td>
                 <td><span class="badge">{{ c.tamContainer }}</span></td>
                 <td>{{ c.data | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  <span class="status-custo-badge" [ngStyle]="{ background: c.status === 'Finalizado' ? '#22c55e' : '#f59e0b' }">
+                    {{ c.status === 'Finalizado' ? 'Finalizado' : 'Rascunho' }}
+                  </span>
+                </td>
                 <td>{{ totalImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</td>
                 <td>
                   <div class="row-actions">
@@ -258,8 +272,11 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               <input type="text" [(ngModel)]="p1.observacao" placeholder="Observações gerais" />
             </div>
           </div>
+
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('Rascunho')">💾 Salvar Rascunho</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="cancelWizard()">Cancelar</button>
           </div>
         </div>
@@ -322,8 +339,29 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
           </table>
           <p *ngIf="lisForm.length === 0" style="font-size:13px;color:var(--color-text-muted);margin-top:8px">Nenhum item adicionado.</p>
 
+          <!-- Packlist da Solicitação (somente leitura) -->
+          <ng-container *ngIf="p1.solicitacaoOrcamentoId">
+            <div class="packlist-box" style="margin-top:20px">
+              <h4>📦 Packlist da Solicitação</h4>
+              <ng-container *ngIf="packlistDocs(p1.solicitacaoOrcamentoId).length > 0; else semDocs">
+                <div class="packlist-row" *ngFor="let doc of packlistDocs(p1.solicitacaoOrcamentoId)">
+                  <span class="packlist-name">{{ doc.nomeArquivo }}</span>
+                  <span class="packlist-obs">{{ doc.observacao || '' }}</span>
+                  <span class="packlist-date">{{ doc.dataUpload | date:'dd/MM/yyyy' }}</span>
+                  <button class="btn-icon" title="Baixar / Ver arquivo"
+                    (click)="downloadPacklist(doc.linkDocumento, doc.nomeArquivo)">⬇️</button>
+                </div>
+              </ng-container>
+              <ng-template #semDocs>
+                <p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhum arquivo cadastrado nesta solicitação.</p>
+              </ng-template>
+            </div>
+          </ng-container>
+
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('Rascunho')">💾 Salvar Rascunho</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -445,6 +483,8 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
 
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('Rascunho')">💾 Salvar Rascunho</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -532,6 +572,8 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
 
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('Rascunho')">💾 Salvar Rascunho</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -588,7 +630,8 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
           </div>
 
           <div class="actions">
-            <button class="btn btn-primary" (click)="salvarTudo()">💾 Confirmar e Salvar</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('Rascunho')">💾 Salvar Rascunho</button>
+            <button class="btn btn-primary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -620,6 +663,7 @@ export class CustoDespachanteComponent implements OnInit {
   // ── Wizard state ──────────────────────────────────────────────────────
   step = 1;
   showErr = false;
+  wizardStatus: StatusCustoDespachante = 'Rascunho';
 
   p1 = {
     despachanteId: '', importadorId: '', portoOrigemId: '', portoDestinoId: '',
@@ -706,6 +750,24 @@ export class CustoDespachanteComponent implements OnInit {
   codSolById(id: string | undefined): string {
     if (!id) return '';
     return this.solicitacaoSvc.getById(id)?.codigoInterno ?? id;
+  }
+
+  packlistDocs(solicitacaoId: string | undefined) {
+    if (!solicitacaoId) return [];
+    return this.solicitacaoSvc.getDocumentos(solicitacaoId);
+  }
+
+  downloadPacklist(linkDocumento: string, nomeArquivo: string): void {
+    if (!linkDocumento) {
+      alert(`Arquivo: ${nomeArquivo}\n\nO arquivo ainda não possui URL — será disponibilizado após integração com a API.`);
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = linkDocumento;
+    a.download = nomeArquivo;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.click();
   }
 
   totalImpostosCusto(custoId: string): number {
@@ -852,6 +914,7 @@ export class CustoDespachanteComponent implements OnInit {
     this.cancelEditDespesa();
 
     if (item) {
+      this.wizardStatus = item.status ?? 'Rascunho';
       this.p1 = {
         despachanteId: item.despachanteId,
         importadorId:  item.importadorId,
@@ -883,6 +946,7 @@ export class CustoDespachanteComponent implements OnInit {
         aliIcms: nv.aliIcms, baseCalculo: nv.baseCalculo
       }));
     } else {
+      this.wizardStatus = 'Rascunho';
       this.p1 = {
         despachanteId: '', importadorId: '', portoOrigemId: '', portoDestinoId: '',
         responsavel: '', data: this.todayStr(), tamContainer: '40', peso: 0,
@@ -902,7 +966,8 @@ export class CustoDespachanteComponent implements OnInit {
 
   cancelWizard(): void { this.showWizard = false; this.editing = null; }
 
-  salvarTudo(): void {
+  salvarTudo(status: StatusCustoDespachante = 'Rascunho'): void {
+    if (!this.validateP1()) return;
     const data = {
       despachanteId:  this.p1.despachanteId,
       importadorId:   this.p1.importadorId,
@@ -920,7 +985,8 @@ export class CustoDespachanteComponent implements OnInit {
       taxaUsd:        this.p1.taxaUsd || 0,
       taxaUsdAgente:  this.p1.taxaUsdAgente,
       observacao:     this.p1.observacao.trim() || undefined,
-      solicitacaoOrcamentoId: this.p1.solicitacaoOrcamentoId || undefined
+      solicitacaoOrcamentoId: this.p1.solicitacaoOrcamentoId || undefined,
+      status
     };
 
     let custoId: string;
@@ -955,6 +1021,15 @@ export class CustoDespachanteComponent implements OnInit {
       const valor = this.calculator.calcularImpostos(nv);
       this.service.saveValorImposto(valor);
     });
+
+    // Se finalizado e vinculado a uma solicitação, atualiza status do despachante
+    if (status === 'Finalizado' && this.p1.solicitacaoOrcamentoId) {
+      const despachantes = this.solicitacaoSvc.getDespachantes(this.p1.solicitacaoOrcamentoId);
+      const linked = despachantes.find(d => d.despachanteId === this.p1.despachanteId);
+      if (linked && linked.status !== 'FinalizadoDespachante') {
+        this.solicitacaoSvc.updateDespachante({ ...linked, status: 'FinalizadoDespachante' });
+      }
+    }
 
     this.cancelWizard();
     this.load();

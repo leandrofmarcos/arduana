@@ -50,14 +50,14 @@ import { DespesaCadastroService } from '../../features/cadastros/despesas-cadast
             <a routerLink="/solicitacoes" routerLinkActive="active">
               <span class="icon">📋</span><span>Solicitações</span>
             </a>
-            <a routerLink="/embarques" routerLinkActive="active">
-              <span class="icon">🚢</span><span>Embarques</span>
-            </a>
             <a routerLink="/custos" routerLinkActive="active">
               <span class="icon">🧾</span><span>Custos (Despachante)</span>
             </a>
             <a routerLink="/orcamentos-venda" routerLinkActive="active">
               <span class="icon">💼</span><span>Orçamentos de Venda</span>
+            </a>
+            <a routerLink="/embarques" routerLinkActive="active">
+              <span class="icon">🚢</span><span>Embarques</span>
             </a>
           </div>
 

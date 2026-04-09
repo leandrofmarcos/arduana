@@ -1,3 +1,5 @@
+export type StatusCustoDespachante = 'Rascunho' | 'Finalizado';
+
 export interface CustoDespachante {
   id: string;
   codigoInterno: string;          // CD-AAAA-NNN
@@ -18,6 +20,7 @@ export interface CustoDespachante {
   data: string;                   // ISO YYYY-MM-DD
   observacao?: string;
   solicitacaoOrcamentoId?: string; // FK opcional — pré-preenchido ao vir de uma solicitação
+  status: StatusCustoDespachante;
 }
 
 export interface CustoDespachanteLi {
