@@ -1,9 +1,9 @@
 ﻿# Plano de Construção — Sistema Aduana V2
 
-**Versão:** 2.1  
-**Data:** 01 de Abril de 2026  
+**Versão:** 2.4  
+**Data:** 09 de Abril de 2026  
 **Autor:** Equipe de Desenvolvimento  
-**Status:** Em Execução — Revisão pós-implementação
+**Status:** Em Execução — Revisão de relacionamentos v2.4
 
 ---
 
@@ -17,6 +17,7 @@
 6. [Roadmap de Execução](#6-roadmap-de-execução)
 7. [Glossário de Termos](#7-glossário-de-termos)
 8. [Revisão da Implementação — Notas Técnicas e Divergências](#8-revisão-da-implementação--notas-técnicas-e-divergências)
+9. [Nova Entidade: SolicitacaoOrcamento](#9-nova-entidade-solicitacaoorcamento)
 
 ---
 
@@ -40,11 +41,26 @@ O novo sistema (V2) é construído **do zero** sob a pasta `import-costs/src/app
 
 ### 1.3 Objetivo do Novo Modelo
 
-Sair de um modelo **"orçamento-centric"** para um modelo **"processo-centric"**, com separação clara entre:
+Sair de um modelo **"orçamento-centric"** para um modelo **"processo-centric"**, com a **Solicitação como processo maior** que agrega e origina tudo:
 
-- **Custo Interno** — `CustoDespachante` (cálculo do despachante, independente do cliente)
-- **Orçamento de Venda** — `OrcamentoVenda` (proposta comercial ao cliente, baseada no custo)
-- **Processo de Embarque** — `EmbarqueAduana` (operação logística com rastreamento de status)
+```
+SolicitacaoOrcamento  ←  PROCESSO RAIZ
+├── N × SolicitacaoOrcamentoDespachante
+│       └── cada um origina 1 CustoDespachante (custo do despachante)
+│               └── status: Rascunho → Finalizado
+│               └── CustoDespachanteLi / Despesas / NCM / Impostos
+├── N × SolicitacaoOrcamentoDocumento  (packlist, proforma, etc.)
+└── 1 × OrcamentoVenda  (proposta comercial — pertence à solicitação)
+        ├── N × OrcamentoVendaCusto  (junction: consolida N custos)
+        └── 1 × EmbarqueAduana  (operação logística)
+```
+
+Separação clara de responsabilidades:
+
+- **Solicitação** — `SolicitacaoOrcamento` (⭐ PROCESSO RAIZ — registra a demanda de cotação, distribui para N despachantes e centraliza documentos e a proposta final)
+- **Custo Interno** — `CustoDespachante` (cálculo técnico do despachante, originado por uma solicitação; status: `Rascunho` → `Finalizado`)
+- **Orçamento de Venda** — `OrcamentoVenda` (proposta comercial ao cliente, **pertence à solicitação** e consolida N custos de despachantes via junction)
+- **Processo de Embarque** — `EmbarqueAduana` (operação logística vinculada ao orçamento de venda)
 
 ### 1.4 Benefícios
 
@@ -98,48 +114,51 @@ V1 (Legacy):
 ## 3. Entidades do Novo Sistema
 
 ```
-V2:
+V2 — Árvore de entidades (hierarquia de negócio)
+
+SolicitacaoOrcamento  ← PROCESSO RAIZ (processo maior)
+├── SolicitacaoOrcamentoDespachante  (1 por despachante consultado)
+│       └── origina 1 × CustoDespachante  (status: Rascunho → Finalizado)
+│               ├── CustoDespachanteLi
+│               ├── CustoDespachanteDespesa
+│               ├── NcmVinculadoOrcamento
+│               └── ValorImposto
+├── SolicitacaoOrcamentoDocumento    (packlist, proforma, etc.)
+└── OrcamentoVenda                   (proposta comercial — pertence à solicitação)
+        ├── OrcamentoVendaCusto  (junction N:N com CustoDespachante)
+        ├── OrcamentoVendaDespesa
+        ├── OrcamentoVendaDespesaExtra
+        └── EmbarqueAduana
+                ├── HistoricoStatusEmbarque
+                ├── FreeTimeEmbarque
+                └── PagamentoProcesso
+
+─── Entidades de suporte ───────────────────────────────────────
 ├── 1. SEGURANÇA
 │   ├── Cargo
 │   ├── NivelAcesso
-│   └── Usuario (estende auth existente)
+│   └── Usuario (auth)
 │
 ├── 2. CADASTROS BASE
 │   ├── Cliente
-│   ├── Importador            ⭐ NOVO
+│   ├── Importador
 │   ├── Despachante
-│   ├── Exportador            ⭐ NOVO
-│   ├── AgenteCarga           ⭐ NOVO
-│   ├── CadastroFabricante    ⭐ NOVO
-│   ├── PortoOrigem           ⭐ separado
-│   ├── PortoDestino          ⭐ separado
-│   ├── Ncm                   ⭐ NOVO
-│   └── ListaPrecoLcl         ⭐ NOVO
+│   ├── Exportador
+│   ├── AgenteCarga
+│   ├── CadastroFabricante
+│   ├── PortoOrigem
+│   ├── PortoDestino
+│   ├── Ncm
+│   └── ListaPrecoLcl
 │
-├── 3. CONTROLE LOGÍSTICO     ⭐ NOVO
+├── 3. CONTROLE LOGÍSTICO
 │   ├── ControleNavio
 │   └── ControleNavioTrajeto
 │
-├── 4. CUSTO INTERNO          ⭐ REESTRUTURADO
-│   ├── CustoDespachante
-│   ├── CustoDespachanteLi
-│   ├── CustoDespachanteDespesa
-│   ├── NcmVinculadoOrcamento
-│   └── ValorImposto
+├── 4. ADUANA / STATUS
+│   └── StatusEmbarque        (seed de sistema — 7 status fixos)
 │
-├── 5. COMERCIAL              ⭐ REESTRUTURADO
-│   ├── OrcamentoVenda
-│   ├── OrcamentoVendaDespesa
-│   └── OrcamentoVendaDespesaExtra
-│
-├── 6. OPERAÇÃO               ⭐ REESTRUTURADO
-│   ├── EmbarqueAduana
-│   ├── StatusEmbarque        ⭐ NOVO
-│   ├── HistoricoStatusEmbarque ⭐ NOVO
-│   ├── FreeTimeEmbarque      ⭐ NOVO
-│   └── PagamentoProcesso     ⭐ NOVO
-│
-└── 7. DOCUMENTOS             ⭐ NOVO
+└── 5. DOCUMENTOS
     ├── TipoDocumento
     ├── Documento
     └── DocumentoVinculo
@@ -175,6 +194,7 @@ import-costs/src/app/v2/
     │   ├── cargos/
     │   └── niveis-acesso/
     ├── controle-navio/
+    ├── solicitacao-orcamento/
     ├── custo-despachante/
     ├── orcamento-venda/
     ├── embarque-aduana/
@@ -251,6 +271,11 @@ export const keysV2 = {
   orcamentosVenda:    'v2_orcamentos_venda',
   orcDespesas:        'v2_orc_despesas',
   orcExtras:          'v2_orc_extras',
+  orcCustos:          'v2_orc_custos',           // OrcamentoVendaCusto (junction)
+  // Solicitação de Orçamento
+  solicitacoes:             'v2_solicitacoes_orcamento',
+  solicitacaoDespachantes:  'v2_solicitacao_despachantes',
+  solicitacaoDocumentos:    'v2_solicitacao_documentos',
   // Operação
   embarques:          'v2_embarques',
   statusEmbarque:     'v2_status_embarque',
@@ -314,7 +339,7 @@ Inspirado no `ShellComponent` V1 mas com o menu V2.
 | Grupo | Itens |
 |---|---|
 | **Principal** | Dashboard |
-| **Operação** | Embarques, Custos (CustoDespachante), Orçamentos de Venda |
+| **Operação** | Solicitações, Custos (Despachante), Orçamentos de Venda, Embarques |
 | **Logística** | Controle de Navios |
 | **Cadastros** | Portos Origem, Portos Destino, Clientes, Importadores, Exportadores, Agentes de Carga, Fabricantes, NCM, Lista Preço LCL, Despachantes |
 | **Administração** | Cargos, Níveis de Acesso |
@@ -538,6 +563,8 @@ O formulário do navio inclui uma seção inline para adicionar/remover trajetó
 #### Modelo de Dados
 
 ```typescript
+export type StatusCustoDespachante = 'Rascunho' | 'Finalizado'; // ⭐ v2.4
+
 export interface CustoDespachante {
   id: string;
   codigoInterno: string;          // gerado: CD-AAAA-NNN
@@ -557,6 +584,8 @@ export interface CustoDespachante {
   tamContainer: string;           // '20' | '40' | 'LCL'
   data: string;                  // ISO 8601 ⚠️ documentado como Date
   observacao?: string;
+  solicitacaoOrcamentoId?: string; // FK — pré-preenchido ao vir de uma solicitação
+  status: StatusCustoDespachante; // ⭐ v2.4 — Rascunho (em elaboração) | Finalizado (pronto para OV)
 }
 
 export interface CustoDespachanteLi {
@@ -659,7 +688,8 @@ export interface OrcamentoVenda {
   id: string;
   codigoInterno: string;          // OV-AAAA-NNN
   clienteId: string;
-  custoDespachanteId: string;     // base do orçamento
+  solicitacaoOrcamentoId?: string; // ⭐ v2.4 — FK à solicitação de origem
+  custoDespachanteId?: string;    // mantido como opcional (retrocompatibilidade com dados antigos)
   data: Date;
   tamContainer: string;
   pesoBruto: number;
@@ -1227,6 +1257,403 @@ O gráfico **"Embarques por Status"** mostrará:
 
 ---
 
+### 📦 ETAPA 11: Cadastro de Despesas e Modelos de Despesas
+**Duração:** 3-4 dias  
+**Objetivo:** Criar um catálogo reutilizável de despesas aduaneiras e agrupá-las em modelos pré-definidos, agilizando o preenchimento de custos e orçamentos
+
+#### Justificativa
+
+Na composição de um custo de desembaraço, as despesas seguem padrão por tipo de operação. Manter um catálogo de despesas frequentes e modelos reutilizáveis evita digitação repetitiva e garante consistência nos valores aplicados.
+
+#### Modelo de Dados
+
+```typescript
+export type CategoriaDespesa =
+  | 'Agência Marítima'
+  | 'Despachante'
+  | 'Tributos'
+  | 'Portos'
+  | 'Outras Despesas';
+
+export interface DespesaCadastro {
+  id: string;
+  descricao: string;
+  valor: number;           // valor de referência/sugestão (editável por operação)
+  categoria: CategoriaDespesa;
+  ativo: boolean;
+}
+
+export interface ModeloDespesa {
+  id: string;
+  nome: string;
+  descricao?: string;
+  ativo: boolean;
+}
+
+export interface ModeloDespesaItem {
+  id: string;
+  modeloDespesaId: string;
+  despesaCadastroId: string;
+}
+```
+
+#### Storage Keys
+
+| Key | Storage | Tipo de Seed |
+|---|---|---|
+| `keysV2.despesasCadastro` | `v2_despesas_cadastro` | **Sistema** (carregado via `DespesaCadastroService.initSeed()`) |
+| `keysV2.modelosDespesa` | `v2_modelos_despesa` | **Demo** (via `SeedDemoService.carregarSeedDemo()`) |
+| `keysV2.modelosDespesaItens` | `v2_modelos_despesa_itens` | **Demo** (via `SeedDemoService.carregarSeedDemo()`) |
+
+---
+
+#### Seed de Sistema — Catálogo de Despesas (20 itens)
+
+Baseado na planilha de desembaraço vigente (Ref. V3 — Despesas no Desembaraço / Valores Estimados).
+
+**Agência Marítima (6 itens)**
+
+| ID | Descrição | Valor |
+|---|---|---|
+| DC-001 | Desconsolidação | R$ 1.280,00 |
+| DC-002 | Liberação de B/L | R$ 900,00 |
+| DC-003 | THC | R$ 1.450,00 |
+| DC-004 | ISPS | R$ 100,00 |
+| DC-005 | LOG FEE / TRS / IMP. LOG. FEE / TELEX FEE / IOF | R$ 2.440,00 |
+| DC-006 | Lift Off | R$ 330,00 |
+
+**Despachante (5 itens)**
+
+| ID | Descrição | Valor |
+|---|---|---|
+| DC-007 | Honorários Despachante | R$ 3.000,00 |
+| DC-008 | Honorários Trading | R$ 17.000,00 |
+| DC-009 | S.D.A. | R$ 600,00 |
+| DC-010 | Taxa de Expediente | R$ 500,00 |
+| DC-011 | Taxa Emissão de L.I. | R$ 0,00 |
+
+**Tributos (4 itens)**
+
+| ID | Descrição | Valor |
+|---|---|---|
+| DC-012 | AFRMM + Taxa Sistema Mercante | R$ 3.848,00 |
+| DC-013 | TUS - Taxa de Utilização do Siscomex | R$ 244,00 |
+| DC-014 | Siscoserv | R$ 0,00 |
+| DC-015 | Outras Despesas de Origem | R$ 0,00 |
+
+**Portos (1 item)**
+
+| ID | Descrição | Valor |
+|---|---|---|
+| DC-016 | Armazenagem | R$ 5.200,00 |
+
+**Outras Despesas (4 itens)**
+
+| ID | Descrição | Valor |
+|---|---|---|
+| DC-017 | Frete Marítimo | R$ 0,00 |
+| DC-018 | Outras Despesas | R$ 3.500,00 |
+| DC-019 | Impostos de Saída (PIS e COFINS) | R$ 25.264,00 |
+| DC-020 | Frete Rodoviário Interno | R$ 5.800,00 |
+
+> **Referência de totais (planilha Desembaraço V3):**  
+> Subtotal despesas com desembaraço: **R$ 65.656,00** | Frete rodoviário interno: R$ 5.800,00 | **Total geral: R$ 71.456,00**
+
+---
+
+#### Seed Demo — Modelos de Despesas (3 modelos)
+
+**Modelo 1 — Desembaraço Padrão FCL**
+
+> Modelo completo com as despesas padrão de uma importação FCL. Não inclui Honorários Trading, Siscoserv e despesas zeradas.
+
+| # | ID | Descrição | Categoria | Valor |
+|---|---|---|---|---|
+| 1 | DC-001 | Desconsolidação | Agência Marítima | R$ 1.280,00 |
+| 2 | DC-002 | Liberação de B/L | Agência Marítima | R$ 900,00 |
+| 3 | DC-003 | THC | Agência Marítima | R$ 1.450,00 |
+| 4 | DC-004 | ISPS | Agência Marítima | R$ 100,00 |
+| 5 | DC-005 | LOG FEE / TRS / IMP. LOG. FEE / TELEX FEE / IOF | Agência Marítima | R$ 2.440,00 |
+| 6 | DC-006 | Lift Off | Agência Marítima | R$ 330,00 |
+| 7 | DC-007 | Honorários Despachante | Despachante | R$ 3.000,00 |
+| 8 | DC-009 | S.D.A. | Despachante | R$ 600,00 |
+| 9 | DC-010 | Taxa de Expediente | Despachante | R$ 500,00 |
+| 10 | DC-012 | AFRMM + Taxa Sistema Mercante | Tributos | R$ 3.848,00 |
+| 11 | DC-013 | TUS - Taxa de Utilização do Siscomex | Tributos | R$ 244,00 |
+| 12 | DC-016 | Armazenagem | Portos | R$ 5.200,00 |
+| 13 | DC-018 | Outras Despesas | Outras Despesas | R$ 3.500,00 |
+
+> **Total do modelo: R$ 23.392,00**
+
+---
+
+**Modelo 2 — Agência Marítima + Despachante**
+
+> Modelo parcial com agência e honorários. Adequado para cotações iniciais sem tributos e armazenagem.
+
+| # | ID | Descrição | Categoria | Valor |
+|---|---|---|---|---|
+| 1 | DC-001 | Desconsolidação | Agência Marítima | R$ 1.280,00 |
+| 2 | DC-002 | Liberação de B/L | Agência Marítima | R$ 900,00 |
+| 3 | DC-003 | THC | Agência Marítima | R$ 1.450,00 |
+| 4 | DC-004 | ISPS | Agência Marítima | R$ 100,00 |
+| 5 | DC-007 | Honorários Despachante | Despachante | R$ 3.000,00 |
+| 6 | DC-008 | Honorários Trading | Despachante | R$ 17.000,00 |
+
+> **Total do modelo: R$ 23.730,00**
+
+---
+
+**Modelo 3 — Simplificado (Agência Marítima Básica)**
+
+> Modelo mínimo para cotações rápidas. Apenas as taxas portuárias essenciais da agência marítima.
+
+| # | ID | Descrição | Categoria | Valor |
+|---|---|---|---|---|
+| 1 | DC-001 | Desconsolidação | Agência Marítima | R$ 1.280,00 |
+| 2 | DC-002 | Liberação de B/L | Agência Marítima | R$ 900,00 |
+| 3 | DC-003 | THC | Agência Marítima | R$ 1.450,00 |
+| 4 | DC-006 | Lift Off | Agência Marítima | R$ 330,00 |
+
+> **Total do modelo: R$ 3.960,00**
+
+---
+
+#### Interface das Telas
+
+**Tela 1 — Cadastro de Despesas (CRUD simples)**
+
+```
+┌─ Cadastro de Despesas ────────────────────────────────────┐
+│  [+ Nova Despesa]                    [Buscar...][Cat. ▼]  │
+│                                                            │
+│  Descrição                     Categoria        Valor  ✓  │
+│  Desconsolidação               Agência Marítima 1.280  ✓  │
+│  THC                           Agência Marítima 1.450  ✓  │
+│  Honorários Despachante        Despachante      3.000  ✓  │
+│  AFRMM + Taxa Sistema Mercante Tributos         3.848  ✓  │
+│  Armazenagem                   Portos           5.200  ✓  │
+│  Outras Despesas               Outras Despesas  3.500  ✓  │
+│  ...                                            [✏️][🗑️] │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Tela 2 — Modelos de Despesas (lista expansível + form inline)**
+
+```
+┌─ Modelos de Despesas ─────────────────────────────────────┐
+│  [+ Novo Modelo]                                           │
+│                                                            │
+│  ▼ Desembaraço Padrão FCL   13 itens  R$ 23.392  [✏️][🗑️]│
+│  │  Desconsolidação         Agência Marítima  R$ 1.280    │
+│  │  THC                     Agência Marítima  R$ 1.450    │
+│  │  Honorários Despachante  Despachante       R$ 3.000    │
+│  │  ...                                                   │
+│                                                            │
+│  ▶ Agência + Despachante     6 itens  R$ 23.730  [✏️][🗑️]│
+│  ▶ Simplificado              4 itens  R$ 3.960   [✏️][🗑️]│
+└────────────────────────────────────────────────────────────┘
+
+[Modal Novo/Editar Modelo]
+┌─────────────────────────────────────────────────────┐
+│  Nome:       [Desembaraço Padrão FCL______________]  │
+│  Descrição:  [___________________________________]   │
+│                                                      │
+│  Despesas vinculadas:      [+ Adicionar] [Cat. ▼]   │
+│  ● Desconsolidação      Agência Mar.  R$ 1.280  [🗑️]│
+│  ● THC                  Agência Mar.  R$ 1.450  [🗑️]│
+│  ● Honor. Despachante   Despachante   R$ 3.000  [🗑️]│
+│                                                      │
+│  Total: R$ 5.730,00                                  │
+│  [Salvar]  [Cancelar]                                │
+└──────────────────────────────────────────────────────┘
+```
+
+#### Checklist da Etapa 11
+
+- [ ] `DespesaCadastro`: CRUD completo (lista com filtro por categoria + form)
+- [ ] `ModeloDespesa`: lista expansível com CRUD + form com itens inline
+- [ ] `ModeloDespesaItem`: seleção de despesas cadastradas no form do modelo
+- [ ] Totalizador automático no form de modelo (soma dos valores vinculados)
+- [ ] Filtro por categoria na lista de despesas
+- [ ] `DespesaCadastroService.initSeed()` cria as 20 despesas se não existirem
+- [ ] `DespesaCadastroService.initSeed()` chamado em `ShellV2Component.ngOnInit()`
+- [ ] `SeedDemoService.carregarSeedDemo()` cria os 3 modelos demo com seus itens
+- [ ] Storage keys `despesasCadastro`, `modelosDespesa`, `modelosDespesaItens` adicionadas em `keysV2`
+- [ ] Telas acessíveis pelo menu em "Cadastros"
+- [ ] Build sem erros
+
+---
+
+### 📦 ETAPA 12: SolicitacaoOrcamento (Ponto de Entrada do Processo)
+**Duração:** 4-5 dias  
+**Objetivo:** Criar a entidade que inicia o fluxo completo — uma solicitação de cotação enviada a N despachantes, que ao ser respondida gera os CustosDespachante e posteriormente o OrcamentoVenda
+
+#### Contexto e Motivação
+
+Antes desta etapa, o fluxo começava diretamente em `CustoDespachante`. Isso criava dois problemas:
+1. Não havia registro formal de **quem pediu qual cotação** e **para quais despachantes**
+2. `OrcamentoVenda` era vinculado a apenas **1** `CustoDespachante`, impossibilitando comparar propostas de múltiplos despachantes em um único orçamento
+
+`SolicitacaoOrcamento` resolve ambos: é o ponto de entrada que agrega a demanda, distribui para N despachantes, e permite que o `OrcamentoVenda` consolide as respostas de múltiplos custos.
+
+#### Fluxo Macro
+
+```
+SolicitacaoOrcamento  ← PROCESSO RAIZ
+    │
+    ├── SolicitacaoOrcamentoDespachante (1 por despachante envolvido)
+    │       └── status: PendenteDespachante → FinalizadoDespachante | Respondido | Recusado
+    │
+    ├── SolicitacaoOrcamentoDocumento (packlist, proforma, etc.)
+    │
+    ├── [pré-preenche] → CustoDespachante (1 por despachante que responde)
+    │       status: Rascunho → Finalizado
+    │       (ao Finalizar: SolicitacaoOrcamentoDespachante.status → FinalizadoDespachante)
+    │
+    └── OrcamentoVenda (pertence à solicitação via solicitacaoOrcamentoId)
+              │
+              ├── [N:M, via OrcamentoVendaCusto] → referencia N CustoDespachante
+              └── [1:1] → EmbarqueAduana
+```
+
+#### Modelo de Dados
+
+```typescript
+export type StatusSolicitacao = 'Aberta' | 'EmAnalise' | 'Aprovada' | 'Cancelada';
+export type StatusSolicitacaoDespachante = 'Pendente' | 'Respondido' | 'Recusado';
+
+export interface SolicitacaoOrcamento {
+  id: string;
+  codigoInterno: string;        // SOL-AAAA-NNN
+  clienteId?: string;           // opcional — pode ser importador ou cliente
+  importadorId?: string;
+  portoOrigemId: string;        // OBRIGATÓRIO
+  portoDestinoId: string;       // OBRIGATÓRIO
+  responsavelId: string;        // usuário logado — OBRIGATÓRIO
+  tamContainer: '20' | '40' | 'LCL';
+  peso: number;
+  observacao?: string;
+  status: StatusSolicitacao;
+  data: string;                 // ISO 8601
+}
+
+export interface SolicitacaoOrcamentoDespachante {
+  id: string;
+  solicitacaoOrcamentoId: string;
+  despachanteId: string;
+  status: StatusSolicitacaoDespachante;
+  dataEnvio: string;            // ISO 8601
+  dataResposta?: string;        // preenchido quando despachante responde
+}
+
+export interface SolicitacaoOrcamentoDocumento {
+  id: string;
+  solicitacaoOrcamentoId: string;
+  nomeArquivo: string;
+  linkDocumento: string;        // URL ou referência ao storage
+  dataUpload: string;           // ISO 8601
+  observacao?: string;
+}
+
+// Atualização: CustoDespachante ganha FK opcional
+export interface CustoDespachante {
+  // ... campos existentes ...
+  solicitacaoOrcamentoId?: string;  // ⭐ NOVO — vínculo à solicitação origem
+}
+
+// Atualização: OrcamentoVenda passa a suportar N custos via junction
+export interface OrcamentoVendaCusto {
+  id: string;
+  orcamentoVendaId: string;
+  custoDespachanteId: string;
+}
+```
+
+#### Impacto em Entidades Existentes
+
+| Entidade | Mudança |
+|---|---|
+| `CustoDespachante` | Adicionar campo `solicitacaoOrcamentoId?: string` (FK opcional) |
+| `OrcamentoVenda` | Campo `custoDespachanteId` substituído por junction `OrcamentoVendaCusto` (1:N) |
+| `keysV2` | Adicionar `solicitacoes`, `solicitacaoDespachantes`, `solicitacaoDocumentos`, `orcCustos` |
+
+#### Interface das Telas
+
+**Tela 1 — Lista de Solicitações**
+
+```
+┌─ Solicitações de Orçamento ────────────────────────────────┐
+│  [+ Nova Solicitação]            [Buscar...] [Status ▼]    │
+│                                                             │
+│  Código     Porto Origem   Porto Destino  Resp.  Status     │
+│  SOL-001    Shanghai       Santos         Ana    Aberta     │
+│  SOL-002    Ningbo         Paranaguá      João   EmAnalise  │
+│  SOL-003    Shanghai       Itajaí         Ana    Aprovada   │
+│             ...                                [✏️][🗑️]    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Tela 2 — Detalhe / Formulário da Solicitação**
+
+```
+┌─ Solicitação: SOL-2026-001 ────────────────────────────────┐
+│  Status: [Aberta ▼]                                         │
+│                                                             │
+│  Porto Origem:    [▼ Shanghai]                              │
+│  Porto Destino:   [▼ Santos]                                │
+│  Importador:      [▼ TechBrasil]                            │
+│  Responsável:     [usuário logado]        Data: [hoje]      │
+│  Container:       [▼ 40]   Peso: [____] kg                  │
+│  Observação:      [__________________________________]      │
+│                                                             │
+│  ┌─ Despachantes ──────────────────────────────────────┐    │
+│  │  [+ Adicionar Despachante]                          │    │
+│  │  Costa & Assoc.   Enviado  01/04  Respondido  [🗑️] │    │
+│  │  Logística Brasil Enviado  01/04  Pendente    [🗑️] │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  ┌─ Documentos Anexos ─────────────────────────────────┐    │
+│  │  [+ Anexar Link]                                    │    │
+│  │  Proforma Invoice  http://...  02/04         [🗑️]  │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  [💼 Gerar CustoDespachante]   [Salvar]  [Cancelar]        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+> Botão **"Gerar CustoDespachante"** cria um novo custo pré-preenchido com `portoOrigemId`, `portoDestinoId`, `importadorId`, `tamContainer`, `peso` e `solicitacaoOrcamentoId` da solicitação.
+
+#### Comportamento ao Criar OrcamentoVenda
+
+O seletor de custo base no `OrcamentoVenda` passa a permitir **múltipla seleção** — o usuário pode escolher custos de diferentes despachantes para comparar. A junction `OrcamentoVendaCusto` registra quais custos foram selecionados.
+
+#### Código Interno
+
+Formato: `SOL-2026-001`
+
+#### Checklist da Etapa 12
+
+- [x] `SolicitacaoOrcamento`: CRUD completo (lista + formulário com despachantes e documentos)
+- [x] `SolicitacaoOrcamentoDespachante`: adição/remoção inline no form; atualização de status
+- [x] `SolicitacaoOrcamentoDocumento`: adição/remoção inline de links de documento
+- [x] Botão "Gerar CustoDespachante" pré-preenchendo campos da solicitação
+- [x] `CustoDespachante` — campo `solicitacaoOrcamentoId` persistido no storage
+- [x] `CustoDespachante` — campo `status: StatusCustoDespachante` (Rascunho/Finalizado) com botões em todas as etapas do wizard
+- [x] `StatusSolicitacaoDespachante` — adicionado `FinalizadoDespachante` (custo finalizado pelo despachante)
+- [x] `OrcamentoVendaCusto` criada e persistida
+- [x] `OrcamentoVenda` — campo `solicitacaoOrcamentoId?` FK à solicitação de origem
+- [x] `OrcamentoVenda` — seletor de custo base aceita N custos via `OrcamentoVendaCusto`
+- [x] Solicitação exibe tabela de despachantes com custo gerado + status do custo (somente-leitura)
+- [x] Botão de remover despachante desabilitado quando custo já foi gerado
+- [x] Status do despachante preservado no re-save da solicitação (`liveStatuses` map)
+- [x] `keysV2` atualizado com 4 novas chaves
+- [x] Rota `solicitacao-orcamento` no menu "Operação"
+- [x] Código automático `SOL-AAAA-NNN`
+- [x] Build sem erros
+
+---
+
 ## 6. Roadmap de Execução
 
 ```
@@ -1261,16 +1688,34 @@ SEMANA 9 (fim)
   ✅ Etapa 9 — Dashboard Real  [CONCLUÍDO]
 
 SEMANA 10
-  ⏳ Etapa 10 — Seed de Dados para Apresentação  [PENDENTE]
+  ✅ Etapa 10 — Seed de Dados para Apresentação  [CONCLUÍDO]
+
+SEMANA 11
+  ⏳ Etapa 11 — Cadastro de Despesas e Modelos de Despesas  [PENDENTE]
+
+SEMANA 12
+  ✅ Etapa 12 — SolicitacaoOrcamento (Ponto de Entrada do Processo)  [CONCLUÍDO]
+  ⚠️ Pendênte: FK `solicitacaoOrcamentoId` em OrcamentoVenda ainda não é gravado pelo form (preenchimento manual via seed)
 ```
 
 ### Marco: Sistema V2 Completo ✅
 
 Ao final da Semana 9, o sistema V2 está construído. Todas as funcionalidades implementadas e build verificado com sucesso.
 
-### Marco: Sistema V2 Pronto para Apresentação ⏳
+### Marco: Sistema V2 Pronto para Apresentação ✅
 
-Após a Etapa 10, o sistema terá dados demo realistas que demonstram o valor completo do produto em qualquer apresentação.
+A Etapa 10 foi concluída. O sistema conta com dados demo realistas e o dashboard exibe todos os KPIs com valores corretos.
+
+### Marco: Etapa 11 — Cadastro de Despesas ⏳
+
+Após a Etapa 11, o sistema terá um catálogo de despesas aduaneiras e modelos reutilizáveis para otimizar o preenchimento de custos.
+
+### Marco: Etapa 12 — SolicitacaoOrcamento como Processo Raiz ✅
+
+Etapa 12 concluída. `SolicitacaoOrcamento` implementada como processo maior, gerando N `CustoDespachante` e centralizando o `OrcamentoVenda`. Status lifecycle completo: `Rascunho → Finalizado` (custo) + `FinalizadoDespachante` (despachante na solicitação). `OrcamentoVenda` recebe `solicitacaoOrcamentoId` como FK direta à solicitação de origem.
+
+**Pendente de implementação downstream:**
+- Preenchimento automático de `OrcamentoVenda.solicitacaoOrcamentoId` pelo formulário de criação de OV
 
 ---
 
@@ -1278,9 +1723,14 @@ Após a Etapa 10, o sistema terá dados demo realistas que demonstram o valor co
 
 | Termo | Significado |
 |---|---|
-| **CustoDespachante** | Custo interno calculado pelo despachante, base para orçamentos |
-| **OrcamentoVenda** | Proposta comercial ao cliente, construída sobre um CustoDespachante |
-| **EmbarqueAduana** | Processo operacional de importação, vincula custo e orçamento |
+| **SolicitacaoOrcamento** | **Processo raiz** (processo maior) — solicita cotação a N despachantes, centraliza documentos, origina N CustoDespachante e 1 OrcamentoVenda |
+| **SolicitacaoOrcamentoDespachante** | Junction que associa uma solicitação a um despachante específico, com rastreamento de status (PendenteDespachante → FinalizadoDespachante → Respondido \| Recusado) |
+| **SolicitacaoOrcamentoDocumento** | Anexo/link de documento vinculado a uma solicitação de orçamento |
+| **OrcamentoVendaCusto** | Junction que associa um `OrcamentoVenda` a um ou mais `CustoDespachante` |
+| **CustoDespachante** | Custo interno calculado pelo despachante, originado por solicitação; status: `Rascunho` \| `Finalizado` |
+| **OrcamentoVenda** | Proposta comercial ao cliente, **pertence à SolicitacaoOrcamento** via `solicitacaoOrcamentoId`; consolida N custos via OrcamentoVendaCusto |
+| **StatusCustoDespachante** | `Rascunho` (em elaboração) \| `Finalizado` (pronto — ao finalizar, SolicitacaoOrcamentoDespachante muda para FinalizadoDespachante) |
+| **EmbarqueAduana** | Processo operacional de importação, vinculado ao OrcamentoVenda |
 | **LI** | Licença de Importação |
 | **NCM** | Nomenclatura Comum do Mercosul — código de classificação de mercadoria |
 | **ETD** | Estimated Time of Departure — data prevista de saída do navio |
@@ -1294,6 +1744,11 @@ Após a Etapa 10, o sistema terá dados demo realistas que demonstram o valor co
 | **FCL** | Full Container Load — contêiner completo |
 | **V1 / Legacy** | Sistema anterior, acessível em `/legacy`, congelado |
 | **V2** | Novo sistema sendo construído neste plano |
+| **DespesaCadastro** | Catálogo de despesas aduaneiras com valor de referência por categoria |
+| **ModeloDespesa** | Agrupamento de despesas cadastradas em um template reutilizável |
+| **ModeloDespesaItem** | Vínculo entre um `ModeloDespesa` e uma `DespesaCadastro` |
+| **CategoriaDespesa** | Classificação da despesa: Agência Marítima, Despachante, Tributos, Portos, Outras Despesas |
+| **SOL** | Prefixo dos códigos de solicitação de orçamento (SOL-AAAA-NNN) |
 
 ---
 
@@ -1318,10 +1773,74 @@ Impacta: `ControleNavioTrajeto`, `CustoDespachante`, `CustoDespachanteLi`, `Emba
 
 O plano especificava `usuarioResponsavelId: string` (FK para entidade `Usuario`). Como a entidade `Usuario` não foi desenvolvida no V2, o campo foi implementado como `responsavel: string` (nome em texto livre).
 
+**`SolicitacaoOrcamento.ResponsavelId` → `responsavel: string`**
+
+O diagrama original mostrava `ResponsavelId` como FK de `Usuario`. Na implementação real é `responsavel: string` (texto livre), sem vínculo com entidade Usuario.
+
 | Modelo | Plano Original | Implementado |
 |---|---|---|
 | `CustoDespachante` | `usuarioResponsavelId: string` | `responsavel: string` |
+| `SolicitacaoOrcamento` | `responsavelId: string` (FK) | `responsavel: string` |
 | `EmbarqueAduana` | `usuarioResponsavelId: string` | `usuarioResponsavelId: string` *(mantido — preenchido com ID do auth)* |
+
+**`StatusSolicitacaoDespachante` — adicionado `FinalizadoDespachante`**
+
+O plano original definia os status: `Pendente | Respondido | Recusado`. A implementação adicionou `FinalizadoDespachante` para representar o momento em que o despachante finaliza o preenchimento do custo (transicionando dentro do ciclo custo):
+
+```typescript
+// Plano original:
+type StatusSolicitacaoDespachante = 'PendenteDespachante' | 'Respondido' | 'Recusado';
+
+// Implementado (v2.4):
+type StatusSolicitacaoDespachante = 'PendenteDespachante' | 'FinalizadoDespachante' | 'Respondido' | 'Recusado';
+// FinalizadoDespachante = CustoDespachante foi finalizado pelo despachante
+```
+
+**`CustoDespachante` ganha campo `status: StatusCustoDespachante`**
+
+O plano original não previa um campo de status explicito em `CustoDespachante`. Foi adicionado para controlar o ciclo de elaboração:
+
+```typescript
+export type StatusCustoDespachante = 'Rascunho' | 'Finalizado';
+// Rascunho = em elaboração (wizard salvo parcialmente)
+// Finalizado = custo concluído, pronto para gerar OrcamentoVenda
+// Ao finalizar: StatusSolicitacaoDespachante mãe é atualizada para 'FinalizadoDespachante'
+```
+
+**`OrcamentoVenda` ganha campo `solicitacaoOrcamentoId?: string`**
+
+O plano original não previa FK direta de `OrcamentoVenda` para `SolicitacaoOrcamento`. Como o orçamento de venda **pertence ao processo** (solicitação), foi adicionado o campo de ligação direta (v2.4):
+
+```typescript
+interface OrcamentoVenda {
+  // ...
+  solicitacaoOrcamentoId?: string; // ⭐ FK direta à solicitação de origem (v2.4)
+  custoDespachanteId?: string;     // retrocompatibilidade
+}
+```
+
+> Nota: o preenchimento automático de `solicitacaoOrcamentoId` ao criar o OrcamentoVenda pelo form ainda é pendente; atualmente é gravado via seed.
+
+**`StatusSolicitacao` inclui `'Rascunho'` como status inicial**
+
+O plano original definia os status: `Aberta | EmAnalise | Aprovada | Cancelada`. A implementação adicionou `Rascunho` como **status inicial** ao salvar uma solicitação:
+
+```typescript
+// Plano original:
+type StatusSolicitacao = 'Aberta' | 'EmAnalise' | 'Aprovada' | 'Cancelada';
+
+// Implementado:
+type StatusSolicitacao = 'Rascunho' | 'Aberta' | 'EmAnalise' | 'Aprovada' | 'Cancelada';
+// Rascunho = status ao criar; Aberta = status ao gerar CustoDespachante
+```
+
+**`SolicitacaoOrcamentoDocumento.linkDocumento` armazena nome/path local**
+
+Na implementação, o campo `linkDocumento` recebe o `file.name` (nome do arquivo selecionado via `<input type="file">`). Isso é um placeholder para a integração futura com file upload real (Azure Blob Storage / API). O campo `nomeArquivo` é preenchido automaticamente com o mesmo valor.
+
+**`CustoDespachante.ModeloPacklistId` — não implementado no frontend**
+
+O diagrama original incluía `ModeloPacklistId` como FK em `CustoDespachante`. Este relacionamento não foi implementado; o frontend não possui interface para vincular modelo de packlist ao custo.
 
 **`EmbarqueAduana.custoDespachanteId` e `orcamentoVendaId` tornados opcionais**
 
@@ -1351,9 +1870,10 @@ Definidos como obrigatórios no plano, tornados `string?` na implementação par
 | `NivelAcessoService` | ✅ | `ShellV2Component.ngOnInit()` | 4 níveis |
 | `StatusEmbarqueService` | ✅ | `ShellV2Component.ngOnInit()` | 7 statuses |
 | `TipoDocumentoService` | ✅ | `ShellV2Component.ngOnInit()` | 9 tipos |
-| Dados operacionais (Portos, Clientes, etc.) | ❌ | — | Previsto na **Etapa 10** |
+| `DespesaCadastroService` | ⏳ | `ShellV2Component.ngOnInit()` | 20 despesas *(Etapa 11)* |
+| Dados demo (Portos, Navios, Embarques, etc.) | ✅ | `SeedDemoService.carregarSeedDemo()` | 8 cenários *(Etapa 10)* |
 
-### 8.5 Inventário de Arquivos V2 (59 arquivos)
+### 8.5 Inventário de Arquivos V2 (65+ arquivos)
 
 ```
 v2/
@@ -1373,18 +1893,165 @@ v2/
     │   ├── lista-preco-lcl/   (models/ pages/ services/)
     │   ├── ncm/               (models/ pages/ services/)
     │   ├── portos-destino/    (models/ pages/ services/)
-    │   └── portos-origem/     (models/ pages/ services/)
+    │   ├── portos-origem/     (models/ pages/ services/)
+    │   ├── despesas-cadastro/ (models/ pages/ services/) ⏳ Etapa 11
+    │   └── modelos-despesa/   (models/ pages/ services/) ⏳ Etapa 11
     ├── administracao/
     │   ├── cargos/            (models/ pages/ services/) ✅ seed
     │   └── niveis-acesso/     (models/ pages/ services/) ✅ seed
     ├── logistica/controle-navios/ (models/ pages/ services/)
-    ├── custo-despachante/     (models/ pages/ services/ × 2)
-    ├── orcamento-venda/       (models/ pages/ services/)
-    ├── embarque-aduana/       (models/ pages/ services/ × 2) ✅ seed via Status
-    └── documentos/            (models/ pages/ services/ × 2, components/) ✅ seed
+    ├── solicitacao-orcamento/     (models/ pages/ services/) ✅ — PROCESSO RAIZ
+    ├── custo-despachante/         (models/ pages/ services/ × 2) ✅ status
+    ├── orcamento-venda/           (models/ pages/ services/) ✅ solicitacaoOrcamentoId
+    ├── embarque-aduana/           (models/ pages/ services/ × 2) ✅ seed via Status
+    └── documentos/                (models/ pages/ services/ × 2, components/) ✅ seed
 ```
 
 ---
 
+## 9. Nova Entidade: SolicitacaoOrcamento
+
+Esta seção consolida todas as informações sobre a entidade `SolicitacaoOrcamento` introduzida na versão 2.3.
+
+### 9.1 Posição no Fluxo
+
+`SolicitacaoOrcamento` é o **processo raiz** (processo maior). Antes de existir qualquer `CustoDespachante` ou `OrcamentoVenda`, existe uma solicitação que:
+
+1. Registra o pedido de cotação (cliente/importador, portos, container, peso)
+2. Indica **quais despachantes** foram consultados
+3. Guarda os **documentos de referência** (proforma, invoice, etc.) como links
+4. Pré-preenche o `CustoDespachante` quando o despachante responde
+5. **Centraliza o `OrcamentoVenda`** que é gerado a partir da consolidação dos custos
+
+```
+SolicitacaoOrcamento (processo raiz)
+├── N despachantes → N CustoDespachante
+│       status: Rascunho → Finalizado
+│       (ao Finalizar: SolicitacaoOrcamentoDespachante.status → FinalizadoDespachante)
+├── N documentos (SolicitacaoOrcamentoDocumento)
+└── 1 OrcamentoVenda (pertence à solicitação via solicitacaoOrcamentoId)
+        └── N OrcamentoVendaCusto → referencia N CustoDespachante
+```
+
+### 9.2 Diagrama de Relacionamento
+
+```mermaid
+classDiagram
+    class SolicitacaoOrcamento {
+        +string Id
+        +string CodigoInterno
+        +string ClienteId
+        +string ImportadorId
+        +string PortoOrigemId
+        +string PortoDestinoId
+        +string Responsavel
+        +string TamContainer
+        +decimal Peso
+        +string Observacao
+        +string Status
+        +string Data
+    }
+    %% ⭐ Responsavel = texto livre (não FK de Usuario)
+    %% ⭐ Status: Rascunho(inicial) → Aberta(ao gerar CustoDespachante) → EmAnalise → Aprovada|Cancelada
+
+    class SolicitacaoOrcamentoDespachante {
+        +string Id
+        +string SolicitacaoOrcamentoId
+        +string DespachanteId
+        +string Status
+        +string DataEnvio
+        +string DataResposta
+    }
+
+    class SolicitacaoOrcamentoDocumento {
+        +string Id
+        +string SolicitacaoOrcamentoId
+        +string NomeArquivo
+        +string LinkDocumento
+        +string DataUpload
+        +string Observacao
+    }
+    %% ⭐ LinkDocumento: nome/path local do arquivo (será URL após integração com API/Blob)
+
+    class OrcamentoVendaCusto {
+        +string Id
+        +string OrcamentoVendaId
+        +string CustoDespachanteId
+    }
+
+    SolicitacaoOrcamento "1" --> "*" SolicitacaoOrcamentoDespachante : envia para
+    SolicitacaoOrcamento "1" --> "*" SolicitacaoOrcamentoDocumento : possui (packlist)
+    SolicitacaoOrcamento "1" --> "*" CustoDespachante : origina (1 por despachante)
+    SolicitacaoOrcamento "1" --> "0..1" OrcamentoVenda : centraliza
+    OrcamentoVenda "1" --> "*" OrcamentoVendaCusto : consolida
+    OrcamentoVendaCusto "*" --> "1" CustoDespachante : referencia
+```
+
+### 9.3 Status da Solicitação
+
+| Status | Descrição | Transição |
+|---|---|---|
+| `Rascunho` | Status **inicial** ao criar/salvar uma solicitação | Automático ao salvar |
+| `Aberta` | CustoDespachante gerado — ao menos 1 despachante foi processado | Automático ao acionar "Gerar CustoDespachante" |
+| `EmAnalise` | Enviada a despachantes, aguardando análise | Manual |
+| `Aprovada` | Cotação aceita, OrcamentoVenda gerado | Manual |
+| `Cancelada` | Processo encerrado sem cotação aprovada | Manual |
+
+**Comportamento de geração de CustoDespachante:**
+
+Ao acionar "Gerar CustoDespachante" em uma solicitação com status `Rascunho`:
+1. Para cada despachante na lista da solicitação, cria um `CustoDespachante` vinculado (`solicitacaoOrcamentoId`).
+2. Registros duplicados (mesmo `solicitacaoOrcamentoId + despachanteId`) são ignorados.
+3. O status da solicitação é alterado para `Aberta`.
+4. O usuário é redirecionado para `/custos` (lista de custos do despachante).
+
+### 9.4 Status da Resposta do Despachante
+
+| Status | Descrição |
+|---|---|
+| `PendenteDespachante` | Despachante foi adicionado mas ainda não respondeu |
+| `FinalizadoDespachante` | `CustoDespachante` foi **finalizado** (status Finalizado) pelo despachante — ⭐ v2.4 |
+| `Respondido` | Custo revisado e aceito pelo solicitante |
+| `Recusado` | Despachante recusou ou não pôde atender |
+
+> **Fluxo de status do despachante:** `PendenteDespachante` → o despachante preenche o wizard de custo (status=Rascunho) → ao clicar Finalizar: `CustoDespachante.status = 'Finalizado'` e `SolicitacaoOrcamentoDespachante.status = 'FinalizadoDespachante'`.
+
+### 9.5 Integração com OrcamentoVenda
+
+O `OrcamentoVenda` foi atualizado em v2.4 para ter FK direta à solicitação (**pertence ao processo**):
+
+```typescript
+// v2.4 — OrcamentoVenda pertence à SolicitacaoOrcamento:
+interface OrcamentoVenda {
+  solicitacaoOrcamentoId?: string; // FK direta à solicitação de origem
+  custoDespachanteId?: string;     // retrocompatibilidade com dados antigos
+}
+
+// A ligação com os custos é N:N via junction:
+interface OrcamentoVendaCusto {
+  orcamentoVendaId: string;
+  custoDespachanteId: string;  // Múltiplos custos de despachantes diferentes
+}
+```
+
+**Hierarquia completa de IDs:**  
+`SolicitacaoOrcamento.id` → `OrcamentoVenda.solicitacaoOrcamentoId`  
+`SolicitacaoOrcamento.id` → `CustoDespachante.solicitacaoOrcamentoId`  
+`OrcamentoVenda.id` → `OrcamentoVendaCusto.orcamentoVendaId`  
+`CustoDespachante.id` → `OrcamentoVendaCusto.custoDespachanteId`
+
+> `custoDespachanteId` não foi removido de `OrcamentoVenda` — foi tornado opcional (`?`) para manter compatibilidade com registros anteriores. A lógica de exibição usa `OrcamentoVendaCusto` como fonte primária.
+
+### 9.6 Packlist — Visibilidade no CustoDespachante
+
+Os documentos de packlist cadastrados em uma solicitação ficam acessíveis no `CustoDespachante` vinculado:
+
+- **Localização:** passo 1 do wizard de CustoDespachante, seção "Packlist"
+- **Modo:** somente leitura — o despachante não pode editar os documentos da solicitação
+- **Download:** botão ⬇️ disponível por documento; enquanto não houver API de storage real, exibe alerta informativo
+- **Implementação:** método `packlistDocs(solicitacaoId)` + `downloadPacklist(link, nome)` no componente `CustoDespachanteComponent`, que delega ao `SolicitacaoOrcamentoService.getDocumentos()`
+
+---
+
 **Fim do Documento**  
-*Versão 2.1 — Revisão de 01/04/2026. Etapa 10 em planejamento.*
+*Versão 2.4 — Revisão de 09/04/2026. Relacionamentos revisados: `SolicitacaoOrcamento` documentado como processo raiz (processo maior); `OrcamentoVenda` recebe FK `solicitacaoOrcamentoId` direta à solicitação; `CustoDespachante` documenta campo `status: StatusCustoDespachante`; `StatusSolicitacaoDespachante` documenta `FinalizadoDespachante`; seções 1.3, 3, 5 (Etapas 5 e 6), 6, 8.1, 8.5 e 9 atualizadas. Etapa 12 marcada como CONCLUÍDA.*
