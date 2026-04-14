@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { CRUD_STYLES } from '../../../shared/styles/crud-page.styles';
 import { OrcamentoVenda, OrcamentoVendaDespesa, OrcamentoVendaDespesaExtra, OrcamentoVendaCusto } from '../models/orcamento-venda.models';
 import { OrcamentoVendaService } from '../services/orcamento-venda.service';
@@ -11,7 +12,10 @@ import { ClienteV2 } from '../../cadastros/clientes/models/cliente-v2.models';
 import { PortoOrigemService } from '../../cadastros/portos-origem/services/porto-origem.service';
 import { PortoDestinoService } from '../../cadastros/portos-destino/services/porto-destino.service';
 import { DespachanteV2Service } from '../../cadastros/despachantes/services/despachante-v2.service';
+import { ImportadorService } from '../../cadastros/importadores/services/importador.service';
 import { ImpostoCalculatorService } from '../../custo-despachante/services/imposto-calculator.service';
+import { SolicitacaoOrcamentoService } from '../../solicitacao-orcamento/services/solicitacao-orcamento.service';
+import { SolicitacaoOrcamento } from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
 
 type LinhaForm = { descricao: string; valor: number };
 
@@ -22,23 +26,52 @@ type LinhaForm = { descricao: string; valor: number };
   styles: [
     ...CRUD_STYLES,
     `
-    .custo-search { display:flex; gap:8px; margin-bottom:16px; }
-    .custo-search input { flex:1; padding:8px 12px; border:1.5px solid var(--color-border); border-radius:8px; font-size:13px; background:var(--color-bg); color:var(--color-text); }
-    .custo-card { padding:12px 16px; border:1.5px solid var(--color-border); border-radius:8px; cursor:pointer; background:var(--color-surface); transition:.15s; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; font-size:13px; }
-    .custo-card:hover { border-color:var(--color-primary,#3b82f6); background:var(--color-bg); }
-    .custo-card.selected { border-color:var(--color-primary,#3b82f6); background:#eff6ff; }
-    .custo-card-cod { font-family:monospace; font-weight:700; }
-    .custo-card-info { color:var(--color-text-muted); font-size:12px; }
-    .inline-form-row { display:flex; gap:8px; align-items:end; flex-wrap:wrap; margin-bottom:8px; }
-    .inline-form-row .f { display:flex; flex-direction:column; gap:4px; min-width:120px; flex:1; }
-    .inline-form-row label { font-size:11px; color:var(--color-text-muted); }
-    .inline-form-row input { padding:8px 10px; border:1.5px solid var(--color-border); border-radius:6px; font-size:13px; background:var(--color-bg); color:var(--color-text); width:100%; }
-    .inline-table { width:100%; border-collapse:collapse; font-size:13px; }
-    .inline-table th { text-align:left; padding:8px; background:var(--color-surface); font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--color-text-muted); border-bottom:1px solid var(--color-border); }
-    .inline-table td { padding:8px; border-bottom:1px solid var(--color-border); }
-    .total-box { border:1.5px solid var(--color-border); border-radius:10px; padding:16px; margin-top:16px; }
-    .total-row { display:flex; justify-content:space-between; padding:6px 0; font-size:13px; border-bottom:1px solid var(--color-border); }
-    .total-final { display:flex; justify-content:space-between; padding:12px 0 4px; font-size:16px; font-weight:800; }
+    /* ── Layout principal do formulário ── */
+    .ov-layout { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+    @media (max-width:1100px) { .ov-layout { grid-template-columns:1fr; } }
+    .ov-panel { border:1.5px solid var(--color-border); border-radius:12px; background:var(--color-surface); overflow:hidden; }
+    .ov-panel-header { padding:14px 18px; border-bottom:1.5px solid var(--color-border); display:flex; align-items:center; gap:10px; }
+    .ov-panel-header h3 { margin:0; font-size:13px; font-weight:700; color:var(--color-text); }
+    .ov-panel-body { padding:16px 18px; }
+    /* Sticky do painel direito */
+    .ov-panel-sticky { position:sticky; top:80px; }
+    /* Custos comparison */
+    .custo-comp-row { display:flex; align-items:stretch; gap:0; border-bottom:1.5px solid var(--color-border); cursor:pointer; transition:.12s; padding:0; }
+    .custo-comp-row:last-child { border-bottom:none; }
+    .custo-comp-row:hover { background:var(--color-bg); }
+    .custo-comp-row.selected { background:#eff6ff; }
+    .custo-comp-row.selected .custo-radio { background:#3b82f6; border-color:#3b82f6; }
+    .custo-comp-row.selected .custo-radio::after { opacity:1; }
+    .custo-radio { width:18px; height:18px; border-radius:50%; border:2px solid #d1d5db; margin:auto 14px; flex-shrink:0; position:relative; transition:.15s; }
+    .custo-radio::after { content:''; position:absolute; inset:3px; border-radius:50%; background:#fff; opacity:0; transition:.12s; }
+    .custo-comp-body { flex:1; padding:12px 12px 12px 0; }
+    .custo-comp-name { font-weight:700; font-size:13px; }
+    .custo-comp-cod { font-family:monospace; font-size:11px; color:var(--color-text-muted); }
+    .custo-comp-values { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; margin-top:8px; }
+    .custo-comp-val { font-size:11px; }
+    .custo-comp-val span { display:block; font-size:12px; font-weight:700; }
+    .custo-total-est { font-size:13px; font-weight:800; color:var(--color-primary,#3b82f6); }
+    .custo-status-badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:10px; font-weight:700; color:#fff; margin-left:6px; }
+    /* Form sections */
+    .form-section { margin-bottom:20px; }
+    .form-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--color-text-muted); margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid var(--color-border); }
+    /* Inline add row */
+    .add-row { display:flex; gap:8px; align-items:flex-end; margin-bottom:8px; }
+    .add-row .f { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; }
+    .add-row label { font-size:11px; color:var(--color-text-muted); }
+    .add-row input { padding:7px 10px; border:1.5px solid var(--color-border); border-radius:6px; font-size:13px; background:var(--color-bg); color:var(--color-text); width:100%; }
+    /* Inline table */
+    .items-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .items-table th { padding:6px 8px; background:var(--color-bg); font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); border-bottom:1px solid var(--color-border); }
+    .items-table td { padding:6px 8px; border-bottom:1px solid var(--color-border); }
+    /* Totalizador */
+    .total-panel { background:linear-gradient(135deg,#1e3a5f,#2563eb); color:#fff; border-radius:10px; padding:16px 18px; margin-top:4px; }
+    .total-line { display:flex; justify-content:space-between; padding:5px 0; font-size:12px; opacity:.85; border-bottom:1px solid rgba(255,255,255,.12); }
+    .total-line:last-child { border-bottom:none; }
+    .total-grand { display:flex; justify-content:space-between; padding:12px 0 4px; font-size:17px; font-weight:800; margin-top:4px; border-top:1.5px solid rgba(255,255,255,.3); }
+    /* Badges */
+    .cod-badge { background:var(--color-surface); border:1px solid var(--color-border); padding:2px 8px; border-radius:6px; font-family:monospace; font-size:12px; }
+    .status-badge-s { display:inline-block; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:700; color:#fff; }
     /* Preview */
     .preview-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; display:flex; align-items:flex-start; justify-content:center; padding:32px 16px; overflow-y:auto; }
     .preview-modal { background:#fff; color:#111; border-radius:12px; width:100%; max-width:760px; padding:40px; font-size:13px; line-height:1.6; }
@@ -47,14 +80,46 @@ type LinhaForm = { descricao: string; valor: number };
     .preview-section { margin-bottom:20px; }
     .preview-section h3 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#555; margin:0 0 8px; border-bottom:1px solid #eee; padding-bottom:4px; }
     .preview-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 24px; font-size:13px; }
-    .preview-grid strong { font-weight:600; }
     .preview-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
     .preview-table th { text-align:left; padding:6px 8px; background:#f5f5f5; border:1px solid #ddd; font-weight:700; }
     .preview-table td { padding:6px 8px; border:1px solid #ddd; }
     .preview-total-row { font-weight:700; background:#f5f5f5; }
     .preview-grand-total { background:#111; color:#fff; font-weight:800; font-size:15px; }
     .preview-actions { display:flex; gap:12px; margin-top:24px; justify-content:flex-end; }
-    .cod-badge { background:var(--color-surface); border:1px solid var(--color-border); padding:2px 8px; border-radius:6px; font-family:monospace; font-size:12px; }
+    /* Accordion de custos */
+    .custo-acc-item { border-bottom:1.5px solid var(--color-border); }
+    .custo-acc-item:last-child { border-bottom:none; }
+    .custo-acc-item.selected { background:#eff6ff; }
+    .custo-acc-header { display:flex; align-items:stretch; }
+    .custo-acc-select { flex:1; display:flex; align-items:stretch; cursor:pointer; transition:.12s; }
+    .custo-acc-select:hover { background:var(--color-bg); }
+    .custo-acc-chevron { padding:0 16px; border:none; border-left:1px solid var(--color-border); background:transparent; cursor:pointer; color:var(--color-text-muted); font-size:12px; transition:background .12s; flex-shrink:0; }
+    .custo-acc-chevron:hover { background:var(--color-bg); }
+    .custo-acc-content { padding:16px 18px; border-top:1.5px solid var(--color-border); background:var(--color-surface); }
+    .acc-section { margin-bottom:16px; }
+    .acc-section-title { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--color-text-muted); margin:0 0 8px; padding-bottom:5px; border-bottom:1px solid var(--color-border); display:flex; align-items:center; gap:6px; }
+    .acc-dados-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px 16px; }
+    .acc-dado { display:flex; flex-direction:column; gap:1px; }
+    .acc-dado label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--color-text-muted); }
+    .acc-dado span { font-size:13px; font-weight:500; }
+    .acc-fin-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:12px; }
+    .acc-fin-card { background:var(--color-bg); border:1px solid var(--color-border); border-radius:7px; padding:8px 10px; text-align:center; }
+    .acc-fin-card .lbl { font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); }
+    .acc-fin-card .val { font-size:13px; font-weight:700; margin-top:2px; }
+    .acc-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .acc-table th { padding:5px 8px; background:var(--color-bg); font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--color-text-muted); border-bottom:1px solid var(--color-border); text-align:left; }
+    .acc-table td { padding:6px 8px; border-bottom:1px solid var(--color-border); }
+    .acc-table tr:last-child td { border-bottom:none; }
+    .acc-total-row td { font-weight:700; background:var(--color-bg); border-top:1px solid var(--color-border) !important; border-bottom:none !important; }
+    .acc-ncm-card { border:1px solid var(--color-border); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+    .acc-ncm-card:last-child { margin-bottom:0; }
+    .acc-imposto-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin-top:8px; }
+    .acc-imposto-item { background:var(--color-bg); border:1px solid var(--color-border); border-radius:6px; padding:6px; text-align:center; }
+    .acc-imposto-item .lab { font-size:9px; text-transform:uppercase; letter-spacing:.04em; color:var(--color-text-muted); }
+    .acc-imposto-item .ali { font-size:11px; color:var(--color-text-muted); }
+    .acc-imposto-item .val { font-size:12px; font-weight:700; }
+    .custo-acc-item.selected .custo-radio { background:#3b82f6; border-color:#3b82f6; }
+    .custo-acc-item.selected .custo-radio::after { opacity:1; }
     `
   ],
   template: `
@@ -73,12 +138,14 @@ type LinhaForm = { descricao: string; valor: number };
         <div class="content-section">
           <div class="toolbar">
             <input class="search" type="text" [(ngModel)]="q"
-              placeholder="🔎 Buscar por código, cliente ou custo base" />
+              placeholder="🔎 Buscar por código, cliente ou solicitação" />
           </div>
           <table class="data-table">
             <thead>
               <tr>
                 <th>Código</th>
+                <th>Solicitação</th>
+                <th>Status</th>
                 <th>Cliente</th>
                 <th>Custo Base</th>
                 <th>Data</th>
@@ -89,10 +156,20 @@ type LinhaForm = { descricao: string; valor: number };
             </thead>
             <tbody>
               <tr *ngIf="filtered.length === 0">
-                <td colspan="7" class="empty-state">Nenhum orçamento cadastrado</td>
+                <td colspan="9" class="empty-state">Nenhum orçamento cadastrado</td>
               </tr>
               <tr *ngFor="let o of filtered">
                 <td><span class="cod-badge">{{ o.codigoInterno }}</span></td>
+                <td>
+                  <span class="cod-badge" *ngIf="o.solicitacaoOrcamentoId">{{ codigoSolicitacao(o.solicitacaoOrcamentoId) }}</span>
+                  <span *ngIf="!o.solicitacaoOrcamentoId" style="color:var(--color-text-muted);font-size:12px">—</span>
+                </td>
+                <td>
+                  <span class="status-badge-s"
+                    [ngStyle]="{ background: o.status === 'Finalizado' ? '#22c55e' : '#f59e0b' }">
+                    {{ o.status || 'Rascunho' }}
+                  </span>
+                </td>
                 <td>{{ nomeClienteById(o.clienteId) }}</td>
                 <td>{{ codigosCustosDaOrc(o.id) || codCustoById(o.custoDespachanteId) }}</td>
                 <td>{{ o.data | date:'dd/MM/yyyy' }}</td>
@@ -111,212 +188,378 @@ type LinhaForm = { descricao: string; valor: number };
         </div>
       </ng-container>
 
-      <!-- ── FORMULÁRIO ── -->
+      <!-- ── FORMULÁRIO — tela única ── -->
       <ng-container *ngIf="showForm">
-        <div class="detail-header">
-          <h2>{{ editing ? 'Editar Orçamento — ' + editing.codigoInterno : 'Novo Orçamento de Venda' }}</h2>
-        </div>
 
-        <!-- Passo 1: Selecionar Custo Base -->
-        <div class="card" *ngIf="formStep === 1">
-          <h3 style="margin:0 0 12px;font-size:14px;font-weight:700">1. Selecione o Custo Base</h3>
-          <div class="custo-search">
-            <input type="text" [(ngModel)]="custoQuery" placeholder="Buscar por código, despachante ou importador..." />
+        <!-- Cabeçalho do formulário -->
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <div>
+            <h2 style="margin:0;font-size:18px;font-weight:800;color:var(--color-text)">
+              {{ editing ? 'Orçamento ' + editing.codigoInterno : 'Novo Orçamento de Venda' }}
+            </h2>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--color-text-muted)">
+              <ng-container *ngIf="solicitacaoAtualId">📋 Vinculado a <strong>{{ codigoSolicitacao(solicitacaoAtualId) }}</strong> · </ng-container>
+              Selecione o custo base à esquerda e preencha os dados do orçamento à direita
+            </p>
           </div>
-          <div *ngFor="let c of custosFiltrados">
-            <div class="custo-card" [class.selected]="isCustoSelecionado(c.id)" (click)="toggleCusto(c)">
-              <div>
-                <div class="custo-card-cod">{{ c.codigoInterno }}</div>
-                <div class="custo-card-info">
-                  {{ nomeDespachanteById(c.despachanteId) }} · {{ nomeImportadorById(c.importadorId) }} · {{ c.data | date:'dd/MM/yyyy' }}
-                </div>
-              </div>
-              <div style="text-align:right">
-                <div style="font-size:12px;color:var(--color-text-muted)">CIF R$</div>
-                <div style="font-weight:700">{{ c.cifReais | currency:'BRL':'symbol':'1.2-2' }}</div>
-              </div>
-            </div>
-          </div>
-          <p *ngIf="custosFiltrados.length === 0" style="font-size:13px;color:var(--color-text-muted)">
-            Nenhum custo encontrado. <a routerLink="/custos" style="color:var(--color-primary,#3b82f6)">Cadastre um custo primeiro.</a>
-          </p>
-          <span class="err-msg" *ngIf="showErr && custosSelecionados.length === 0">Selecione ao menos um custo base</span>
-          <div class="actions">
-            <button class="btn btn-primary" (click)="nextFormStep()">Próximo →</button>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-primary" (click)="salvar()">&#128190; Salvar Rascunho</button>
+            <button class="btn" style="background:#22c55e;color:#fff" (click)="finalizar()">&#10003; Finalizar Orçamento</button>
+            <button class="btn btn-secondary" (click)="abrirPreview(null)">&#128065;️ Preview</button>
             <button class="btn btn-secondary" (click)="cancelForm()">Cancelar</button>
           </div>
         </div>
 
-        <!-- Passo 2: Dados do orçamento + despesas + extras -->
-        <div class="card" *ngIf="formStep === 2">
-          <h3 style="margin:0 0 12px;font-size:14px;font-weight:700">
-            2. Dados do Orçamento
-            <span class="cod-badge" style="margin-left:8px">Base: {{ custoBase?.codigoInterno }}</span>
-          </h3>
+        <span class="err-msg" *ngIf="showErr && !form.clienteId" style="display:block;margin-bottom:8px">Preencha o cliente antes de salvar</span>
+        <span class="err-msg" *ngIf="showErr && !form.data" style="display:block;margin-bottom:8px">Preencha a data antes de salvar</span>
 
-          <div class="form-grid">
-            <div class="field w2">
-              <label>Cliente <span class="required">*</span></label>
-              <select [(ngModel)]="form.clienteId" [class.err]="showErr && !form.clienteId">
-                <option value="">— Selecione —</option>
-                <option *ngFor="let c of clientes" [value]="c.id">{{ c.razaoSocial }}</option>
-              </select>
-              <span class="err-msg" *ngIf="showErr && !form.clienteId">Obrigatório</span>
+        <!-- Layout duas colunas -->
+        <div class="ov-layout">
+
+          <!-- ── COLUNA ESQUERDA: custos despachantes ── -->
+          <div class="ov-panel">
+            <div class="ov-panel-header">
+              <h3>📅 Custos Despachantes</h3>
+              <span style="margin-left:auto;font-size:12px;color:var(--color-text-muted)">{{ custosFiltrados.length }} disponível(is)</span>
             </div>
-            <div class="field">
-              <label>Data <span class="required">*</span></label>
-              <input type="date" [(ngModel)]="form.data" [class.err]="showErr && !form.data" />
-              <span class="err-msg" *ngIf="showErr && !form.data">Obrigatório</span>
+
+            <!-- Busca (standalone) -->
+            <div *ngIf="!solicitacaoAtualId" style="padding:12px 16px;border-bottom:1px solid var(--color-border)">
+              <input type="text" [(ngModel)]="custoQuery"
+                style="width:100%;padding:7px 12px;border:1.5px solid var(--color-border);border-radius:8px;font-size:13px;background:var(--color-bg);color:var(--color-text)"
+                placeholder="🔎 Buscar por código ou despachante..." />
             </div>
-            <div class="field">
-              <label>Container</label>
-              <select [(ngModel)]="form.tamContainer">
-                <option value="20">20'</option>
-                <option value="40">40'</option>
-                <option value="LCL">LCL</option>
-              </select>
+
+            <p *ngIf="custosFiltrados.length === 0" style="padding:24px;text-align:center;color:var(--color-text-muted);font-size:13px;margin:0">
+              <ng-container *ngIf="solicitacaoAtualId">Nenhum custo vinculado a esta solicitação.</ng-container>
+              <ng-container *ngIf="!solicitacaoAtualId">Nenhum custo cadastrado.</ng-container>
+            </p>
+
+            <!-- Lista de custos com accordion -->
+            <div *ngFor="let c of custosFiltrados" class="custo-acc-item" [class.selected]="isCustoSelecionado(c.id)">
+              <!-- Header: clique na área principal para selecionar, chevron para expandir -->
+              <div class="custo-acc-header">
+                <div class="custo-acc-select" (click)="toggleCusto(c)">
+                  <div class="custo-radio"></div>
+                  <div class="custo-comp-body">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                      <div>
+                        <span class="custo-comp-name">{{ nomeDespachanteById(c.despachanteId) }}</span>
+                        <span class="custo-status-badge" [ngStyle]="{ background: c.status === 'Finalizado' ? '#22c55e' : '#f59e0b' }">{{ c.status }}</span>
+                        <div class="custo-comp-cod">{{ c.codigoInterno }} · {{ c.tamContainer }}' · {{ c.data | date:'dd/MM/yyyy' }}</div>
+                      </div>
+                      <div style="text-align:right;flex-shrink:0;margin-left:12px">
+                        <div style="font-size:10px;color:var(--color-text-muted)">Total Est.</div>
+                        <div class="custo-total-est">{{ (c.cifReais + calcImpostosCusto(c.id)) | currency:'BRL':'symbol':'1.2-2' }}</div>
+                      </div>
+                    </div>
+                    <div class="custo-comp-values">
+                      <div class="custo-comp-val">FOB R$<span>{{ c.fobReais | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                      <div class="custo-comp-val">CIF R$<span>{{ c.cifReais | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                      <div class="custo-comp-val">Impostos<span>{{ calcImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                    </div>
+                  </div>
+                </div>
+                <button class="custo-acc-chevron" title="Ver detalhes" (click)="toggleAccordion(c.id)">
+                  {{ expandedCustoId === c.id ? '▲' : '▼' }}
+                </button>
+              </div>
+
+              <!-- Conteúdo expandido -->
+              <div class="custo-acc-content" *ngIf="expandedCustoId === c.id">
+
+                <!-- Dados básicos -->
+                <div class="acc-section">
+                  <div class="acc-section-title">📝 Dados Básicos</div>
+                  <div class="acc-dados-grid">
+                    <div class="acc-dado"><label>Despachante</label><span>{{ nomeDespachanteById(c.despachanteId) }}</span></div>
+                    <div class="acc-dado"><label>Importador</label><span>{{ nomeImpById(c.importadorId) }}</span></div>
+                    <div class="acc-dado"><label>Responsável</label><span>{{ c.responsavel }}</span></div>
+                    <div class="acc-dado"><label>Porto Origem</label><span>{{ nomePOById(c.portoOrigemId) }}</span></div>
+                    <div class="acc-dado"><label>Porto Destino</label><span>{{ nomePDById(c.portoDestinoId) }}</span></div>
+                    <div class="acc-dado"><label>Data</label><span>{{ c.data | date:'dd/MM/yyyy' }}</span></div>
+                    <div class="acc-dado"><label>Container</label><span>{{ c.tamContainer }}</span></div>
+                    <div class="acc-dado"><label>Peso</label><span>{{ c.peso | number:'1.0-0' }} kg</span></div>
+                    <div class="acc-dado" *ngIf="c.observacao"><label>Observação</label><span>{{ c.observacao }}</span></div>
+                  </div>
+                  <div class="acc-fin-grid">
+                    <div class="acc-fin-card"><div class="lbl">FOB USD</div><div class="val">{{ c.fobUsd | currency:'USD':'symbol':'1.2-2' }}</div></div>
+                    <div class="acc-fin-card"><div class="lbl">FOB R$</div><div class="val">{{ c.fobReais | currency:'BRL':'symbol':'1.2-2' }}</div></div>
+                    <div class="acc-fin-card"><div class="lbl">CIF USD</div><div class="val">{{ c.cifUsd | currency:'USD':'symbol':'1.2-2' }}</div></div>
+                    <div class="acc-fin-card"><div class="lbl">CIF R$</div><div class="val">{{ c.cifReais | currency:'BRL':'symbol':'1.2-2' }}</div></div>
+                    <div class="acc-fin-card"><div class="lbl">Seguro USD</div><div class="val">{{ c.seguroUsd | currency:'USD':'symbol':'1.2-2' }}</div></div>
+                    <div class="acc-fin-card"><div class="lbl">Taxa USD</div><div class="val">{{ c.taxaUsd | number:'1.4-4' }}</div></div>
+                  </div>
+                </div>
+
+                <!-- LI -->
+                <div class="acc-section">
+                  <div class="acc-section-title">📄 Licença de Importação (LI)
+                    <span style="margin-left:auto;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--color-text)">Total: <strong>{{ totalLisCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</strong></span>
+                  </div>
+                  <ng-container *ngIf="getLisCusto(c.id).length > 0; else semLiAcc">
+                    <table class="acc-table">
+                      <thead><tr><th style="width:110px">NCM</th><th>Descrição</th><th style="width:110px;text-align:right">Data</th><th style="width:130px;text-align:right">Valor</th></tr></thead>
+                      <tbody>
+                        <tr *ngFor="let li of getLisCusto(c.id)">
+                          <td><code style="font-size:11px">{{ li.ncm || '—' }}</code></td>
+                          <td>{{ li.descricao }}</td>
+                          <td style="text-align:right">{{ li.data | date:'dd/MM/yyyy' }}</td>
+                          <td style="text-align:right;font-weight:600">{{ li.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
+                        </tr>
+                        <tr class="acc-total-row"><td colspan="3">Total LI</td><td style="text-align:right">{{ totalLisCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</td></tr>
+                      </tbody>
+                    </table>
+                  </ng-container>
+                  <ng-template #semLiAcc><p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhum item de LI adicionado.</p></ng-template>
+                </div>
+
+                <!-- Despesas -->
+                <div class="acc-section">
+                  <div class="acc-section-title">💸 Despesas
+                    <span style="margin-left:auto;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--color-text)">Total: <strong>{{ totalDespesasCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</strong></span>
+                  </div>
+                  <ng-container *ngIf="getDespesasCusto(c.id).length > 0; else semDespAcc">
+                    <table class="acc-table">
+                      <thead><tr><th>Descrição</th><th style="width:110px;text-align:right">Data</th><th style="width:80px;text-align:center">ICMS</th><th style="width:130px;text-align:right">Valor</th></tr></thead>
+                      <tbody>
+                        <tr *ngFor="let d of getDespesasCusto(c.id)">
+                          <td>{{ d.descricao }}</td>
+                          <td style="text-align:right">{{ d.data | date:'dd/MM/yyyy' }}</td>
+                          <td style="text-align:center;font-size:12px">{{ d.entraBaseIcms ? '✓' : '—' }}</td>
+                          <td style="text-align:right;font-weight:600">{{ d.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
+                        </tr>
+                        <tr class="acc-total-row"><td colspan="3">Total Despesas</td><td style="text-align:right">{{ totalDespesasCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</td></tr>
+                      </tbody>
+                    </table>
+                  </ng-container>
+                  <ng-template #semDespAcc><p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhuma despesa adicionada.</p></ng-template>
+                </div>
+
+                <!-- NCM / Impostos -->
+                <div class="acc-section">
+                  <div class="acc-section-title">🧮 NCM / Impostos
+                    <span style="margin-left:auto;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;color:#059669">Total: <strong>{{ calcImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</strong></span>
+                  </div>
+                  <ng-container *ngIf="getNcvsCusto(c.id).length > 0; else semNcvAcc">
+                    <div class="acc-ncm-card" *ngFor="let nv of getNcvsCusto(c.id)">
+                      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                        <code style="font-size:12px;font-weight:700;background:var(--color-bg);padding:2px 6px;border-radius:4px;border:1px solid var(--color-border)">{{ nv.numeroNcm }}</code>
+                        <span style="font-size:12px;font-weight:600;flex:1">{{ nv.descricao }}</span>
+                        <span style="font-size:11px;color:var(--color-text-muted)">Base: <strong>{{ nv.baseCalculo | currency:'BRL':'symbol':'1.2-2' }}</strong></span>
+                      </div>
+                      <div class="acc-imposto-grid">
+                        <div class="acc-imposto-item"><div class="lab">I.I.</div><div class="ali">{{ nv.aliIi }}%</div><div class="val">{{ nv.baseCalculo*(nv.aliIi/100) | currency:'BRL':'symbol':'1.2-2' }}</div></div>
+                        <div class="acc-imposto-item"><div class="lab">IPI</div><div class="ali">{{ nv.aliIpi }}%</div><div class="val">{{ (nv.baseCalculo+nv.baseCalculo*(nv.aliIi/100))*(nv.aliIpi/100) | currency:'BRL':'symbol':'1.2-2' }}</div></div>
+                        <div class="acc-imposto-item"><div class="lab">PIS</div><div class="ali">{{ nv.aliPis }}%</div><div class="val">{{ nv.baseCalculo*(nv.aliPis/100) | currency:'BRL':'symbol':'1.2-2' }}</div></div>
+                        <div class="acc-imposto-item"><div class="lab">COFINS</div><div class="ali">{{ nv.aliCofins }}%</div><div class="val">{{ nv.baseCalculo*(nv.aliCofins/100) | currency:'BRL':'symbol':'1.2-2' }}</div></div>
+                        <div class="acc-imposto-item" style="background:#f0fdf4;border-color:#bbf7d0"><div class="lab">ICMS</div><div class="ali">{{ nv.aliIcms }}%</div><div class="val">{{ (nv.baseCalculo+nv.baseCalculo*(nv.aliIi/100)+(nv.baseCalculo+nv.baseCalculo*(nv.aliIi/100))*(nv.aliIpi/100))*(nv.aliIcms/100) | currency:'BRL':'symbol':'1.2-2' }}</div></div>
+                      </div>
+                      <div style="text-align:right;margin-top:6px;font-size:12px;font-weight:700;color:#059669">
+                        Total NCM: {{ calcNcvTotal(nv) | currency:'BRL':'symbol':'1.2-2' }}
+                      </div>
+                    </div>
+                  </ng-container>
+                  <ng-template #semNcvAcc><p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhum NCM vinculado.</p></ng-template>
+                </div>
+
+                <!-- Totalizador -->
+                <div class="acc-section" style="margin-bottom:4px">
+                  <div class="acc-section-title">💰 Totalizador</div>
+                  <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;border-radius:8px;padding:12px 16px">
+                    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>CIF (R$)</span><span>{{ c.cifReais | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>Total LI</span><span>{{ totalLisCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>Total Despesas</span><span>{{ totalDespesasCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>Total Impostos</span><span>{{ calcImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;padding:10px 0 4px;border-top:1.5px solid rgba(255,255,255,.3);margin-top:4px"><span>TOTAL GERAL</span><span>{{ c.cifReais + totalLisCusto(c.id) + totalDespesasCusto(c.id) + calcImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                  </div>
+                </div>
+
+                <!-- Botão de seleção -->
+                <div style="display:flex;justify-content:flex-end;margin-top:12px">
+                  <button class="btn" [ngStyle]="{ background: isCustoSelecionado(c.id) ? '#22c55e' : 'var(--color-primary,#3b82f6)', color:'#fff' }" (click)="toggleCusto(c)">
+                    {{ isCustoSelecionado(c.id) ? '✓ Custo Selecionado como Base' : 'Selecionar como Base' }}
+                  </button>
+                </div>
+
+              </div>
             </div>
-            <div class="field">
-              <label>Peso Bruto (kg)</label>
-              <input type="number" [(ngModel)]="form.pesoBruto" min="0" step="0.01" placeholder="0.00" />
-            </div>
-            <div class="field">
-              <label>Peso Líquido (kg)</label>
-              <input type="number" [(ngModel)]="form.pesoLiquido" min="0" step="0.01" placeholder="0.00" />
-            </div>
-            <div class="field">
-              <label>Frete Internacional (R$)</label>
-              <input type="number" [(ngModel)]="form.freteInternacional" min="0" step="0.01" placeholder="0.00" (ngModelChange)="recalcular()" />
-            </div>
-            <div class="field">
-              <label>CIF (R$) <small style="color:var(--color-text-muted)">(do custo)</small></label>
-              <input type="number" [(ngModel)]="form.cifReais" min="0" step="0.01" (ngModelChange)="recalcular()" />
-            </div>
-            <div class="field">
-              <label>CIF (USD)</label>
-              <input type="number" [(ngModel)]="form.cifUsd" min="0" step="0.01" />
-            </div>
-            <div class="field">
-              <label>FOB (R$)</label>
-              <input type="number" [(ngModel)]="form.fobReais" min="0" step="0.01" />
-            </div>
-            <div class="field">
-              <label>FOB (USD)</label>
-              <input type="number" [(ngModel)]="form.fobUsd" min="0" step="0.01" />
-            </div>
-            <div class="field">
-              <label>Taxa USD</label>
-              <input type="number" [(ngModel)]="form.taxaUsd" min="0" step="0.0001" placeholder="0.00" />
-            </div>
-            <div class="field">
-              <label>Honorários (R$)</label>
-              <input type="number" [(ngModel)]="form.honorarios" min="0" step="0.01" placeholder="0.00" (ngModelChange)="recalcular()" />
-            </div>
-            <div class="field w3">
-              <label>Observação</label>
-              <input type="text" [(ngModel)]="form.observacao" placeholder="Observações ao cliente" />
+
+            <div *ngIf="custosSelecionados.length === 0 && showErr" style="padding:10px 16px;background:#fef3c7;border-top:1px solid #fde68a;font-size:12px;color:#92400e">
+              ⚠️ Selecione um custo como base para o orçamento
             </div>
           </div>
 
-          <!-- Despesas adicionais -->
-          <div style="margin-top:20px">
-            <h4 style="font-size:13px;font-weight:700;margin:0 0 10px">Despesas Adicionais</h4>
-            <div class="inline-form-row">
-              <div class="f" style="flex:3">
-                <label>Descrição</label>
-                <input type="text" [(ngModel)]="despesaForm.descricao" placeholder="Ex: Armazenagem, THC..." />
-              </div>
-              <div class="f" style="max-width:160px">
-                <label>Valor (R$)</label>
-                <input type="number" [(ngModel)]="despesaForm.valor" min="0" step="0.01" placeholder="0.00" />
-              </div>
-              <div class="f" style="max-width:80px">
-                <label>&nbsp;</label>
-                <button class="btn btn-secondary" (click)="addDespesa()">+ Add</button>
-              </div>
+          <!-- ── COLUNA DIREITA: dados do orçamento + totalizador -->
+          <div class="ov-panel ov-panel-sticky">
+            <div class="ov-panel-header">
+              <h3>📊 Dados do Orçamento</h3>
+              <ng-container *ngIf="custoBase">
+                <span class="cod-badge" style="margin-left:auto">Base: {{ custoBase.codigoInterno }}</span>
+              </ng-container>
             </div>
-            <p class="err-msg" *ngIf="despesaErro">{{ despesaErro }}</p>
+            <div class="ov-panel-body">
 
-            <table class="inline-table" *ngIf="despesasForm.length > 0">
-              <thead><tr><th>Descrição</th><th style="text-align:right;width:160px">Valor</th><th style="width:50px"></th></tr></thead>
-              <tbody>
-                <tr *ngFor="let d of despesasForm; let i = index">
-                  <td>{{ d.descricao }}</td>
-                  <td style="text-align:right">{{ d.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
-                  <td><button class="btn-icon danger" (click)="removeDespesa(i)">🗑️</button></td>
-                </tr>
-              </tbody>
-            </table>
+              <!-- Dados gerais -->
+              <div class="form-section">
+                <p class="form-section-title">Dados Gerais</p>
+                <div class="form-grid">
+                  <div class="field w2">
+                    <label>Cliente <span class="required">*</span></label>
+                    <select [(ngModel)]="form.clienteId" [class.err]="showErr && !form.clienteId">
+                      <option value="">— Selecione —</option>
+                      <option *ngFor="let c of clientes" [value]="c.id">{{ c.razaoSocial }}</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Data <span class="required">*</span></label>
+                    <input type="date" [(ngModel)]="form.data" [class.err]="showErr && !form.data" />
+                  </div>
+                  <div class="field">
+                    <label>Container</label>
+                    <select [(ngModel)]="form.tamContainer">
+                      <option value="20">20'</option>
+                      <option value="40">40'</option>
+                      <option value="LCL">LCL</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Peso Bruto (kg)</label>
+                    <input type="number" [(ngModel)]="form.pesoBruto" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                  <div class="field">
+                    <label>Peso Líquido (kg)</label>
+                    <input type="number" [(ngModel)]="form.pesoLiquido" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                  <div class="field w3">
+                    <label>Observação</label>
+                    <input type="text" [(ngModel)]="form.observacao" placeholder="Observações ao cliente" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Valores base -->
+              <div class="form-section">
+                <p class="form-section-title">Valores Base (do custo selecionado)</p>
+                <div class="form-grid">
+                  <div class="field">
+                    <label>CIF (R$)</label>
+                    <input type="number" [(ngModel)]="form.cifReais" min="0" step="0.01" />
+                  </div>
+                  <div class="field">
+                    <label>CIF (USD)</label>
+                    <input type="number" [(ngModel)]="form.cifUsd" min="0" step="0.01" />
+                  </div>
+                  <div class="field">
+                    <label>FOB (R$)</label>
+                    <input type="number" [(ngModel)]="form.fobReais" min="0" step="0.01" />
+                  </div>
+                  <div class="field">
+                    <label>FOB (USD)</label>
+                    <input type="number" [(ngModel)]="form.fobUsd" min="0" step="0.01" />
+                  </div>
+                  <div class="field">
+                    <label>Taxa USD</label>
+                    <input type="number" [(ngModel)]="form.taxaUsd" min="0" step="0.0001" />
+                  </div>
+                  <div class="field">
+                    <label>Total Impostos (R$)</label>
+                    <input type="number" [(ngModel)]="form.totalImpostos" min="0" step="0.01" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Acréscimos manuais -->
+              <div class="form-section">
+                <p class="form-section-title">Acréscimos</p>
+                <div class="form-grid">
+                  <div class="field">
+                    <label>Frete Internacional (R$)</label>
+                    <input type="number" [(ngModel)]="form.freteInternacional" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                  <div class="field">
+                    <label>Honorários (R$)</label>
+                    <input type="number" [(ngModel)]="form.honorarios" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Despesas adicionais -->
+              <div class="form-section">
+                <p class="form-section-title">Despesas Adicionais</p>
+                <div class="add-row">
+                  <div class="f" style="flex:3">
+                    <label>Descrição</label>
+                    <input type="text" [(ngModel)]="despesaForm.descricao" placeholder="Ex: Armazenagem, THC..." />
+                  </div>
+                  <div class="f" style="max-width:130px">
+                    <label>Valor (R$)</label>
+                    <input type="number" [(ngModel)]="despesaForm.valor" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                  <button class="btn btn-secondary" style="flex-shrink:0" (click)="addDespesa()">+ Add</button>
+                </div>
+                <p class="err-msg" *ngIf="despesaErro">{{ despesaErro }}</p>
+                <table class="items-table" *ngIf="despesasForm.length > 0">
+                  <thead><tr><th>Descrição</th><th style="text-align:right;width:130px">Valor</th><th style="width:36px"></th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let d of despesasForm; let i = index">
+                      <td>{{ d.descricao }}</td>
+                      <td style="text-align:right">{{ d.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
+                      <td><button class="btn-icon danger" (click)="removeDespesa(i)">🗑️</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Extras -->
+              <div class="form-section">
+                <p class="form-section-title">Itens Extras</p>
+                <div class="add-row">
+                  <div class="f" style="flex:3">
+                    <label>Descrição</label>
+                    <input type="text" [(ngModel)]="extraForm.descricao" placeholder="Ex: Seguro, Despachante local..." />
+                  </div>
+                  <div class="f" style="max-width:130px">
+                    <label>Valor (R$)</label>
+                    <input type="number" [(ngModel)]="extraForm.valor" min="0" step="0.01" placeholder="0.00" />
+                  </div>
+                  <button class="btn btn-secondary" style="flex-shrink:0" (click)="addExtra()">+ Add</button>
+                </div>
+                <p class="err-msg" *ngIf="extraErro">{{ extraErro }}</p>
+                <table class="items-table" *ngIf="extrasForm.length > 0">
+                  <thead><tr><th>Descrição</th><th style="text-align:right;width:130px">Valor</th><th style="width:36px"></th></tr></thead>
+                  <tbody>
+                    <tr *ngFor="let e of extrasForm; let i = index">
+                      <td>{{ e.descricao }}</td>
+                      <td style="text-align:right">{{ e.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
+                      <td><button class="btn-icon danger" (click)="removeExtra(i)">🗑️</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Totalizador -->
+              <div class="total-panel">
+                <div class="total-line"><span>CIF (R$)</span><span>{{ form.cifReais | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                <div class="total-line"><span>Frete Internacional</span><span>{{ form.freteInternacional | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                <div class="total-line"><span>Total Impostos</span><span>{{ form.totalImpostos | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                <div class="total-line"><span>Despesas ({{ despesasForm.length }})</span><span>{{ somaDespesas() | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                <div class="total-line"><span>Extras ({{ extrasForm.length }})</span><span>{{ somaExtras() | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                <div class="total-line"><span>Honorários</span><span>{{ form.honorarios | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                <div class="total-grand"><span>TOTAL GERAL</span><span>{{ calcTotalGeral() | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+              </div>
+
+              <!-- Botões inferiores -->
+              <div class="actions" style="margin-top:16px">
+                <button class="btn btn-primary" (click)="salvar()">💾 Salvar Rascunho</button>
+                <button class="btn" style="background:#22c55e;color:#fff" (click)="finalizar()">&#10003; Finalizar Orçamento</button>
+                <button class="btn btn-secondary" (click)="abrirPreview(null)">👁️ Preview</button>
+                <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelForm()">Cancelar</button>
+              </div>
+
+            </div>
           </div>
 
-          <!-- Extras -->
-          <div style="margin-top:20px">
-            <h4 style="font-size:13px;font-weight:700;margin:0 0 10px">Itens Extras</h4>
-            <div class="inline-form-row">
-              <div class="f" style="flex:3">
-                <label>Descrição</label>
-                <input type="text" [(ngModel)]="extraForm.descricao" placeholder="Ex: Seguro nacional, Despachante local..." />
-              </div>
-              <div class="f" style="max-width:160px">
-                <label>Valor (R$)</label>
-                <input type="number" [(ngModel)]="extraForm.valor" min="0" step="0.01" placeholder="0.00" />
-              </div>
-              <div class="f" style="max-width:80px">
-                <label>&nbsp;</label>
-                <button class="btn btn-secondary" (click)="addExtra()">+ Add</button>
-              </div>
-            </div>
-            <p class="err-msg" *ngIf="extraErro">{{ extraErro }}</p>
-
-            <table class="inline-table" *ngIf="extrasForm.length > 0">
-              <thead><tr><th>Descrição</th><th style="text-align:right;width:160px">Valor</th><th style="width:50px"></th></tr></thead>
-              <tbody>
-                <tr *ngFor="let e of extrasForm; let i = index">
-                  <td>{{ e.descricao }}</td>
-                  <td style="text-align:right">{{ e.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
-                  <td><button class="btn-icon danger" (click)="removeExtra(i)">🗑️</button></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Totalizador em tempo real -->
-          <div class="total-box">
-            <div class="total-row">
-              <span>CIF (R$)</span>
-              <span>{{ form.cifReais | currency:'BRL':'symbol':'1.2-2' }}</span>
-            </div>
-            <div class="total-row">
-              <span>Frete Internacional</span>
-              <span>{{ form.freteInternacional | currency:'BRL':'symbol':'1.2-2' }}</span>
-            </div>
-            <div class="total-row">
-              <span>Total Impostos (do custo base)</span>
-              <span>{{ form.totalImpostos | currency:'BRL':'symbol':'1.2-2' }}</span>
-            </div>
-            <div class="total-row">
-              <span>Despesas Adicionais ({{ despesasForm.length }})</span>
-              <span>{{ somaDespesas() | currency:'BRL':'symbol':'1.2-2' }}</span>
-            </div>
-            <div class="total-row">
-              <span>Extras ({{ extrasForm.length }})</span>
-              <span>{{ somaExtras() | currency:'BRL':'symbol':'1.2-2' }}</span>
-            </div>
-            <div class="total-row">
-              <span>Honorários</span>
-              <span>{{ form.honorarios | currency:'BRL':'symbol':'1.2-2' }}</span>
-            </div>
-            <div class="total-final">
-              <span>TOTAL GERAL</span>
-              <span>{{ calcTotalGeral() | currency:'BRL':'symbol':'1.2-2' }}</span>
-            </div>
-          </div>
-
-          <div class="actions">
-            <button class="btn btn-primary" (click)="salvar()">💾 Salvar Orçamento</button>
-            <button class="btn btn-secondary" (click)="prevFormStep()">← Voltar</button>
-            <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelForm()">Cancelar</button>
-          </div>
         </div>
       </ng-container>
 
@@ -448,7 +691,6 @@ export class OrcamentoVendaComponent implements OnInit {
   q = '';
   showForm = false;
   editing: OrcamentoVenda | null = null;
-  formStep = 1;
   showErr = false;
 
   // ── Lookup ────────────────────────────────────────────────────────────
@@ -456,6 +698,8 @@ export class OrcamentoVendaComponent implements OnInit {
   custos: CustoDespachante[] = [];
   custoQuery = '';
   custoBase: CustoDespachante | null = null;
+  solicitacaoAtualId: string | undefined = undefined;
+  private solicitacoes: SolicitacaoOrcamento[] = [];
 
   // ── Form ──────────────────────────────────────────────────────────────
   form = this.emptyForm();  custosSelecionados: string[] = [];  despesasForm: LinhaForm[] = [];
@@ -474,6 +718,11 @@ export class OrcamentoVendaComponent implements OnInit {
   // ── Lookup maps ───────────────────────────────────────────────────────
   private _despachantes: Record<string, string> = {};
   private _importadores: Record<string, string> = {};
+  private _portosOrigem:  Record<string, string> = {};
+  private _portosDestino: Record<string, string> = {};
+
+  // ── Accordion ─────────────────────────────────────────────────────────
+  expandedCustoId: string | null = null;
 
   constructor(
     private service: OrcamentoVendaService,
@@ -482,14 +731,29 @@ export class OrcamentoVendaComponent implements OnInit {
     private portoOrigemSvc: PortoOrigemService,
     private portoDestinoSvc: PortoDestinoService,
     private despachanteSvc: DespachanteV2Service,
-    private calculator: ImpostoCalculatorService
+    private importadorSvc: ImportadorService,
+    private calculator: ImpostoCalculatorService,
+    private solicitacaoSvc: SolicitacaoOrcamentoService,
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.clientes = this.clienteSvc.getAtivos();
-    this.custos   = this.custoSvc.getAll();
+    this.clientes     = this.clienteSvc.getAtivos();
+    this.custos       = this.custoSvc.getAll();
+    this.solicitacoes = this.solicitacaoSvc.getAll();
     this.despachanteSvc.getAll().forEach(d => this._despachantes[d.id] = d.nome);
+    this.importadorSvc.getAll().forEach(i => this._importadores[i.id] = i.razaoSocial ?? i.id);
+    this.portoOrigemSvc.getAll().forEach(p => this._portosOrigem[p.id] = p.nome);
+    this.portoDestinoSvc.getAll().forEach(p => this._portosDestino[p.id] = p.nome);
     this.load();
+    // Abrir OV diretamente via query param ?editId=xxx (ex: navegação da tela de solicitações)
+    this.route.queryParams.subscribe(params => {
+      if (params['editId']) {
+        const ov = this.service.getById(params['editId']);
+        if (ov) this.openForm(ov);
+      }
+    });
   }
 
   load(): void { this.orcamentos = this.service.getAll(); }
@@ -506,9 +770,12 @@ export class OrcamentoVendaComponent implements OnInit {
   }
 
   get custosFiltrados(): CustoDespachante[] {
-    if (!this.custoQuery) return this.custos;
+    let lista = this.solicitacaoAtualId
+      ? this.custos.filter(c => c.solicitacaoOrcamentoId === this.solicitacaoAtualId)
+      : this.custos;
+    if (!this.custoQuery) return lista;
     const s = this.custoQuery.toLowerCase();
-    return this.custos.filter(c =>
+    return lista.filter(c =>
       c.codigoInterno.toLowerCase().includes(s) ||
       (this._despachantes[c.despachanteId] ?? '').toLowerCase().includes(s)
     );
@@ -537,6 +804,9 @@ export class OrcamentoVendaComponent implements OnInit {
 
   nomeDespachanteById(id: string): string { return this._despachantes[id] ?? id; }
   nomeImportadorById(id: string): string  { return id; } // simplificado — lookup via service se necessário
+  nomeImpById(id: string): string  { return this._importadores[id] ?? id; }
+  nomePOById(id: string): string   { return this._portosOrigem[id] ?? id; }
+  nomePDById(id: string): string   { return this._portosDestino[id] ?? id; }
 
   // ── Cálculos ──────────────────────────────────────────────────────────
 
@@ -556,44 +826,75 @@ export class OrcamentoVendaComponent implements OnInit {
     /* totais são calculados numa getter — sem necessidade de ação */
   }
 
+  // ── Accordion ─────────────────────────────────────────────────────────
+
+  toggleAccordion(id: string): void {
+    this.expandedCustoId = this.expandedCustoId === id ? null : id;
+  }
+
+  getLisCusto(custoId: string)       { return this.custoSvc.getLis(custoId); }
+  getDespesasCusto(custoId: string)  { return this.custoSvc.getDespesas(custoId); }
+  getNcvsCusto(custoId: string)      { return this.custoSvc.getNcmsVinculados(custoId); }
+
+  totalLisCusto(custoId: string): number {
+    return this.custoSvc.getLis(custoId).reduce((a, li) => a + li.valor, 0);
+  }
+
+  totalDespesasCusto(custoId: string): number {
+    return this.custoSvc.getDespesas(custoId).reduce((a, d) => a + d.valor, 0);
+  }
+
+  calcNcvTotal(nv: { baseCalculo: number; aliIi: number; aliIpi: number; aliPis: number; aliCofins: number; aliIcms: number }): number {
+    const ii     = nv.baseCalculo * (nv.aliIi / 100);
+    const baseIpi = nv.baseCalculo + ii;
+    const ipi    = baseIpi * (nv.aliIpi / 100);
+    const pis    = nv.baseCalculo * (nv.aliPis / 100);
+    const cofins = nv.baseCalculo * (nv.aliCofins / 100);
+    const icms   = (baseIpi + ipi) * (nv.aliIcms / 100);
+    return ii + ipi + pis + cofins + icms;
+  }
+
   // ── Custo base ────────────────────────────────────────────────────────
 
   toggleCusto(c: CustoDespachante): void {
-    const idx = this.custosSelecionados.indexOf(c.id);
-    if (idx >= 0) {
-      this.custosSelecionados.splice(idx, 1);
-    } else {
-      this.custosSelecionados.push(c.id);
+    // Seleção única — comportamento radio; clicar no mesmo deseleciona
+    if (this.custosSelecionados[0] === c.id) {
+      this.custosSelecionados = [];
+      this.custoBase = null;
+      this.form.custoDespachanteId = '';
+      return;
     }
-    // Usar o único ou último selecionado como custo base para pré-preencher campos
-    const ultimoId = this.custosSelecionados[this.custosSelecionados.length - 1];
-    this.custoBase = ultimoId ? (this.custos.find(x => x.id === ultimoId) ?? null) : null;
-    if (this.custoBase) {
-      this.form.tamContainer  = this.custoBase.tamContainer;
-      this.form.cifReais      = this.custoBase.cifReais;
-      this.form.cifUsd        = this.custoBase.cifUsd;
-      this.form.fobReais      = this.custoBase.fobReais;
-      this.form.fobUsd        = this.custoBase.fobUsd;
-      this.form.taxaUsd       = this.custoBase.taxaUsd;
-      this.form.pesoBruto     = this.custoBase.peso;
-      const ncvs = this.custoSvc.getNcmsVinculados(this.custoBase.id);
-      this.form.totalImpostos = ncvs.reduce((acc, nv) => {
-        return acc + this.custoSvc.getValoresImposto(nv.id).reduce((a, v) => a + v.totalImpostos, 0);
-      }, 0);
+    this.custosSelecionados = [c.id];
+    this.custoBase = c;
+    this.form.custoDespachanteId = c.id;
+
+    // ── Valores financeiros do custo ──
+    this.form.tamContainer   = c.tamContainer;
+    this.form.cifReais       = c.cifReais;
+    this.form.cifUsd         = c.cifUsd;
+    this.form.fobReais       = c.fobReais;
+    this.form.fobUsd         = c.fobUsd;
+    this.form.taxaUsd        = c.taxaUsd;
+    this.form.pesoBruto      = c.peso;
+    this.form.data           = c.data;
+    if (!this.form.observacao) this.form.observacao = c.observacao ?? '';
+
+    // ── Total de impostos calculado a partir dos NCMs vinculados ──
+    const ncvs = this.custoSvc.getNcmsVinculados(c.id);
+    this.form.totalImpostos = ncvs.reduce((acc, nv) => {
+      return acc + this.custoSvc.getValoresImposto(nv.id).reduce((a, v) => a + v.totalImpostos, 0);
+    }, 0);
+
+    // ── Despesas do custo pré-carregadas no formulário do orçamento ──
+    const custoDespesas = this.custoSvc.getDespesas(c.id);
+    this.despesasForm = custoDespesas.map(d => ({ descricao: d.descricao, valor: d.valor }));
+
+    // ── Cliente e data: preencher da solicitação vinculada quando disponível ──
+    if (this.solicitacaoAtualId) {
+      const sol = this.solicitacoes.find(s => s.id === this.solicitacaoAtualId);
+      if (sol?.clienteId && !this.form.clienteId) this.form.clienteId = sol.clienteId;
     }
-    this.form.custoDespachanteId = ultimoId ?? '';
   }
-
-  // ── Form steps ────────────────────────────────────────────────────────
-
-  nextFormStep(): void {
-    this.showErr = true;
-    if (this.custosSelecionados.length === 0) return;
-    this.showErr = false;
-    this.formStep = 2;
-  }
-
-  prevFormStep(): void { this.formStep = 1; }
 
   // ── Despesas / Extras ─────────────────────────────────────────────────
 
@@ -624,18 +925,19 @@ export class OrcamentoVendaComponent implements OnInit {
   openForm(item?: OrcamentoVenda): void {
     this.editing   = item ?? null;
     this.showErr   = false;
-    this.formStep  = item ? 2 : 1;
     this.despesaErro = '';
     this.extraErro   = '';
 
     if (item) {
+      this.solicitacaoAtualId = item.solicitacaoOrcamentoId;
       const existingLinks = this.service.getOrcCustos(item.id);
       this.custosSelecionados = existingLinks.map(oc => oc.custoDespachanteId);
       // retrocompat: se não há junction mas há custoDespachanteId legado
       if (this.custosSelecionados.length === 0 && item.custoDespachanteId) {
         this.custosSelecionados = [item.custoDespachanteId];
       }
-      const c = this.custos.find(c => c.id === item.custoDespachanteId) ?? null;
+      const selectedCustoId = this.custosSelecionados[0] ?? item.custoDespachanteId;
+      const c = this.custos.find(c => c.id === selectedCustoId) ?? null;
       this.custoBase = c;
       this.form = {
         custoDespachanteId:  item.custoDespachanteId ?? '',
@@ -657,6 +959,7 @@ export class OrcamentoVendaComponent implements OnInit {
       this.despesasForm = this.service.getDespesas(item.id).map(d => ({ descricao: d.descricao, valor: d.valor }));
       this.extrasForm   = this.service.getExtras(item.id).map(e => ({ descricao: e.descricao, valor: e.valor }));
     } else {
+      this.solicitacaoAtualId = undefined;
       this.custoBase = null;
       this.custoQuery = '';
       this.custosSelecionados = [];
@@ -672,7 +975,7 @@ export class OrcamentoVendaComponent implements OnInit {
 
   cancelForm(): void { this.showForm = false; this.editing = null; }
 
-  salvar(): void {
+  salvar(status?: 'Rascunho' | 'Finalizado'): void {
     this.showErr = true;
     if (!this.form.clienteId || !this.form.data) return;
 
@@ -681,8 +984,9 @@ export class OrcamentoVendaComponent implements OnInit {
     const totalGeral    = this.calcTotalGeral();
 
     const data: Omit<OrcamentoVenda, 'id' | 'codigoInterno'> = {
-      clienteId:           this.form.clienteId,
-      custoDespachanteId:  this.form.custoDespachanteId,
+      clienteId:              this.form.clienteId,
+      solicitacaoOrcamentoId: this.solicitacaoAtualId,
+      custoDespachanteId:     this.form.custoDespachanteId,
       data:                this.form.data,
       tamContainer:        this.form.tamContainer,
       pesoBruto:           this.form.pesoBruto || 0,
@@ -698,7 +1002,8 @@ export class OrcamentoVendaComponent implements OnInit {
       totalDespesas,
       totalExtras,
       totalGeral,
-      observacao:          this.form.observacao?.trim() || undefined
+      observacao:          this.form.observacao?.trim() || undefined,
+      status:              status ?? (this.editing?.status ?? 'Rascunho')
     };
 
     let orcId: string;
@@ -718,6 +1023,13 @@ export class OrcamentoVendaComponent implements OnInit {
     this.load();
   }
 
+  finalizar(): void {
+    this.showErr = true;
+    if (!this.form.clienteId || !this.form.data) return;
+    if (!confirm('Finalizar este orçamento? Ele ficará marcado como Finalizado.')) return;
+    this.salvar('Finalizado');
+  }
+
   remove(id: string): void {
     if (confirm('Deseja excluir este orçamento?')) {
       this.service.remove(id);
@@ -727,12 +1039,18 @@ export class OrcamentoVendaComponent implements OnInit {
 
   // ── Preview ───────────────────────────────────────────────────────────
 
-  abrirPreview(o: OrcamentoVenda): void {
+  abrirPreview(o: OrcamentoVenda | null): void {
+    if (!o) {
+      // Preview do formulário em edição
+      const orcId = this.editing?.id;
+      if (!orcId) return;
+      o = this.service.getById(orcId) ?? null;
+      if (!o) return;
+    }
     this.previewOrc      = o;
     this.previewDespesas = this.service.getDespesas(o.id);
     this.previewExtras   = this.service.getExtras(o.id);
     this.showPreview     = true;
-    this.showForm        = false;
   }
 
   fecharPreview(): void { this.showPreview = false; this.previewOrc = null; }
@@ -747,5 +1065,17 @@ export class OrcamentoVendaComponent implements OnInit {
       fobReais: 0, fobUsd: 0, taxaUsd: 0, honorarios: 0,
       totalImpostos: 0, observacao: ''
     };
+  }
+
+  codigoSolicitacao(id: string | undefined): string {
+    if (!id) return '—';
+    return this.solicitacoes.find(s => s.id === id)?.codigoInterno ?? id;
+  }
+
+  calcImpostosCusto(custoId: string): number {
+    const ncvs = this.custoSvc.getNcmsVinculados(custoId);
+    return ncvs.reduce((acc, nv) => {
+      return acc + this.custoSvc.getValoresImposto(nv.id).reduce((a, v) => a + v.totalImpostos, 0);
+    }, 0);
   }
 }

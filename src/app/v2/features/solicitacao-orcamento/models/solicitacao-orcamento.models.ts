@@ -1,4 +1,4 @@
-export type StatusSolicitacao = 'Rascunho' | 'Aberta' | 'EmAnalise' | 'Aprovada' | 'Cancelada';
+export type StatusSolicitacao = 'Rascunho' | 'Aberta' | 'AguardandoCusto' | 'AguardandoOrcamentoVenda' | 'EmAnalise' | 'Aprovada' | 'Cancelada';
 export type StatusSolicitacaoDespachante = 'PendenteDespachante' | 'FinalizadoDespachante' | 'Respondido' | 'Recusado';
 
 export interface SolicitacaoOrcamento {

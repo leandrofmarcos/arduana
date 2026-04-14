@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CRUD_STYLES } from '../../../shared/styles/crud-page.styles';
@@ -14,6 +14,8 @@ import {
   StatusSolicitacaoDespachante
 } from '../models/solicitacao-orcamento.models';
 import { SolicitacaoOrcamentoService } from '../services/solicitacao-orcamento.service';
+import { OrcamentoVendaService } from '../../orcamento-venda/services/orcamento-venda.service';
+import { OrcamentoVenda } from '../../orcamento-venda/models/orcamento-venda.models';
 import { PortoOrigemService } from '../../cadastros/portos-origem/services/porto-origem.service';
 import { PortoDestinoService } from '../../cadastros/portos-destino/services/porto-destino.service';
 import { ClienteV2Service } from '../../cadastros/clientes/services/cliente-v2.service';
@@ -40,11 +42,13 @@ interface DocForm {
 }
 
 const STATUS_COLORS: Record<StatusSolicitacao, string> = {
-  Rascunho:   '#6b7280',
-  Aberta:     '#3b82f6',
-  EmAnalise:  '#f59e0b',
-  Aprovada:   '#22c55e',
-  Cancelada:  '#ef4444',
+  Rascunho:                '#6b7280',
+  Aberta:                  '#3b82f6',
+  AguardandoCusto:         '#f59e0b',
+  AguardandoOrcamentoVenda:'#8b5cf6',
+  EmAnalise:               '#f59e0b',
+  Aprovada:                '#22c55e',
+  Cancelada:               '#ef4444',
 };
 
 const DESP_STATUS_COLORS: Record<StatusSolicitacaoDespachante, string> = {
@@ -54,10 +58,17 @@ const DESP_STATUS_COLORS: Record<StatusSolicitacaoDespachante, string> = {
   Recusado:              '#ef4444',
 };
 
+const OV_STATUS_COLORS: Record<string, string> = {
+  AguardandoDespachante:   '#f59e0b',
+  AguardandoOrcamentoVenda:'#8b5cf6',
+  Rascunho:                '#6b7280',
+  Finalizado:              '#22c55e',
+};
+
 @Component({
   selector: 'app-solicitacao-orcamento',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe, CurrencyPipe],
   styles: [
     ...CRUD_STYLES,
     `
@@ -113,14 +124,15 @@ const DESP_STATUS_COLORS: Record<StatusSolicitacaoDespachante, string> = {
                 <th>Responsável</th>
                 <th>Container</th>
                 <th>Data</th>
-                <th>Despachantes</th>
+                <th>Custos</th>
+                <th>Orçamento</th>
                 <th>Status</th>
                 <th style="width:100px">Ações</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="filtered.length === 0">
-                <td colspan="9" class="empty-state">Nenhuma solicitação cadastrada</td>
+                <td colspan="10" class="empty-state">Nenhuma solicitação cadastrada</td>
               </tr>
               <tr *ngFor="let s of filtered">
                 <td><span class="sol-link">{{ s.codigoInterno }}</span></td>
@@ -131,6 +143,14 @@ const DESP_STATUS_COLORS: Record<StatusSolicitacaoDespachante, string> = {
                 <td>{{ s.data | date:'dd/MM/yyyy' }}</td>
                 <td>
                   <span class="badge">{{ contarDespachantes(s.id) }}</span>
+                  <span *ngIf="contarCustosFinalizados(s.id) > 0" style="font-size:11px;color:#22c55e;margin-left:6px;font-weight:700">✅ {{ contarCustosFinalizados(s.id) }} fin.</span>
+                </td>
+                <td>
+                  <ng-container *ngIf="orcamentoPorSolicitacao(s.id) as ov">
+                    <span class="sol-link" style="cursor:pointer;color:var(--color-primary,#3b82f6)"
+                      title="Abrir Orçamento de Venda" (click)="abrirOrcamento(ov.id)">{{ ov.codigoInterno }}</span>
+                  </ng-container>
+                  <span *ngIf="!orcamentoPorSolicitacao(s.id)" style="color:var(--color-text-muted);font-size:12px">—</span>
                 </td>
                 <td>
                   <span class="status-badge" [ngStyle]="{ background: statusColor(s.status) }">
@@ -157,6 +177,17 @@ const DESP_STATUS_COLORS: Record<StatusSolicitacaoDespachante, string> = {
         </div>
 
         <div class="card">
+        <!-- Resumo de erros de validação -->
+        <div *ngIf="showErr" style="background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#b91c1c;">
+          <strong>⚠️ Corrija os campos obrigatórios:</strong>
+          <ul style="margin:6px 0 0 18px;padding:0">
+            <li *ngIf="!form.portoOrigemId">Porto Origem é obrigatório</li>
+            <li *ngIf="!form.portoDestinoId">Porto Destino é obrigatório</li>
+            <li *ngIf="!form.data">Data é obrigatória</li>
+            <li *ngIf="!editando && depachantesForm.length === 0">Adicione ao menos um Despachante</li>
+          </ul>
+        </div>
+
           <!-- Dados básicos -->
           <div class="form-grid">
             <div class="field">
@@ -211,11 +242,13 @@ const DESP_STATUS_COLORS: Record<StatusSolicitacaoDespachante, string> = {
               <label>Peso (kg)</label>
               <input type="number" [(ngModel)]="form.peso" min="0" />
             </div>
-            <div class="field">
+            <div class="field" *ngIf="editando">
               <label>Status</label>
               <select [(ngModel)]="form.status">
                 <option value="Rascunho">Rascunho</option>
                 <option value="Aberta">Aberta</option>
+                <option value="AguardandoCusto">Aguardando Custo Despachante</option>
+                <option value="AguardandoOrcamentoVenda">Aguardando Orçamento de Venda</option>
                 <option value="EmAnalise">Em Análise</option>
                 <option value="Aprovada">Aprovada</option>
                 <option value="Cancelada">Cancelada</option>
@@ -296,6 +329,46 @@ const DESP_STATUS_COLORS: Record<StatusSolicitacaoDespachante, string> = {
             <p *ngIf="depachantesForm.length === 0" style="font-size:13px;color:var(--color-text-muted);margin:0">
               Nenhum despachante adicionado.
             </p>
+            <p *ngIf="showErr && !editando && depachantesForm.length === 0"
+               style="font-size:12px;color:#ef4444;margin:6px 0 0;font-weight:600">
+              ⚠️ Adicione ao menos um despachante para criar a solicitação.
+            </p>
+          </div>
+
+          <!-- Seção orçamento de venda -->
+          <div class="section-card" *ngIf="editando">
+            <h3>💰 Orçamento de Venda</h3>
+            <ng-container *ngIf="orcDaSolicitacao() as ov; else semOrcamento">
+              <table class="sub-table">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Data</th>
+                    <th>Total Geral</th>
+                    <th>Status</th>
+                    <th style="width:60px"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="sol-link">{{ ov.codigoInterno }}</span></td>
+                    <td>{{ ov.data | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ ov.totalGeral | currency:'BRL':'symbol':'1.2-2' }}</td>
+                    <td>
+                      <span class="status-badge" [ngStyle]="{ background: ovStatusColor(ov.status) }">
+                        {{ ovStatusLabel(ov.status) }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="btn-icon" (click)="abrirOrcamento(ov.id)" title="Abrir Orçamento">🔗</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </ng-container>
+            <ng-template #semOrcamento>
+              <p style="font-size:13px;color:var(--color-text-muted);margin:0">Nenhum orçamento de venda vinculado.</p>
+            </ng-template>
           </div>
 
           <!-- Seção documentos -->
@@ -366,17 +439,9 @@ const DESP_STATUS_COLORS: Record<StatusSolicitacaoDespachante, string> = {
 
           <!-- Ações do form -->
           <div class="actions">
-            <button class="btn btn-primary" (click)="salvar()">Salvar</button>
+            <button class="btn btn-primary" (click)="salvar()">{{ editando ? 'Salvar' : 'Criar' }}</button>
             <button class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
-            <div style="flex:1"></div>
-            <button class="btn btn-secondary" (click)="gerarCustoDespachante()" [disabled]="!editando"
-              [title]="editando ? 'Abrir wizard de custo pré-preenchido' : 'Salve primeiro para gerar custo'">
-              💼 Gerar CustoDespachante
-            </button>
           </div>
-          <p *ngIf="!editando" style="font-size:11px;color:var(--color-text-muted);margin-top:8px">
-            * Salve a solicitação antes de gerar um CustoDespachante
-          </p>
         </div>
       </ng-container>
 
@@ -416,6 +481,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     private importadorSvc: ImportadorService,
     private despachanteSvc: DespachanteV2Service,
     private custoDespachanteSvc: CustoDespachanteService,
+    private orcVendaSvc: OrcamentoVendaService,
     private auth: AuthService,
     private router: Router
   ) {
@@ -495,6 +561,14 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
       return;
     }
 
+    const eraCriacao = !this.editando;
+
+    // Despachante obrigatório na criação
+    if (eraCriacao && this.depachantesForm.length === 0) {
+      this.showErr = true;
+      return;
+    }
+
     if (this.editando) {
       this.svc.update(this.form);
     } else {
@@ -507,7 +581,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
         tamContainer:    this.form.tamContainer,
         peso:            this.form.peso,
         observacao:      this.form.observacao,
-        status:          'Rascunho',
+        status:          'AguardandoCusto',
         data:            this.form.data
       });
       this.form.id = criada.id;
@@ -541,6 +615,16 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
         observacao: d.observacao || undefined
       });
     });
+
+    // Na criação, gerar automaticamente custos e orçamento de venda
+    if (eraCriacao) {
+      try {
+        this._gerarCustosEOrcamento();
+      } catch (err) {
+        console.error('Erro ao gerar custos/orçamento:', err);
+        // Continua mesmo com erro na geração — solicitação já foi salva
+      }
+    }
 
     this.carregar();
     this.showForm = false;
@@ -592,16 +676,10 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     }
   }
 
-  // ── Gerar CustoDespachante ───────────────────────────────────────────
+  // ── Gerar CustoDespachante e Orçamento (chamado automaticamente na criação) ──
 
-  gerarCustoDespachante(): void {
-    if (!this.editando) return;
-    if (this.depachantesForm.length === 0) {
-      alert('Adicione ao menos um despachante antes de gerar os custos.');
-      return;
-    }
+  private _gerarCustosEOrcamento(): void {
     const today = new Date().toISOString().slice(0, 10);
-    let criados = 0;
     this.depachantesForm.forEach(d => {
       const jaExiste = this.custoDespachanteSvc.getAll().some(
         c => c.solicitacaoOrcamentoId === this.form.id && c.despachanteId === d.despachanteId
@@ -626,17 +704,45 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
           solicitacaoOrcamentoId: this.form.id,
           status:                 'Rascunho'
         });
-        criados++;
       }
     });
-    // Transitar status para Aberta
-    this.form.status = 'Aberta';
-    this.svc.update(this.form);
-    this.carregar();
-    if (criados > 0) {
-      alert(`${criados} custo(s) despachante gerado(s). Solicitação agora está Aberta.`);
+
+    // Auto-criar Orçamento de Venda com status AguardandoDespachante
+    if (this.orcVendaSvc.getBySolicitacao(this.form.id).length === 0) {
+      this.orcVendaSvc.create({
+        clienteId:              this.form.clienteId ?? '',
+        solicitacaoOrcamentoId: this.form.id,
+        data:                   today,
+        tamContainer:           this.form.tamContainer,
+        pesoBruto:              this.form.peso,
+        pesoLiquido:            0,
+        freteInternacional:     0,
+        cifReais:               0, cifUsd:       0,
+        fobReais:               0, fobUsd:       0,
+        taxaUsd:                0, honorarios:   0,
+        totalImpostos:          0, totalDespesas: 0, totalExtras: 0, totalGeral: 0,
+        status:                 'AguardandoDespachante'
+      });
     }
-    this.router.navigate(['/custos']);
+  }
+
+  orcDaSolicitacao(): OrcamentoVenda | undefined {
+    if (!this.form?.id) return undefined;
+    return this.orcVendaSvc.getBySolicitacao(this.form.id)[0];
+  }
+
+  ovStatusColor(status?: string): string {
+    return OV_STATUS_COLORS[status ?? ''] ?? '#6b7280';
+  }
+
+  ovStatusLabel(status?: string): string {
+    const map: Record<string, string> = {
+      AguardandoDespachante:   'Aguardando Despachante',
+      AguardandoOrcamentoVenda:'Aguardando Orçamento de Venda',
+      Rascunho:                'Rascunho',
+      Finalizado:              'Finalizado',
+    };
+    return map[status ?? ''] ?? (status ?? '—');
   }
 
   custoPorDespachante(despachanteId: string): CustoDespachante | undefined {
@@ -662,6 +768,20 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
 
   contarDespachantes(solId: string): number {
     return this.svc.getDespachantes(solId).length;
+  }
+
+  contarCustosFinalizados(solId: string): number {
+    return this.custoDespachanteSvc.getAll().filter(
+      c => c.solicitacaoOrcamentoId === solId && c.status === 'Finalizado'
+    ).length;
+  }
+
+  orcamentoPorSolicitacao(solId: string): OrcamentoVenda | undefined {
+    return this.orcVendaSvc.getBySolicitacao(solId)[0];
+  }
+
+  abrirOrcamento(ovId: string): void {
+    this.router.navigate(['/orcamentos-venda'], { queryParams: { editId: ovId } });
   }
 
   statusColor(status: StatusSolicitacao): string {

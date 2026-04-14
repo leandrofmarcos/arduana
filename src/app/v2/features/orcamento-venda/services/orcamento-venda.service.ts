@@ -19,6 +19,10 @@ export class OrcamentoVendaService {
     return this.getAll().find(o => o.id === id);
   }
 
+  getBySolicitacao(solicitacaoId: string): OrcamentoVenda[] {
+    return this.getAll().filter(o => o.solicitacaoOrcamentoId === solicitacaoId);
+  }
+
   gerarCodigoInterno(): string {
     return generateCode('OV', this.getAll().length);
   }

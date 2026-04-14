@@ -18,6 +18,7 @@ import { ModeloDespesaService } from '../../cadastros/modelos-despesa/services/m
 import { DespesaCadastroService } from '../../cadastros/despesas-cadastro/services/despesa-cadastro.service';
 import { SolicitacaoOrcamentoService } from '../../solicitacao-orcamento/services/solicitacao-orcamento.service';
 import { SolicitacaoOrcamento } from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
+import { OrcamentoVendaService } from '../../orcamento-venda/services/orcamento-venda.service';
 import { DespachanteV2 } from '../../cadastros/despachantes/models/despachante-v2.models';
 import { Importador } from '../../cadastros/importadores/models/importador.models';
 import { PortoOrigem } from '../../cadastros/portos-origem/models/porto-origem.models';
@@ -61,7 +62,10 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
       border: 2px solid var(--color-border);
       background: var(--color-bg);
       color: var(--color-text-muted);
+      cursor: pointer;
+      transition: opacity .15s;
     }
+    .step-circle:hover { opacity: .8; }
     .step-circle.active {
       background: var(--color-primary, #3b82f6);
       border-color: var(--color-primary, #3b82f6);
@@ -99,6 +103,31 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
     .packlist-obs { font-size: 12px; color: var(--color-text-muted); flex: 1; }
     .packlist-date { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; }
     .status-custo-badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:11px; font-weight:700; color:#fff; }
+    /* Resumo consolidado */
+    .resumo-section { margin-bottom:20px; }
+    .resumo-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--color-text-muted); margin:0 0 10px; padding-bottom:6px; border-bottom:1.5px solid var(--color-border); display:flex; align-items:center; gap:6px; }
+    .resumo-dados-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px 20px; font-size:13px; }
+    @media (max-width:800px) { .resumo-dados-grid { grid-template-columns:1fr 1fr; } }
+    .resumo-dado { display:flex; flex-direction:column; gap:2px; }
+    .resumo-dado label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); }
+    .resumo-dado span { font-size:13px; color:var(--color-text); font-weight:500; }
+    .resumo-table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:4px; }
+    .resumo-table th { text-align:left; padding:6px 8px; background:var(--color-bg); font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--color-text-muted); border-bottom:1px solid var(--color-border); }
+    .resumo-table td { padding:7px 8px; border-bottom:1px solid var(--color-border); vertical-align:middle; }
+    .resumo-table tr:last-child td { border-bottom:none; }
+    .resumo-table .total-row td { background:var(--color-bg); font-weight:800; border-top:1.5px solid var(--color-border); }
+    .imposto-breakdown { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin-top:4px; }
+    .imposto-item { background:var(--color-bg); border-radius:6px; padding:4px 6px; text-align:center; }
+    .imposto-item .ali { font-size:10px; color:var(--color-text-muted); }
+    .imposto-item .val { font-size:12px; font-weight:700; color:#059669; }
+    .imposto-item .lab { font-size:10px; font-weight:700; color:var(--color-text-muted); }
+    .total-geral-box { background:linear-gradient(135deg,#1e3a5f,#2563eb); color:#fff; border-radius:10px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; margin-top:4px; }
+    .total-geral-box .label { font-size:13px; opacity:.85; }
+    .total-geral-box .valor { font-size:22px; font-weight:800; }
+    .subtotal-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--color-border); font-size:13px; }
+    .subtotal-row:last-child { border-bottom:none; }
+    .sol-card { background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:8px; padding:10px 14px; display:flex; align-items:center; gap:12px; font-size:13px; margin-bottom:0; }
+    .ncm-card { border:1.5px solid var(--color-border); border-radius:8px; padding:12px 14px; margin-bottom:10px; }
     `
   ],
   template: `
@@ -172,12 +201,12 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
         <div class="wizard-steps">
           <ng-container *ngFor="let s of stepLabels; let i = index; let last = last">
             <div class="wizard-step">
-              <div class="step-circle" [class.active]="step === i+1" [class.done]="step > i+1">
-                {{ step > i+1 ? '✓' : i+1 }}
+              <div class="step-circle" [class.active]="step === i+1" [class.done]="completedSteps.has(i+1) && step !== i+1" (click)="goToStep(i+1)">
+                {{ completedSteps.has(i+1) && step !== i+1 ? '✓' : i+1 }}
               </div>
-              <span class="step-label" [class.active]="step === i+1">{{ s }}</span>
+              <span class="step-label" [class.active]="step === i+1" style="cursor:pointer" (click)="goToStep(i+1)">{{ s }}</span>
             </div>
-            <div class="step-connector" [class.done]="step > i+1" *ngIf="!last"></div>
+            <div class="step-connector" [class.done]="completedSteps.has(i+1)" *ngIf="!last"></div>
           </ng-container>
         </div>
 
@@ -579,57 +608,270 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
           </div>
         </div>
 
-        <!-- ─ PASSO 5 — Resumo ─ -->
+        <!-- ─ PASSO 5 — Resumo Consolidado ─ -->
         <div class="card" *ngIf="step === 5">
-          <h3 style="margin:0 0 16px;font-size:15px;font-weight:800">📋 Resumo do Custo</h3>
+
+          <!-- Cabeçalho do resumo -->
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;padding-bottom:16px;border-bottom:2px solid var(--color-border)">
+            <div style="flex:1">
+              <h3 style="margin:0 0 4px;font-size:16px;font-weight:800">📋 Resumo Consolidado</h3>
+              <p style="margin:0;font-size:12px;color:var(--color-text-muted)">Visão completa de todos os dados do custo despachante</p>
+            </div>
+            <span class="status-custo-badge" [ngStyle]="{ background: wizardStatus === 'Finalizado' ? '#22c55e' : '#f59e0b' }">{{ wizardStatus === 'Finalizado' ? 'Finalizado' : 'Rascunho' }}</span>
+          </div>
+
+          <!-- Solicitação vinculada -->
+          <div class="resumo-section" *ngIf="p1.solicitacaoOrcamentoId">
+            <div class="resumo-section-title">🔗 Solicitação de Origem</div>
+            <div class="sol-card">
+              <span style="font-family:monospace;font-size:13px;font-weight:700;color:#1d4ed8">{{ codSolById(p1.solicitacaoOrcamentoId) }}</span>
+              <span style="color:var(--color-text-muted);font-size:12px">Custo vinculado a esta solicitação de orçamento</span>
+            </div>
+          </div>
 
           <!-- Dados básicos -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-bottom:20px;font-size:13px">
-            <div><strong>Despachante:</strong> {{ nomeDespachanteById(p1.despachanteId) }}</div>
-            <div><strong>Importador:</strong> {{ nomeImportadorById(p1.importadorId) }}</div>
-            <div><strong>Porto Origem:</strong> {{ nomePortoOrigemById(p1.portoOrigemId) }}</div>
-            <div><strong>Porto Destino:</strong> {{ nomePortoDestinoById(p1.portoDestinoId) }}</div>
-            <div><strong>Responsável:</strong> {{ p1.responsavel }}</div>
-            <div><strong>Data:</strong> {{ p1.data | date:'dd/MM/yyyy' }}</div>
-            <div><strong>Container:</strong> {{ p1.tamContainer }}</div>
-            <div><strong>Peso:</strong> {{ p1.peso | number:'1.0-0' }} kg</div>
+          <div class="resumo-section">
+            <div class="resumo-section-title">📝 Dados Básicos</div>
+            <div class="resumo-dados-grid">
+              <div class="resumo-dado">
+                <label>Despachante</label>
+                <span>{{ nomeDespachanteById(p1.despachanteId) }}</span>
+              </div>
+              <div class="resumo-dado">
+                <label>Importador</label>
+                <span>{{ nomeImportadorById(p1.importadorId) }}</span>
+              </div>
+              <div class="resumo-dado">
+                <label>Responsável</label>
+                <span>{{ p1.responsavel }}</span>
+              </div>
+              <div class="resumo-dado">
+                <label>Porto Origem</label>
+                <span>{{ nomePortoOrigemById(p1.portoOrigemId) }}</span>
+              </div>
+              <div class="resumo-dado">
+                <label>Porto Destino</label>
+                <span>{{ nomePortoDestinoById(p1.portoDestinoId) }}</span>
+              </div>
+              <div class="resumo-dado">
+                <label>Data</label>
+                <span>{{ p1.data | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="resumo-dado">
+                <label>Container</label>
+                <span>{{ p1.tamContainer }}</span>
+              </div>
+              <div class="resumo-dado">
+                <label>Peso</label>
+                <span>{{ p1.peso | number:'1.0-0' }} kg</span>
+              </div>
+              <div class="resumo-dado" *ngIf="p1.observacao">
+                <label>Observação</label>
+                <span>{{ p1.observacao }}</span>
+              </div>
+            </div>
+
+            <!-- Valores financeiros -->
+            <div style="margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+              <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">FOB USD</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.fobUsd | currency:'USD':'symbol':'1.2-2' }}</div>
+              </div>
+              <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">FOB R$</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.fobReais | currency:'BRL':'symbol':'1.2-2' }}</div>
+              </div>
+              <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">CIF USD</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.cifUsd | currency:'USD':'symbol':'1.2-2' }}</div>
+              </div>
+              <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">CIF R$</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.cifReais | currency:'BRL':'symbol':'1.2-2' }}</div>
+              </div>
+              <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">Seguro USD</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.seguroUsd | currency:'USD':'symbol':'1.2-2' }}</div>
+              </div>
+              <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">Taxa USD</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.taxaUsd | number:'1.4-4' }}</div>
+              </div>
+              <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center" *ngIf="p1.taxaUsdAgente">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">Taxa USD Agente</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.taxaUsdAgente | number:'1.4-4' }}</div>
+              </div>
+            </div>
           </div>
 
-          <!-- Totais -->
-          <div style="border: 1.5px solid var(--color-border);border-radius:10px;padding:16px">
-            <div class="resumo-row">
-              <span>FOB USD</span>
-              <span>{{ p1.fobUsd | currency:'USD':'symbol':'1.2-2' }}</span>
+          <!-- LI -->
+          <div class="resumo-section">
+            <div class="resumo-section-title">
+              📄 Licença de Importação (LI)
+              <span style="margin-left:auto;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--color-text)">{{ lisForm.length }} item(ns) — Total: <strong>{{ totalLis() | currency:'BRL':'symbol':'1.2-2' }}</strong></span>
             </div>
-            <div class="resumo-row">
-              <span>CIF R$</span>
-              <span>{{ p1.cifReais | currency:'BRL':'symbol':'1.2-2' }}</span>
+            <ng-container *ngIf="lisForm.length > 0; else semLi">
+              <table class="resumo-table">
+                <thead>
+                  <tr>
+                    <th style="width:120px">NCM</th>
+                    <th>Descrição</th>
+                    <th style="width:130px;text-align:right">Data</th>
+                    <th style="width:150px;text-align:right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let li of lisForm">
+                    <td><code style="font-size:12px">{{ li.ncm || '—' }}</code></td>
+                    <td>{{ li.descricao }}</td>
+                    <td style="text-align:right">{{ li.data | date:'dd/MM/yyyy' }}</td>
+                    <td style="text-align:right;font-weight:600">{{ li.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
+                  </tr>
+                  <tr class="total-row">
+                    <td colspan="3">Total LI</td>
+                    <td style="text-align:right">{{ totalLis() | currency:'BRL':'symbol':'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ng-container>
+            <ng-template #semLi>
+              <p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhum item de LI adicionado.</p>
+            </ng-template>
+          </div>
+
+          <!-- Despesas -->
+          <div class="resumo-section">
+            <div class="resumo-section-title">
+              💸 Despesas
+              <span style="margin-left:auto;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--color-text)">{{ despesasForm.length }} item(ns) — Total: <strong>{{ totalDespesas() | currency:'BRL':'symbol':'1.2-2' }}</strong></span>
             </div>
-            <div class="resumo-row">
-              <span>Total LI ({{ lisForm.length }} itens)</span>
-              <span>{{ totalLis() | currency:'BRL':'symbol':'1.2-2' }}</span>
+            <ng-container *ngIf="despesasForm.length > 0; else semDespesas">
+              <table class="resumo-table">
+                <thead>
+                  <tr>
+                    <th>Descrição</th>
+                    <th style="width:130px;text-align:right">Data</th>
+                    <th style="width:130px;text-align:center">Base ICMS</th>
+                    <th style="width:150px;text-align:right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let d of despesasForm">
+                    <td>{{ d.descricao }}</td>
+                    <td style="text-align:right">{{ d.data | date:'dd/MM/yyyy' }}</td>
+                    <td style="text-align:center">
+                      <span [class]="d.entraBaseIcms ? 'tag-icms-sim' : 'tag-icms-nao'">
+                        {{ d.entraBaseIcms ? 'Sim' : 'Não' }}
+                      </span>
+                    </td>
+                    <td style="text-align:right;font-weight:600">{{ d.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
+                  </tr>
+                  <tr class="total-row">
+                    <td colspan="3">Total Despesas</td>
+                    <td style="text-align:right">{{ totalDespesas() | currency:'BRL':'symbol':'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ng-container>
+            <ng-template #semDespesas>
+              <p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhuma despesa adicionada.</p>
+            </ng-template>
+          </div>
+
+          <!-- NCM / Impostos -->
+          <div class="resumo-section">
+            <div class="resumo-section-title">
+              🧮 NCM / Impostos
+              <span style="margin-left:auto;font-size:11px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--color-text)">{{ ncvsForm.length }} NCM(s) — Total Impostos: <strong style="color:#059669">{{ totalNcvs() | currency:'BRL':'symbol':'1.2-2' }}</strong></span>
             </div>
-            <div class="resumo-row">
-              <span>Total Despesas ({{ despesasForm.length }} itens)</span>
-              <span>{{ totalDespesas() | currency:'BRL':'symbol':'1.2-2' }}</span>
-            </div>
-            <div class="resumo-row" style="font-weight:700;color:#059669">
-              <span>Total Impostos ({{ ncvsForm.length }} NCMs)</span>
-              <span>{{ totalNcvs() | currency:'BRL':'symbol':'1.2-2' }}</span>
-            </div>
-            <!-- Detalhes por NCM -->
-            <ng-container *ngFor="let nv of ncvsForm">
-              <div class="imposto-detalhe">
-                {{ nv.numeroNcm }} — {{ nv.descricao }}: {{ calcTotal(nv) | currency:'BRL':'symbol':'1.2-2' }}
+            <ng-container *ngIf="ncvsForm.length > 0; else semNcv">
+              <div class="ncm-card" *ngFor="let nv of ncvsForm">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                  <code style="font-size:13px;font-weight:700;background:var(--color-bg);padding:2px 8px;border-radius:5px;border:1px solid var(--color-border)">{{ nv.numeroNcm }}</code>
+                  <span style="font-size:13px;font-weight:600">{{ nv.descricao }}</span>
+                  <span style="margin-left:auto;font-size:12px;color:var(--color-text-muted)">Base: <strong>{{ nv.baseCalculo | currency:'BRL':'symbol':'1.2-2' }}</strong></span>
+                </div>
+                <div class="imposto-breakdown">
+                  <div class="imposto-item">
+                    <div class="lab">I.I.</div>
+                    <div class="ali">{{ nv.aliIi }}%</div>
+                    <div class="val">{{ (nv.baseCalculo * (nv.aliIi / 100)) | currency:'BRL':'symbol':'1.2-2' }}</div>
+                  </div>
+                  <div class="imposto-item">
+                    <div class="lab">IPI</div>
+                    <div class="ali">{{ nv.aliIpi }}%</div>
+                    <div class="val">{{ ((nv.baseCalculo + nv.baseCalculo * (nv.aliIi/100)) * (nv.aliIpi / 100)) | currency:'BRL':'symbol':'1.2-2' }}</div>
+                  </div>
+                  <div class="imposto-item">
+                    <div class="lab">PIS</div>
+                    <div class="ali">{{ nv.aliPis }}%</div>
+                    <div class="val">{{ (nv.baseCalculo * (nv.aliPis / 100)) | currency:'BRL':'symbol':'1.2-2' }}</div>
+                  </div>
+                  <div class="imposto-item">
+                    <div class="lab">COFINS</div>
+                    <div class="ali">{{ nv.aliCofins }}%</div>
+                    <div class="val">{{ (nv.baseCalculo * (nv.aliCofins / 100)) | currency:'BRL':'symbol':'1.2-2' }}</div>
+                  </div>
+                  <div class="imposto-item" style="background:#f0fdf4;border:1px solid #bbf7d0">
+                    <div class="lab">ICMS</div>
+                    <div class="ali">{{ nv.aliIcms }}%</div>
+                    <div class="val">{{ ((nv.baseCalculo + nv.baseCalculo*(nv.aliIi/100) + (nv.baseCalculo+nv.baseCalculo*(nv.aliIi/100))*(nv.aliIpi/100)) * (nv.aliIcms / 100)) | currency:'BRL':'symbol':'1.2-2' }}</div>
+                  </div>
+                </div>
+                <div style="text-align:right;margin-top:8px;font-size:13px;font-weight:700;color:#059669">
+                  Total do NCM: {{ calcTotal(nv) | currency:'BRL':'symbol':'1.2-2' }}
+                </div>
               </div>
             </ng-container>
-            <div class="resumo-total">
-              <span>TOTAL GERAL</span>
-              <span>{{ totalGeral() | currency:'BRL':'symbol':'1.2-2' }}</span>
+            <ng-template #semNcv>
+              <p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhum NCM vinculado.</p>
+            </ng-template>
+          </div>
+
+          <!-- Totalizador final -->
+          <div class="resumo-section" style="margin-bottom:0">
+            <div class="resumo-section-title">💰 Totalizador</div>
+            <div style="border:1.5px solid var(--color-border);border-radius:10px;padding:14px 18px;margin-bottom:12px">
+              <div class="subtotal-row">
+                <span style="color:var(--color-text-muted)">CIF (R$)</span>
+                <span style="font-weight:600">{{ p1.cifReais | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="subtotal-row">
+                <span style="color:var(--color-text-muted)">Total LI ({{ lisForm.length }} itens)</span>
+                <span style="font-weight:600">{{ totalLis() | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="subtotal-row">
+                <span style="color:var(--color-text-muted)">Total Despesas ({{ despesasForm.length }} itens)</span>
+                <span style="font-weight:600">{{ totalDespesas() | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="subtotal-row" style="color:#059669">
+                <span style="font-weight:600">Total Impostos ({{ ncvsForm.length }} NCMs)</span>
+                <span style="font-weight:700">{{ totalNcvs() | currency:'BRL':'symbol':'1.2-2' }}</span>
+              </div>
+            </div>
+            <div class="total-geral-box">
+              <span class="label">TOTAL GERAL</span>
+              <span class="valor">{{ totalGeral() | currency:'BRL':'symbol':'1.2-2' }}</span>
             </div>
           </div>
 
-          <div class="actions">
+          <!-- Packlist da Solicitação -->
+          <ng-container *ngIf="p1.solicitacaoOrcamentoId && packlistDocs(p1.solicitacaoOrcamentoId).length > 0">
+            <div class="resumo-section" style="margin-top:20px;margin-bottom:0">
+              <div class="resumo-section-title">📦 Packlist da Solicitação</div>
+              <div class="packlist-box" style="margin-top:0">
+                <div class="packlist-row" *ngFor="let doc of packlistDocs(p1.solicitacaoOrcamentoId)">
+                  <span class="packlist-name">{{ doc.nomeArquivo }}</span>
+                  <span class="packlist-obs">{{ doc.observacao || '' }}</span>
+                  <span class="packlist-date">{{ doc.dataUpload | date:'dd/MM/yyyy' }}</span>
+                  <button class="btn-icon" title="Baixar / Ver arquivo"
+                    (click)="downloadPacklist(doc.linkDocumento, doc.nomeArquivo)">⬇️</button>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+          <div class="actions" style="margin-top:24px">
             <button class="btn btn-secondary" (click)="salvarTudo('Rascunho')">💾 Salvar Rascunho</button>
             <button class="btn btn-primary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
@@ -662,6 +904,7 @@ export class CustoDespachanteComponent implements OnInit {
 
   // ── Wizard state ──────────────────────────────────────────────────────
   step = 1;
+  completedSteps = new Set<number>();
   showErr = false;
   wizardStatus: StatusCustoDespachante = 'Rascunho';
 
@@ -702,6 +945,7 @@ export class CustoDespachanteComponent implements OnInit {
     private modeloSvc: ModeloDespesaService,
     private despesaCadastroSvc: DespesaCadastroService,
     private solicitacaoSvc: SolicitacaoOrcamentoService,
+    private orcVendaSvc: OrcamentoVendaService,
     private route: ActivatedRoute
   ) {}
 
@@ -782,10 +1026,17 @@ export class CustoDespachanteComponent implements OnInit {
   nextStep(): void {
     if (this.step === 1 && !this.validateP1()) return;
     this.showErr = false;
+    this.completedSteps.add(this.step);
     this.step++;
   }
 
   prevStep(): void { this.step--; }
+
+  goToStep(target: number): void {
+    if (target === this.step) return;
+    this.showErr = false;
+    this.step = target;
+  }
 
   validateP1(): boolean {
     this.showErr = true;
@@ -906,6 +1157,7 @@ export class CustoDespachanteComponent implements OnInit {
   openWizard(item?: CustoDespachante): void {
     this.editing = item ?? null;
     this.step = 1;
+    this.completedSteps = new Set<number>();
     this.showErr = false;
     this.liErro = '';
     this.despesaErro = '';
@@ -945,6 +1197,11 @@ export class CustoDespachanteComponent implements OnInit {
         aliIi: nv.aliIi, aliIpi: nv.aliIpi, aliPis: nv.aliPis, aliCofins: nv.aliCofins,
         aliIcms: nv.aliIcms, baseCalculo: nv.baseCalculo
       }));
+      // Mark all data-bearing steps as complete when editing an existing record
+      this.completedSteps.add(1);
+      if (this.lisForm.length > 0) this.completedSteps.add(2);
+      if (this.despesasForm.length > 0) this.completedSteps.add(3);
+      if (this.ncvsForm.length > 0) this.completedSteps.add(4);
     } else {
       this.wizardStatus = 'Rascunho';
       this.p1 = {
@@ -1022,12 +1279,37 @@ export class CustoDespachanteComponent implements OnInit {
       this.service.saveValorImposto(valor);
     });
 
+    this.wizardStatus = status;
+    // Mark all steps complete when saving
+    for (let i = 1; i <= 5; i++) this.completedSteps.add(i);
+
     // Se finalizado e vinculado a uma solicitação, atualiza status do despachante
     if (status === 'Finalizado' && this.p1.solicitacaoOrcamentoId) {
-      const despachantes = this.solicitacaoSvc.getDespachantes(this.p1.solicitacaoOrcamentoId);
+      const solId = this.p1.solicitacaoOrcamentoId;
+      const despachantes = this.solicitacaoSvc.getDespachantes(solId);
       const linked = despachantes.find(d => d.despachanteId === this.p1.despachanteId);
       if (linked && linked.status !== 'FinalizadoDespachante') {
         this.solicitacaoSvc.updateDespachante({ ...linked, status: 'FinalizadoDespachante' });
+      }
+
+      // Verifica se TODOS os despachantes da solicitação estão finalizados
+      const refreshed = this.solicitacaoSvc.getDespachantes(solId);
+      const todosFinalizados = refreshed.length > 0 &&
+        refreshed.every(d => d.status === 'FinalizadoDespachante');
+
+      if (todosFinalizados) {
+        // Atualiza status da solicitação
+        const sol = this.solicitacaoSvc.getById(solId);
+        if (sol && sol.status !== 'AguardandoOrcamentoVenda') {
+          this.solicitacaoSvc.update({ ...sol, status: 'AguardandoOrcamentoVenda' });
+        }
+        // Atualiza status do Orçamento de Venda vinculado
+        const ovs = this.orcVendaSvc.getBySolicitacao(solId);
+        ovs.forEach(ov => {
+          if (ov.status !== 'AguardandoOrcamentoVenda') {
+            this.orcVendaSvc.update({ ...ov, status: 'AguardandoOrcamentoVenda' });
+          }
+        });
       }
     }
 
