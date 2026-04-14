@@ -875,6 +875,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
             <button class="btn btn-secondary" (click)="salvarTudo('Rascunho')">💾 Salvar Rascunho</button>
             <button class="btn btn-primary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
+            <button class="btn btn-outline" (click)="gerarPlanilhaPDF()">📄 Exportar PDF</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
         </div>
@@ -1322,5 +1323,158 @@ export class CustoDespachanteComponent implements OnInit {
       this.service.remove(id);
       this.load();
     }
+  }
+
+  gerarPlanilhaPDF(): void {
+    const fmtBRL  = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const fmtUSD  = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    const fmtNum  = (v: number, dec = 2) => v.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    const fmtPct  = (v: number) => fmtNum(v, 2) + '%';
+    const fmtDate = (s: string | undefined) => {
+      if (!s) return '—';
+      const [y, m, d] = s.split('-');
+      return d && m && y ? `${d}/${m}/${y}` : s;
+    };
+
+    const codigo = this.editing?.codigoInterno ?? 'NOVO';
+    const solCod = this.codSolById(this.p1.solicitacaoOrcamentoId);
+    const despachante = this.nomeDespachanteById(this.p1.despachanteId);
+    const importador  = this.nomeImportadorById(this.p1.importadorId);
+    const portoOrg    = this.nomePortoOrigemById(this.p1.portoOrigemId);
+    const portoDst    = this.nomePortoDestinoById(this.p1.portoDestinoId);
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Planilha de Custos</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:Arial,'Helvetica Neue',sans-serif; font-size:9px; color:#111; background:#fff; }
+    .sheet { width:100%; border-collapse:collapse; }
+    .sheet td, .sheet th { border:1px solid #aaa; padding:2px 5px; vertical-align:middle; font-size:9px; }
+    .sec-blue  { background:#17375e; color:#fff; font-weight:700; font-size:9px; text-align:center; text-transform:uppercase; letter-spacing:.06em; padding:4px 6px; }
+    .sec-green { background:#375623; color:#fff; font-weight:700; font-size:9px; text-align:center; text-transform:uppercase; letter-spacing:.06em; padding:4px 6px; }
+    .cat-li    { background:#ffd966; font-weight:700; text-align:center; font-size:8.5px; }
+    .cat-desp  { background:#92d050; font-weight:700; text-align:center; font-size:8.5px; }
+    .cat-trib  { background:#f4b942; font-weight:700; text-align:center; font-size:8.5px; }
+    .val-r     { text-align:right; white-space:nowrap; }
+    .val-b     { font-weight:700; }
+    .sub-row td { background:#cfe2f3 !important; font-weight:700; border-top:2px solid #4472c4; }
+    .tot-y td  { background:#ffff00 !important; font-weight:800; font-size:10px; }
+    .tot-r td  { background:#c00050 !important; color:#fff; font-weight:800; font-size:9.5px; }
+    .page-title { background:#fffde0; text-align:center; font-size:14px; font-weight:800; letter-spacing:.04em; padding:7px; }
+    .ref-row   { background:#fffde0; padding:3px 8px; }
+    .ref-cod   { color:#c00; font-weight:700; font-size:10px; font-family:monospace; }
+    .sol-cod   { color:#1d4ed8; font-weight:700; font-size:9.5px; font-family:monospace; margin-left:12px; }
+    .cli-td    { background:#f9f9f9; font-size:9px; padding:3px 7px; }
+    .lbl       { color:#666; }
+    .ita { width:100%; border-collapse:collapse; font-size:8.5px; }
+    .ita td, .ita th { border:1px solid #ccc; padding:2px 5px; }
+    .ita th { background:#dce6f1; font-size:8px; font-weight:700; text-align:center; }
+    .ita tr:nth-child(even) td { background:#f5f9ff; }
+    .imp-hd { background:#17375e !important; color:#fff !important; text-align:center; font-size:8px; }
+    code { font-family:monospace; font-size:8px; background:#f3f4f6; padding:0 3px; border-radius:2px; }
+    small { font-size:7.5px; color:#888; }
+    @media print { @page { margin:6mm 5mm; size:A4 portrait; } }
+  </style>
+</head>
+<body>
+<table class="sheet">
+  <tr><td colspan="6" class="page-title">PLANILHA DE CUSTOS</td></tr>
+  <tr>
+    <td colspan="4" class="ref-row">
+      <span class="ref-cod">REF.: ${codigo}</span>${solCod ? `<span class="sol-cod">SOL.: ${solCod}</span>` : ''}
+    </td>
+    <td colspan="2" class="ref-row" style="text-align:right;font-size:8px;color:#555">
+      ${this.wizardStatus === 'Finalizado' ? '<span style="color:#166534;font-weight:700">&#10004; FINALIZADO</span>' : '<span style="color:#92400e;font-weight:700">&#8987; RASCUNHO</span>'}
+      &nbsp; Gerado em: ${new Date().toLocaleDateString('pt-BR')}
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" class="cli-td"><span class="lbl">Cliente: </span><strong>${importador}</strong></td>
+    <td colspan="2" class="cli-td"><span class="lbl">Importacao por: </span><strong>${despachante}</strong></td>
+    <td colspan="2" class="cli-td"><span class="lbl">Data da Simulacao: </span><strong>${fmtDate(this.p1.data)}</strong></td>
+  </tr>
+  <tr><td colspan="6" class="sec-blue">1 &mdash; PREMISSAS DA OPERACAO</td></tr>
+  <tr>
+    <td colspan="2" style="vertical-align:top;padding:0">
+      <table class="ita">
+        <tr><th colspan="3">VALORES</th></tr>
+        <tr><th style="text-align:left">Item</th><th>USD</th><th>R$</th></tr>
+        <tr><td>FOB</td><td class="val-r">${fmtUSD(this.p1.fobUsd||0)}</td><td class="val-r">${fmtBRL(this.p1.fobReais||0)}</td></tr>
+        <tr><td>CIF</td><td class="val-r">${fmtUSD(this.p1.cifUsd||0)}</td><td class="val-r">${fmtBRL(this.p1.cifReais||0)}</td></tr>
+        <tr><td>Seguro</td><td class="val-r">${fmtUSD(this.p1.seguroUsd||0)}</td><td>&mdash;</td></tr>
+        <tr><td>Taxa USD</td><td colspan="2" class="val-r">${fmtNum(this.p1.taxaUsd||0,4)}</td></tr>
+        ${this.p1.taxaUsdAgente!=null ? `<tr><td>Taxa USD Agente</td><td colspan="2" class="val-r">${fmtNum(this.p1.taxaUsdAgente,4)}</td></tr>` : ''}
+      </table>
+    </td>
+    <td colspan="2" style="vertical-align:top;padding:0">
+      <table class="ita">
+        <tr><th colspan="2">DADOS DA OPERACAO</th></tr>
+        <tr><td class="lbl">Porto Origem</td><td class="val-r val-b">${portoOrg}</td></tr>
+        <tr><td class="lbl">Porto Destino</td><td class="val-r val-b">${portoDst}</td></tr>
+        <tr><td class="lbl">Container</td><td class="val-r val-b">${this.p1.tamContainer}</td></tr>
+        <tr><td class="lbl">Peso</td><td class="val-r val-b">${fmtNum(this.p1.peso||0,0)} kg</td></tr>
+        <tr><td class="lbl">Responsavel</td><td class="val-r val-b">${this.p1.responsavel||'&mdash;'}</td></tr>
+        ${this.p1.observacao ? `<tr><td class="lbl">Obs.</td><td style="font-size:8px">${this.p1.observacao}</td></tr>` : ''}
+      </table>
+    </td>
+    <td colspan="2" style="vertical-align:top;padding:0">
+      <table class="ita">
+        <tr><th colspan="2" class="imp-hd">IMPOSTO DE IMPORTACAO</th></tr>
+        ${this.ncvsForm.length === 0
+          ? `<tr><td colspan="2" style="text-align:center;color:#888;font-style:italic">Nenhum NCM</td></tr>`
+          : `<tr><td>I.I.</td><td class="val-r val-b">${fmtPct(this.ncvsForm[0].aliIi)}</td></tr><tr><td>I.P.I.</td><td class="val-r val-b">${fmtPct(this.ncvsForm[0].aliIpi)}</td></tr><tr><td>ICMS</td><td class="val-r val-b">${fmtPct(this.ncvsForm[0].aliIcms)}</td></tr><tr><td>PIS</td><td class="val-r val-b">${fmtPct(this.ncvsForm[0].aliPis)}</td></tr><tr><td>COFINS</td><td class="val-r val-b">${fmtPct(this.ncvsForm[0].aliCofins)}</td></tr>${this.ncvsForm.length > 1 ? `<tr><td colspan="2" style="font-size:7px;color:#888;text-align:center">${this.ncvsForm.length} NCMs &mdash; aliq. do 1o NCM</td></tr>` : ''}`
+        }
+      </table>
+    </td>
+  </tr>
+  ${this.ncvsForm.length > 0 ? `<tr style="background:#dce6f1"><td style="font-weight:700;font-size:8px;color:#17375e">NCM</td><td colspan="5" style="font-size:8.5px">${this.ncvsForm.map(nv => `<code>${nv.numeroNcm}</code> <strong>${nv.descricao}</strong> <small>(Base: ${fmtBRL(nv.baseCalculo)})</small>`).join(' &nbsp;|&nbsp; ')}</td></tr>` : ''}
+  <tr><td colspan="6" class="sec-green">2 &mdash; DESPESAS NO DESEMBARACO</td></tr>
+  <tr style="background:#e2efda">
+    <td colspan="2" style="font-weight:700;font-size:8px;color:#375623">CATEGORIA</td>
+    <td colspan="3" style="font-weight:700;font-size:8px;color:#375623">DESCRICAO</td>
+    <td style="font-weight:700;font-size:8px;color:#375623;text-align:right">VALOR</td>
+  </tr>
+  ${(()=>{
+    const liR = this.lisForm.length === 0
+      ? `<tr><td class="cat-li" colspan="2">LI</td><td colspan="4" style="color:#888;font-style:italic;font-size:8px">Nenhum item de LI.</td></tr>`
+      : this.lisForm.map((li, i) => `<tr>${i === 0 ? `<td class="cat-li" colspan="2" rowspan="${this.lisForm.length}">LICENCA DE<br/>IMPORTACAO</td>` : ''}<td colspan="3">${li.descricao}${li.ncm ? ` <code>${li.ncm}</code>` : ''} <small style="float:right">${fmtDate(li.data)}</small></td><td class="val-r">${fmtBRL(li.valor||0)}</td></tr>`).join('');
+    const liTot = this.lisForm.length > 0 ? `<tr class="sub-row"><td colspan="5" style="text-align:right">Subtotal LI</td><td class="val-r">${fmtBRL(this.totalLis())}</td></tr>` : '';
+    const despR = this.despesasForm.length === 0
+      ? `<tr><td class="cat-desp" colspan="2">DESPESAS</td><td colspan="4" style="color:#888;font-style:italic;font-size:8px">Nenhuma despesa.</td></tr>`
+      : this.despesasForm.map((d, i) => `<tr>${i === 0 ? `<td class="cat-desp" colspan="2" rowspan="${this.despesasForm.length}">DESPESAS</td>` : ''}<td colspan="3">${d.descricao}${d.entraBaseIcms ? ` <span style="background:#dcfce7;color:#166534;font-size:7px;border-radius:2px;padding:0 3px">Base ICMS</span>` : ''} <small style="float:right">${fmtDate(d.data)}</small></td><td class="val-r">${fmtBRL(d.valor||0)}</td></tr>`).join('');
+    const despTot = this.despesasForm.length > 0 ? `<tr class="sub-row"><td colspan="5" style="text-align:right">Subtotal Despesas</td><td class="val-r">${fmtBRL(this.totalDespesas())}</td></tr>` : '';
+    const ncvR = this.ncvsForm.length === 0 ? '' : this.ncvsForm.map((nv, i) => { const b=nv.baseCalculo, ii=b*(nv.aliIi/100), ipi=(b+ii)*(nv.aliIpi/100), pis=b*(nv.aliPis/100), cof=b*(nv.aliCofins/100), icms=(b+ii+ipi)*(nv.aliIcms/100); return `<tr>${i===0?`<td class="cat-trib" colspan="2" rowspan="${this.ncvsForm.length}">TRIBUTOS<br/>(IMPOSTOS)</td>`:''}<td colspan="3"><code>${nv.numeroNcm}</code> ${nv.descricao} &mdash; II ${fmtPct(nv.aliIi)} IPI ${fmtPct(nv.aliIpi)} PIS ${fmtPct(nv.aliPis)} COFINS ${fmtPct(nv.aliCofins)} ICMS ${fmtPct(nv.aliIcms)}</td><td class="val-r" style="color:#166534">${fmtBRL(ii+ipi+pis+cof+icms)}</td></tr>`; }).join('');
+    const ncvTot = this.ncvsForm.length > 0 ? `<tr class="sub-row"><td colspan="5" style="text-align:right">Subtotal Impostos</td><td class="val-r" style="color:#166534">${fmtBRL(this.totalNcvs())}</td></tr>` : '';
+    return liR + liTot + despR + despTot + ncvR + ncvTot;
+  })()}
+  <tr class="sub-row"><td colspan="5" style="text-align:right">2.1 &mdash; Total das despesas com desembaraco</td><td class="val-r">${fmtBRL(this.totalLis()+this.totalDespesas()+this.totalNcvs())}</td></tr>
+  <tr><td colspan="6" class="sec-blue">3 &mdash; CUSTOS DO PRODUTO IMPORTADO</td></tr>
+  <tr style="background:#dce6f1"><td colspan="4" style="font-weight:700;font-size:8px">EVENTO</td><td colspan="2" style="font-weight:700;font-size:8px;text-align:right">VALOR</td></tr>
+  <tr><td colspan="4">CIF (R$)</td><td colspan="2" class="val-r">${fmtBRL(this.p1.cifReais||0)}</td></tr>
+  <tr><td colspan="4">Total LI <small>(${this.lisForm.length} item(ns))</small></td><td colspan="2" class="val-r">${fmtBRL(this.totalLis())}</td></tr>
+  <tr><td colspan="4">Total Despesas <small>(${this.despesasForm.length} item(ns))</small></td><td colspan="2" class="val-r">${fmtBRL(this.totalDespesas())}</td></tr>
+  ${this.ncvsForm.map(nv => { const b=nv.baseCalculo, ii=b*(nv.aliIi/100), ipi=(b+ii)*(nv.aliIpi/100), pis=b*(nv.aliPis/100), cof=b*(nv.aliCofins/100), icms=(b+ii+ipi)*(nv.aliIcms/100); return `<tr style="background:#f0fdf4"><td colspan="4" style="padding-left:16px;color:#166534"><code>${nv.numeroNcm}</code> ${nv.descricao} <small>II ${fmtPct(nv.aliIi)} IPI ${fmtPct(nv.aliIpi)} PIS ${fmtPct(nv.aliPis)} COFINS ${fmtPct(nv.aliCofins)} ICMS ${fmtPct(nv.aliIcms)}</small></td><td colspan="2" class="val-r" style="color:#166534">${fmtBRL(ii+ipi+pis+cof+icms)}</td></tr>`; }).join('')}
+  <tr style="background:#dcfce7"><td colspan="4" style="font-weight:700;color:#166534">Total Impostos <small>(${this.ncvsForm.length} NCM(s))</small></td><td colspan="2" class="val-r val-b" style="color:#166534">${fmtBRL(this.totalNcvs())}</td></tr>
+  <tr class="sub-row"><td colspan="4" style="text-align:right">3.1 &mdash; Total Geral</td><td colspan="2" class="val-r">${fmtBRL(this.totalGeral())}</td></tr>
+  <tr class="tot-y">
+    <td colspan="3"><strong>Desembolso Total na Operacao</strong></td>
+    <td></td>
+    <td style="text-align:right"><strong>R$</strong></td>
+    <td class="val-r"><strong>${fmtNum(this.totalGeral())}</strong></td>
+  </tr>
+  ${this.p1.taxaUsd ? `<tr class="tot-r"><td colspan="3">Desembolso para o desembaraco: <strong>FECHADO USD</strong></td><td></td><td style="text-align:right"><strong>USD</strong></td><td class="val-r"><strong>${fmtNum(this.totalGeral()/(this.p1.taxaUsd||1))}</strong></td></tr>` : ''}
+  <tr><td colspan="6" style="text-align:center;font-size:7.5px;color:#888;background:#f9f9f9;padding:4px">${codigo} &nbsp;&bull;&nbsp; ${despachante} &nbsp;&bull;&nbsp; ${importador} &nbsp;&bull;&nbsp; Gerado em ${new Date().toLocaleString('pt-BR')} &nbsp;&bull;&nbsp; Sistema Import Costs</td></tr>
+</table>
+<script>window.onload = function(){ window.print(); };<\/script>
+</body>
+</html>`;
+
+    const win = window.open('', '_blank');
+    if (!win) { alert('Popup bloqueado. Permita pop-ups para este site e tente novamente.'); return; }
+    win.document.write(html);
+    win.document.close();
   }
 }
