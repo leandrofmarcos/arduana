@@ -1019,6 +1019,14 @@ export class OrcamentoVendaComponent implements OnInit {
     this.service.replaceExtras(orcId, this.extrasForm);
     this.service.replaceOrcCustos(orcId, this.custosSelecionados);
 
+    // Ao finalizar o orçamento, promove a solicitação para AguardandoAprovacaoCliente
+    if (status === 'Finalizado' && this.solicitacaoAtualId) {
+      const sol = this.solicitacaoSvc.getById(this.solicitacaoAtualId);
+      if (sol && sol.status === 'AguardandoOrcamentoVenda') {
+        this.solicitacaoSvc.update({ ...sol, status: 'AguardandoAprovacaoCliente' });
+      }
+    }
+
     this.cancelForm();
     this.load();
   }

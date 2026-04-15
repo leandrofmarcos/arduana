@@ -42,13 +42,25 @@ interface DocForm {
 }
 
 const STATUS_COLORS: Record<StatusSolicitacao, string> = {
-  Rascunho:                '#6b7280',
-  Aberta:                  '#3b82f6',
-  AguardandoCusto:         '#f59e0b',
-  AguardandoOrcamentoVenda:'#8b5cf6',
-  EmAnalise:               '#f59e0b',
-  Aprovada:                '#22c55e',
-  Cancelada:               '#ef4444',
+  Rascunho:                    '#6b7280',
+  Aberta:                      '#3b82f6',
+  AguardandoCusto:             '#f59e0b',
+  AguardandoOrcamentoVenda:    '#8b5cf6',
+  AguardandoAprovacaoCliente:  '#0ea5e9',
+  EmAnalise:                   '#f59e0b',
+  Aprovada:                    '#22c55e',
+  Cancelada:                   '#ef4444',
+};
+
+const STATUS_LABELS: Record<StatusSolicitacao, string> = {
+  Rascunho:                    'Rascunho',
+  Aberta:                      'Aberta',
+  AguardandoCusto:             'Aguardando Custo',
+  AguardandoOrcamentoVenda:    'Aguardando Orçamento de Venda',
+  AguardandoAprovacaoCliente:  'Aguardando Aprovação Cliente',
+  EmAnalise:                   'Em Análise',
+  Aprovada:                    'Aprovada',
+  Cancelada:                   'Cancelada',
 };
 
 const DESP_STATUS_COLORS: Record<StatusSolicitacaoDespachante, string> = {
@@ -154,7 +166,7 @@ const OV_STATUS_COLORS: Record<string, string> = {
                 </td>
                 <td>
                   <span class="status-badge" [ngStyle]="{ background: statusColor(s.status) }">
-                    {{ s.status }}
+                    {{ statusLabel(s.status) }}
                   </span>
                 </td>
                 <td>
@@ -249,6 +261,7 @@ const OV_STATUS_COLORS: Record<string, string> = {
                 <option value="Aberta">Aberta</option>
                 <option value="AguardandoCusto">Aguardando Custo Despachante</option>
                 <option value="AguardandoOrcamentoVenda">Aguardando Orçamento de Venda</option>
+                <option value="AguardandoAprovacaoCliente">Aguardando Aprovação Cliente</option>
                 <option value="EmAnalise">Em Análise</option>
                 <option value="Aprovada">Aprovada</option>
                 <option value="Cancelada">Cancelada</option>
@@ -786,6 +799,10 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
 
   statusColor(status: StatusSolicitacao): string {
     return STATUS_COLORS[status] ?? '#6b7280';
+  }
+
+  statusLabel(status: StatusSolicitacao): string {
+    return STATUS_LABELS[status] ?? status;
   }
 
   despStatusColor(status: StatusSolicitacaoDespachante): string {

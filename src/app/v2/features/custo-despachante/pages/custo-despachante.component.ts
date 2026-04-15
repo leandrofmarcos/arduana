@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -128,6 +129,16 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
     .subtotal-row:last-child { border-bottom:none; }
     .sol-card { background:#eff6ff; border:1.5px solid #bfdbfe; border-radius:8px; padding:10px 14px; display:flex; align-items:center; gap:12px; font-size:13px; margin-bottom:0; }
     .ncm-card { border:1.5px solid var(--color-border); border-radius:8px; padding:12px 14px; margin-bottom:10px; }
+    .preview-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .preview-modal { background:#fff; border-radius:12px; width:96%; max-width:1280px; height:92vh; display:flex; flex-direction:column; box-shadow:0 24px 72px rgba(0,0,0,.4); overflow:hidden; transition:width .2s,height .2s,border-radius .2s; }
+    .preview-modal.maximized { width:100%; max-width:100%; height:100vh; border-radius:0; }
+    .preview-toolbar { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:#f8fafc; border-bottom:1.5px solid #e2e8f0; flex-shrink:0; }
+    .preview-toolbar h4 { margin:0; font-size:14px; font-weight:700; color:#1e293b; }
+    .preview-toolbar .pt-actions { display:flex; gap:8px; align-items:center; }
+    .btn-icon-sm { background:none; border:1.5px solid #cbd5e1; border-radius:6px; padding:4px 8px; font-size:14px; cursor:pointer; color:#475569; transition:background .15s; line-height:1; }
+    .btn-icon-sm:hover { background:#f1f5f9; }
+    .preview-body { flex:1; overflow:auto; background:#d1d5db; padding:12px; }
+    .preview-body iframe { width:100%; height:100%; border:none; border-radius:4px; background:#fff; min-height:600px; box-shadow:0 2px 16px rgba(0,0,0,.18); display:block; }
     `
   ],
   template: `
@@ -875,11 +886,28 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
             <button class="btn btn-secondary" (click)="salvarTudo('Rascunho')">💾 Salvar Rascunho</button>
             <button class="btn btn-primary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
-            <button class="btn btn-outline" (click)="gerarPlanilhaPDF()">📄 Exportar PDF</button>
+            <button class="btn btn-outline" (click)="openPreview()">👁 Preview</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
         </div>
       </ng-container>
+
+      <!-- PREVIEW MODAL -->
+      <div class="preview-overlay" *ngIf="showPreview" (click)="showPreview=false">
+        <div class="preview-modal" [class.maximized]="previewMaximized" (click)="$event.stopPropagation()">
+          <div class="preview-toolbar">
+            <h4>📋 Preview — Planilha de Custos</h4>
+            <div class="pt-actions">
+              <button class="btn btn-primary" (click)="exportarPDF()">📄 Exportar PDF</button>
+              <button class="btn-icon-sm" (click)="previewMaximized=!previewMaximized" [title]="previewMaximized ? 'Restaurar' : 'Maximizar'">{{ previewMaximized ? '⊡' : '⛶' }}</button>
+              <button class="btn-icon-sm" (click)="showPreview=false" title="Fechar">✕</button>
+            </div>
+          </div>
+          <div class="preview-body">
+            <iframe [srcdoc]="previewSrcdoc!" title="Preview Planilha de Custos" style="width:100%;height:100%;border:none;"></iframe>
+          </div>
+        </div>
+      </div>
 
     </div>
   `
@@ -902,6 +930,11 @@ export class CustoDespachanteComponent implements OnInit {
   ncms: Ncm[] = [];
   modelos: ModeloDespesa[] = [];
   modeloSelId = '';
+
+  // ── Preview state ─────────────────────────────────────────────────────
+  showPreview = false;
+  previewMaximized = false;
+  previewSrcdoc: SafeHtml = '';
 
   // ── Wizard state ──────────────────────────────────────────────────────
   step = 1;
@@ -936,6 +969,7 @@ export class CustoDespachanteComponent implements OnInit {
   ncvErro = '';
 
   constructor(
+    private sanitizer: DomSanitizer,
     private service: CustoDespachanteService,
     private calculator: ImpostoCalculatorService,
     private despachanteSvc: DespachanteV2Service,
@@ -1325,7 +1359,20 @@ export class CustoDespachanteComponent implements OnInit {
     }
   }
 
-  gerarPlanilhaPDF(): void {
+  openPreview(): void {
+    this.previewSrcdoc = this.sanitizer.bypassSecurityTrustHtml(this.buildPlanilhaHtml(false));
+    this.previewMaximized = false;
+    this.showPreview = true;
+  }
+
+  exportarPDF(): void {
+    const win = window.open('', '_blank');
+    if (!win) { alert('Popup bloqueado. Permita pop-ups para este site e tente novamente.'); return; }
+    win.document.write(this.buildPlanilhaHtml(true));
+    win.document.close();
+  }
+
+  private buildPlanilhaHtml(autoPrint = false): string {
     const fmtBRL  = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const fmtUSD  = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     const fmtNum  = (v: number, dec = 2) => v.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -1468,13 +1515,10 @@ export class CustoDespachanteComponent implements OnInit {
   ${this.p1.taxaUsd ? `<tr class="tot-r"><td colspan="3">Desembolso para o desembaraco: <strong>FECHADO USD</strong></td><td></td><td style="text-align:right"><strong>USD</strong></td><td class="val-r"><strong>${fmtNum(this.totalGeral()/(this.p1.taxaUsd||1))}</strong></td></tr>` : ''}
   <tr><td colspan="6" style="text-align:center;font-size:7.5px;color:#888;background:#f9f9f9;padding:4px">${codigo} &nbsp;&bull;&nbsp; ${despachante} &nbsp;&bull;&nbsp; ${importador} &nbsp;&bull;&nbsp; Gerado em ${new Date().toLocaleString('pt-BR')} &nbsp;&bull;&nbsp; Sistema Import Costs</td></tr>
 </table>
-<script>window.onload = function(){ window.print(); };<\/script>
+<script>window.onload = function(){ if(${autoPrint}) window.print(); };<\/script>
 </body>
 </html>`;
 
-    const win = window.open('', '_blank');
-    if (!win) { alert('Popup bloqueado. Permita pop-ups para este site e tente novamente.'); return; }
-    win.document.write(html);
-    win.document.close();
+    return html;
   }
 }
