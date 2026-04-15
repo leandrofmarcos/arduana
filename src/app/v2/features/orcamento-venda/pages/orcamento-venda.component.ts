@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CRUD_STYLES } from '../../../shared/styles/crud-page.styles';
 import { OrcamentoVenda, OrcamentoVendaDespesa, OrcamentoVendaDespesaExtra, OrcamentoVendaCusto } from '../models/orcamento-venda.models';
@@ -16,6 +17,9 @@ import { ImportadorService } from '../../cadastros/importadores/services/importa
 import { ImpostoCalculatorService } from '../../custo-despachante/services/imposto-calculator.service';
 import { SolicitacaoOrcamentoService } from '../../solicitacao-orcamento/services/solicitacao-orcamento.service';
 import { SolicitacaoOrcamento } from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
+import { ModeloDespesaService } from '../../cadastros/modelos-despesa/services/modelo-despesa.service';
+import { ModeloDespesa } from '../../cadastros/modelos-despesa/models/modelo-despesa.models';
+import { DespesaCadastroService } from '../../cadastros/despesas-cadastro/services/despesa-cadastro.service';
 
 type LinhaForm = { descricao: string; valor: number };
 
@@ -72,20 +76,17 @@ type LinhaForm = { descricao: string; valor: number };
     /* Badges */
     .cod-badge { background:var(--color-surface); border:1px solid var(--color-border); padding:2px 8px; border-radius:6px; font-family:monospace; font-size:12px; }
     .status-badge-s { display:inline-block; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:700; color:#fff; }
-    /* Preview */
-    .preview-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:200; display:flex; align-items:flex-start; justify-content:center; padding:32px 16px; overflow-y:auto; }
-    .preview-modal { background:#fff; color:#111; border-radius:12px; width:100%; max-width:760px; padding:40px; font-size:13px; line-height:1.6; }
-    .preview-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; border-bottom:2px solid #111; padding-bottom:16px; }
-    .preview-title { font-size:22px; font-weight:800; }
-    .preview-section { margin-bottom:20px; }
-    .preview-section h3 { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:#555; margin:0 0 8px; border-bottom:1px solid #eee; padding-bottom:4px; }
-    .preview-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px 24px; font-size:13px; }
-    .preview-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
-    .preview-table th { text-align:left; padding:6px 8px; background:#f5f5f5; border:1px solid #ddd; font-weight:700; }
-    .preview-table td { padding:6px 8px; border:1px solid #ddd; }
-    .preview-total-row { font-weight:700; background:#f5f5f5; }
-    .preview-grand-total { background:#111; color:#fff; font-weight:800; font-size:15px; }
-    .preview-actions { display:flex; gap:12px; margin-top:24px; justify-content:flex-end; }
+    /* Preview iframe modal */
+    .preview-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .preview-modal { background:#fff; border-radius:12px; width:96%; max-width:1100px; height:92vh; display:flex; flex-direction:column; box-shadow:0 24px 72px rgba(0,0,0,.4); overflow:hidden; transition:width .2s,height .2s,border-radius .2s; }
+    .preview-modal.maximized { width:100%; max-width:100%; height:100vh; border-radius:0; }
+    .preview-toolbar { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:#f8fafc; border-bottom:1.5px solid #e2e8f0; flex-shrink:0; }
+    .preview-toolbar h4 { margin:0; font-size:14px; font-weight:700; color:#1e293b; }
+    .preview-toolbar .pt-actions { display:flex; gap:8px; align-items:center; }
+    .btn-icon-sm { background:none; border:1.5px solid #cbd5e1; border-radius:6px; padding:4px 8px; font-size:14px; cursor:pointer; color:#475569; transition:background .15s; line-height:1; }
+    .btn-icon-sm:hover { background:#f1f5f9; }
+    .preview-body { flex:1; overflow:auto; background:#d1d5db; padding:12px; }
+    .preview-body iframe { width:100%; height:100%; border:none; border-radius:4px; background:#fff; min-height:600px; box-shadow:0 2px 16px rgba(0,0,0,.18); display:block; }
     /* Accordion de custos */
     .custo-acc-item { border-bottom:1.5px solid var(--color-border); }
     .custo-acc-item:last-child { border-bottom:none; }
@@ -487,6 +488,19 @@ type LinhaForm = { descricao: string; valor: number };
               <!-- Despesas adicionais -->
               <div class="form-section">
                 <p class="form-section-title">Despesas Adicionais</p>
+
+                <!-- Carregar de modelo -->
+                <div *ngIf="modelos.length > 0" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 14px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px">
+                  <span style="font-size:12px;font-weight:600;color:var(--color-text-muted);white-space:nowrap">📋 Carregar modelo:</span>
+                  <select [(ngModel)]="modeloSelId"
+                          style="flex:1;padding:8px 10px;border:1.5px solid var(--color-border);border-radius:6px;font-size:13px;background:var(--color-bg);color:var(--color-text)">
+                    <option value="">— Selecione um modelo —</option>
+                    <option *ngFor="let m of modelos" [value]="m.id">{{ m.nome }}</option>
+                  </select>
+                  <button class="btn btn-secondary" (click)="carregarDoModelo()" [disabled]="!modeloSelId"
+                          style="white-space:nowrap">&#11015;&#65039; Carregar</button>
+                </div>
+
                 <div class="add-row">
                   <div class="f" style="flex:3">
                     <label>Descrição</label>
@@ -563,120 +577,20 @@ type LinhaForm = { descricao: string; valor: number };
         </div>
       </ng-container>
 
-      <!-- ── PREVIEW ── -->
+      <!-- ── PREVIEW iframe ── -->
       <div class="preview-overlay" *ngIf="showPreview" (click)="fecharPreview()">
-        <div class="preview-modal" (click)="$event.stopPropagation()">
-          <div class="preview-header">
-            <div>
-              <div class="preview-title">Orçamento de Importação</div>
-              <div style="font-size:12px;margin-top:4px;color:#555">{{ previewOrc?.codigoInterno }} · {{ previewOrc?.data | date:'dd/MM/yyyy' }}</div>
-            </div>
-            <div style="text-align:right;font-size:12px;color:#555">
-              <div style="font-size:18px;font-weight:800;color:#111">{{ previewOrc?.codigoInterno }}</div>
+        <div class="preview-modal" [class.maximized]="previewMaximized" (click)="$event.stopPropagation()">
+          <div class="preview-toolbar">
+            <h4>📋 Previsão de Numerário — {{ previewOrc?.codigoInterno }}</h4>
+            <div class="pt-actions">
+              <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" (click)="openForm(previewOrc!);fecharPreview()">✏️ Editar</button>
+              <button class="btn btn-primary" style="font-size:12px;padding:5px 12px" (click)="exportarOrcamentoPDF()">📄 Exportar PDF</button>
+              <button class="btn-icon-sm" (click)="previewMaximized=!previewMaximized" [title]="previewMaximized ? 'Restaurar' : 'Maximizar'">{{ previewMaximized ? '⊡' : '⛶' }}</button>
+              <button class="btn-icon-sm" (click)="fecharPreview()" title="Fechar">✕</button>
             </div>
           </div>
-
-          <ng-container *ngIf="previewOrc">
-            <!-- Dados gerais -->
-            <div class="preview-section">
-              <h3>Dados do Processo</h3>
-              <div class="preview-grid">
-                <div><strong>Cliente:</strong> {{ nomeClienteById(previewOrc.clienteId) }}</div>
-                <div><strong>Data:</strong> {{ previewOrc.data | date:'dd/MM/yyyy' }}</div>
-                <div><strong>Container:</strong> {{ previewOrc.tamContainer }}</div>
-                <div><strong>Custo Base:</strong> {{ codCustoById(previewOrc.custoDespachanteId) }}</div>
-                <div *ngIf="previewOrc.pesoBruto"><strong>Peso Bruto:</strong> {{ previewOrc.pesoBruto | number:'1.2-2' }} kg</div>
-                <div *ngIf="previewOrc.pesoLiquido"><strong>Peso Líquido:</strong> {{ previewOrc.pesoLiquido | number:'1.2-2' }} kg</div>
-              </div>
-            </div>
-
-            <!-- Valores FOB/CIF -->
-            <div class="preview-section">
-              <h3>Valores Base</h3>
-              <div class="preview-grid">
-                <div><strong>FOB (R$):</strong> {{ previewOrc.fobReais | currency:'BRL':'symbol':'1.2-2' }}</div>
-                <div><strong>FOB (USD):</strong> {{ previewOrc.fobUsd | currency:'USD':'symbol':'1.2-2' }}</div>
-                <div><strong>CIF (R$):</strong> {{ previewOrc.cifReais | currency:'BRL':'symbol':'1.2-2' }}</div>
-                <div><strong>CIF (USD):</strong> {{ previewOrc.cifUsd | currency:'USD':'symbol':'1.2-2' }}</div>
-                <div *ngIf="previewOrc.taxaUsd"><strong>Taxa USD:</strong> {{ previewOrc.taxaUsd | number:'1.4-4' }}</div>
-                <div *ngIf="previewOrc.freteInternacional"><strong>Frete Internacional:</strong> {{ previewOrc.freteInternacional | currency:'BRL':'symbol':'1.2-2' }}</div>
-              </div>
-            </div>
-
-            <!-- Impostos -->
-            <div class="preview-section">
-              <h3>Impostos (Custo Base)</h3>
-              <table class="preview-table">
-                <thead><tr><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead>
-                <tbody>
-                  <tr><td>Total Impostos (calculados via NCM)</td><td style="text-align:right">{{ previewOrc.totalImpostos | currency:'BRL':'symbol':'1.2-2' }}</td></tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Despesas -->
-            <div class="preview-section" *ngIf="previewDespesas.length > 0">
-              <h3>Despesas Adicionais</h3>
-              <table class="preview-table">
-                <thead><tr><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead>
-                <tbody>
-                  <tr *ngFor="let d of previewDespesas">
-                    <td>{{ d.descricao }}</td>
-                    <td style="text-align:right">{{ d.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
-                  </tr>
-                  <tr class="preview-total-row">
-                    <td><strong>Subtotal Despesas</strong></td>
-                    <td style="text-align:right"><strong>{{ previewOrc.totalDespesas | currency:'BRL':'symbol':'1.2-2' }}</strong></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Extras -->
-            <div class="preview-section" *ngIf="previewExtras.length > 0">
-              <h3>Itens Extras</h3>
-              <table class="preview-table">
-                <thead><tr><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead>
-                <tbody>
-                  <tr *ngFor="let e of previewExtras">
-                    <td>{{ e.descricao }}</td>
-                    <td style="text-align:right">{{ e.valor | currency:'BRL':'symbol':'1.2-2' }}</td>
-                  </tr>
-                  <tr class="preview-total-row">
-                    <td><strong>Subtotal Extras</strong></td>
-                    <td style="text-align:right"><strong>{{ previewOrc.totalExtras | currency:'BRL':'symbol':'1.2-2' }}</strong></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Resumo financeiro -->
-            <div class="preview-section">
-              <h3>Resumo Financeiro</h3>
-              <table class="preview-table">
-                <tbody>
-                  <tr><td>CIF (R$)</td><td style="text-align:right">{{ previewOrc.cifReais | currency:'BRL':'symbol':'1.2-2' }}</td></tr>
-                  <tr><td>Frete Internacional</td><td style="text-align:right">{{ previewOrc.freteInternacional | currency:'BRL':'symbol':'1.2-2' }}</td></tr>
-                  <tr><td>Total Impostos</td><td style="text-align:right">{{ previewOrc.totalImpostos | currency:'BRL':'symbol':'1.2-2' }}</td></tr>
-                  <tr><td>Total Despesas</td><td style="text-align:right">{{ previewOrc.totalDespesas | currency:'BRL':'symbol':'1.2-2' }}</td></tr>
-                  <tr><td>Total Extras</td><td style="text-align:right">{{ previewOrc.totalExtras | currency:'BRL':'symbol':'1.2-2' }}</td></tr>
-                  <tr><td>Honorários</td><td style="text-align:right">{{ previewOrc.honorarios | currency:'BRL':'symbol':'1.2-2' }}</td></tr>
-                  <tr class="preview-grand-total">
-                    <td>TOTAL GERAL</td>
-                    <td style="text-align:right">{{ previewOrc.totalGeral | currency:'BRL':'symbol':'1.2-2' }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div *ngIf="previewOrc.observacao" style="margin-top:16px;font-size:12px;color:#555;border-top:1px solid #eee;padding-top:12px">
-              <strong>Observações:</strong> {{ previewOrc.observacao }}
-            </div>
-          </ng-container>
-
-          <div class="preview-actions">
-            <button class="btn btn-primary" (click)="openForm(previewOrc!);fecharPreview()">✏️ Editar</button>
-            <button class="btn btn-secondary" (click)="fecharPreview()">Fechar</button>
+          <div class="preview-body">
+            <iframe [srcdoc]="previewSrcdoc!" title="Previsão de Numerário" style="width:100%;height:100%;border:none;"></iframe>
           </div>
         </div>
       </div>
@@ -701,6 +615,10 @@ export class OrcamentoVendaComponent implements OnInit {
   solicitacaoAtualId: string | undefined = undefined;
   private solicitacoes: SolicitacaoOrcamento[] = [];
 
+  // ── Modelos de despesa ───────────────────────────────────────────────
+  modelos: ModeloDespesa[] = [];
+  modeloSelId = '';
+
   // ── Form ──────────────────────────────────────────────────────────────
   form = this.emptyForm();  custosSelecionados: string[] = [];  despesasForm: LinhaForm[] = [];
   extrasForm: LinhaForm[] = [];
@@ -711,6 +629,8 @@ export class OrcamentoVendaComponent implements OnInit {
 
   // ── Preview ───────────────────────────────────────────────────────────
   showPreview = false;
+  previewMaximized = false;
+  previewSrcdoc: SafeHtml = '';
   previewOrc: OrcamentoVenda | null = null;
   previewDespesas: OrcamentoVendaDespesa[] = [];
   previewExtras: OrcamentoVendaDespesaExtra[] = [];
@@ -725,6 +645,7 @@ export class OrcamentoVendaComponent implements OnInit {
   expandedCustoId: string | null = null;
 
   constructor(
+    private sanitizer: DomSanitizer,
     private service: OrcamentoVendaService,
     private custoSvc: CustoDespachanteService,
     private clienteSvc: ClienteV2Service,
@@ -734,6 +655,8 @@ export class OrcamentoVendaComponent implements OnInit {
     private importadorSvc: ImportadorService,
     private calculator: ImpostoCalculatorService,
     private solicitacaoSvc: SolicitacaoOrcamentoService,
+    private modeloSvc: ModeloDespesaService,
+    private despesaCadastroSvc: DespesaCadastroService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
@@ -746,6 +669,7 @@ export class OrcamentoVendaComponent implements OnInit {
     this.importadorSvc.getAll().forEach(i => this._importadores[i.id] = i.razaoSocial ?? i.id);
     this.portoOrigemSvc.getAll().forEach(p => this._portosOrigem[p.id] = p.nome);
     this.portoDestinoSvc.getAll().forEach(p => this._portosDestino[p.id] = p.nome);
+    this.modelos = this.modeloSvc.getAll().filter(m => m.ativo);
     this.load();
     // Abrir OV diretamente via query param ?editId=xxx (ex: navegação da tela de solicitações)
     this.route.queryParams.subscribe(params => {
@@ -898,6 +822,20 @@ export class OrcamentoVendaComponent implements OnInit {
 
   // ── Despesas / Extras ─────────────────────────────────────────────────
 
+  carregarDoModelo(): void {
+    if (!this.modeloSelId) return;
+    const itens = this.modeloSvc.getItensByModelo(this.modeloSelId);
+    const allDesp = this.despesaCadastroSvc.getAtivos();
+    itens.forEach(item => {
+      const desp = allDesp.find(d => d.id === item.despesaCadastroId);
+      if (!desp) return;
+      const jaExiste = this.despesasForm.some(f => f.descricao === desp.descricao);
+      if (jaExiste) return;
+      this.despesasForm.push({ descricao: desp.descricao, valor: desp.valor });
+    });
+    this.modeloSelId = '';
+  }
+
   addDespesa(): void {
     if (!this.despesaForm.descricao.trim() || this.despesaForm.valor <= 0) {
       this.despesaErro = 'Descrição e valor são obrigatórios.'; return;
@@ -1049,7 +987,6 @@ export class OrcamentoVendaComponent implements OnInit {
 
   abrirPreview(o: OrcamentoVenda | null): void {
     if (!o) {
-      // Preview do formulário em edição
       const orcId = this.editing?.id;
       if (!orcId) return;
       o = this.service.getById(orcId) ?? null;
@@ -1058,10 +995,19 @@ export class OrcamentoVendaComponent implements OnInit {
     this.previewOrc      = o;
     this.previewDespesas = this.service.getDespesas(o.id);
     this.previewExtras   = this.service.getExtras(o.id);
+    this.previewSrcdoc   = this.sanitizer.bypassSecurityTrustHtml(this.buildOrcamentoHtml(false));
+    this.previewMaximized = false;
     this.showPreview     = true;
   }
 
   fecharPreview(): void { this.showPreview = false; this.previewOrc = null; }
+
+  exportarOrcamentoPDF(): void {
+    const win = window.open('', '_blank');
+    if (!win) { alert('Popup bloqueado. Permita pop-ups para este site e tente novamente.'); return; }
+    win.document.write(this.buildOrcamentoHtml(true));
+    win.document.close();
+  }
 
   // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -1085,5 +1031,225 @@ export class OrcamentoVendaComponent implements OnInit {
     return ncvs.reduce((acc, nv) => {
       return acc + this.custoSvc.getValoresImposto(nv.id).reduce((a, v) => a + v.totalImpostos, 0);
     }, 0);
+  }
+
+  // ── HTML Previsão de Numerário ────────────────────────────────────────
+
+  private buildOrcamentoHtml(autoPrint = false): string {
+    const o = this.previewOrc;
+    if (!o) return '<html><body>Sem dados</body></html>';
+
+    const fmtN = (v: number) =>
+      v ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+    const fmtDate = (s: string) => {
+      if (!s) return '';
+      const [y, m, d] = s.split('-');
+      return `${d}/${m}/${y}`;
+    };
+    const row2 = (label: string, val: string) =>
+      `<tr><td style="padding:3px 8px;font-size:12px;">${label}</td><td style="padding:3px 8px;text-align:right;font-size:12px;">${val}</td></tr>`;
+
+    // ── Lookup helpers ──
+    const nomeCliente  = this.clientes.find(c => c.id === o.clienteId)?.razaoSocial ?? '';
+    const orcCustos    = this.service.getOrcCustos(o.id);
+    const primCusto    = orcCustos[0]
+      ? this.custos.find(c => c.id === orcCustos[0].custoDespachanteId) ?? null
+      : (o.custoDespachanteId ? this.custos.find(c => c.id === o.custoDespachanteId) ?? null : null);
+    const nomeImportador = primCusto?.importadorId ? (this._importadores[primCusto.importadorId] ?? '') : '';
+    const seguroUsd    = primCusto?.seguroUsd ?? 0;
+    const seguroReais  = o.taxaUsd ? seguroUsd * o.taxaUsd : 0;
+    const freteUsd     = (o.taxaUsd && o.freteInternacional) ? o.freteInternacional / o.taxaUsd : 0;
+
+    // ── Imposto breakdown de todos os custos vinculados ──
+    let totalIi = 0, totalIpi = 0, totalPis = 0, totalCofins = 0, totalIcms = 0;
+    orcCustos.forEach(oc => {
+      this.custoSvc.getNcmsVinculados(oc.custoDespachanteId).forEach(nv => {
+        this.custoSvc.getValoresImposto(nv.id).forEach(v => {
+          totalIi     += v.valorIi;
+          totalIpi    += v.valorIpi;
+          totalPis    += v.valorPis;
+          totalCofins += v.valorCofins;
+          totalIcms   += v.valorIcms;
+        });
+      });
+    });
+    // fallback: se não há NCMs vinculados, usa o totalImpostos do OV
+    const temBreakdown = (totalIi + totalIpi + totalPis + totalCofins + totalIcms) > 0;
+    const totalImpostosCalc = temBreakdown
+      ? totalIi + totalIpi + totalPis + totalCofins + totalIcms
+      : o.totalImpostos;
+
+    // ── Despesas e extras ──
+    const despesas     = this.service.getDespesas(o.id);
+    const extras       = this.service.getExtras(o.id);
+    const totalDesp    = despesas.reduce((a, d) => a + d.valor, 0);
+    const totalExtras  = extras.reduce((a, e) => a + e.valor, 0);
+    const totalServico = o.honorarios + totalExtras;
+    const totalGeral   = o.cifReais + totalImpostosCalc + totalDesp + o.honorarios + totalExtras;
+    const totalUsd     = o.taxaUsd ? totalGeral / o.taxaUsd : 0;
+
+    // ── Linhas de despesas ──
+    const despRows = despesas.map(d =>
+      `<tr><td style="padding:3px 8px;font-size:12px;">${d.descricao}</td><td style="padding:3px 8px;text-align:right;font-size:12px;">${fmtN(d.valor)}</td></tr>`
+    ).join('');
+
+    // ── Linhas de extras (Serviço) ──
+    const extraRows = extras.map(e =>
+      `<tr><td style="padding:3px 8px;font-size:12px;">${e.descricao}</td><td style="padding:3px 8px;text-align:right;font-size:12px;">${fmtN(e.valor)}</td></tr>`
+    ).join('');
+
+    const HDR = `background:#4472C4;color:#fff;font-weight:700;font-size:12px;text-align:center;padding:5px 8px;`;
+
+    return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Previsão de Numerário — ${o.codigoInterno}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:Arial,sans-serif; background:#fff; color:#000; padding:20px; }
+  table { width:100%; border-collapse:collapse; }
+  td, th { vertical-align:top; }
+  .page { max-width:720px; margin:0 auto; }
+  @media print {
+    body { padding:0; }
+    .page { max-width:100%; }
+  }
+</style>
+${autoPrint ? '<script>window.onload=function(){window.print();}<\/script>' : ''}
+</head>
+<body>
+<div class="page">
+
+  <!-- Cabeçalho empresa -->
+  <div style="text-align:center;padding:8px 0 4px;">
+    <div style="font-size:28px;font-weight:700;font-family:Georgia,serif;letter-spacing:2px;">Ominium S/A</div>
+  </div>
+
+  <!-- Título do documento -->
+  <table style="margin-bottom:6px;">
+    <tr><td style="${HDR}">PREVISÃO DE NUMERARIO</td></tr>
+  </table>
+
+  <!-- Informações gerais -->
+  <table style="margin-bottom:2px;border:1px solid #ccc;">
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;width:130px;"><strong>Data:</strong></td>
+      <td style="padding:3px 8px;font-size:12px;">${fmtDate(o.data)}</td>
+      <td style="padding:3px 8px;font-size:12px;" colspan="2"></td>
+    </tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;"><strong>Cliente :</strong></td>
+      <td style="padding:3px 8px;font-size:12px;">${nomeCliente}</td>
+      <td style="padding:3px 8px;font-size:12px;"><strong>Import:</strong></td>
+      <td style="padding:3px 8px;font-size:12px;">${nomeImportador}</td>
+    </tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;"><strong>Tipo de produto</strong></td>
+      <td style="padding:3px 8px;font-size:12px;" colspan="3">${o.observacao ?? ''}</td>
+    </tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;"><strong>Tipo de conteiner</strong></td>
+      <td style="padding:3px 8px;font-size:12px;" colspan="3">${o.tamContainer}</td>
+    </tr>
+  </table>
+
+  <!-- Seção 1 - Base de cálculo -->
+  <table style="margin-bottom:2px;">
+    <tr><td colspan="5" style="${HDR}">1 - Base de calculo</td></tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;">Taxa Usd &nbsp; <strong>${fmtN(o.taxaUsd)}</strong></td>
+      <td style="padding:3px 8px;font-size:12px;">USD</td>
+      <td style="padding:3px 8px;font-size:12px;">BRL</td>
+      <td style="padding:3px 8px;font-size:12px;">Peso Bruto</td>
+      <td style="padding:3px 8px;font-size:12px;"></td>
+    </tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;">FOB</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtN(o.fobUsd)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">R$ ${fmtN(o.fobReais)}</td>
+      <td style="padding:3px 8px;font-size:12px;">Peso Liquido</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${o.pesoLiquido ? fmtN(o.pesoLiquido) : ''}</td>
+    </tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;">Frete Internacional</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtN(freteUsd)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">R$ ${fmtN(o.freteInternacional)}</td>
+      <td colspan="2"></td>
+    </tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;">Seguro</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${seguroUsd ? fmtN(seguroUsd) : '-'}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">R$ ${fmtN(seguroReais)}</td>
+      <td colspan="2"></td>
+    </tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;font-weight:700;">CIF</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;font-weight:700;">${fmtN(o.cifUsd)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;font-weight:700;">R$ ${fmtN(o.cifReais)}</td>
+      <td colspan="2"></td>
+    </tr>
+  </table>
+
+  <!-- Seção 2 - Impostos -->
+  <table style="margin-bottom:2px;">
+    <tr><td colspan="2" style="${HDR}">2 - Impostos</td></tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;">CIF (THC)</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtN(o.cifReais)}</td>
+    </tr>
+    ${temBreakdown ? `
+    ${row2('II', fmtN(totalIi))}
+    ${row2('IPI', fmtN(totalIpi))}
+    ${row2('PIS', fmtN(totalPis))}
+    ${row2('COFINS', fmtN(totalCofins))}
+    ${row2('ICMS', fmtN(totalIcms))}
+    ` : row2('Total Impostos (NCM)', fmtN(o.totalImpostos))}
+    <tr><td style="padding:3px 8px;font-size:12px;"></td><td style="padding:3px 8px;font-size:12px;">-</td></tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;"></td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;font-weight:700;border-top:1px solid #ccc;">${fmtN(totalImpostosCalc)}</td>
+    </tr>
+  </table>
+
+  <!-- Seção 3 - Despesas -->
+  <table style="margin-bottom:2px;">
+    <tr><td colspan="2" style="${HDR}">3 - Despesas</td></tr>
+    ${despRows || '<tr><td colspan="2" style="padding:3px 8px;font-size:12px;color:#888;">Nenhuma despesa</td></tr>'}
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;"></td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;font-weight:700;border-top:1px solid #ccc;">${fmtN(totalDesp)}</td>
+    </tr>
+  </table>
+
+  <!-- Seção 4 - Serviço -->
+  <table style="margin-bottom:2px;">
+    <tr><td colspan="2" style="${HDR}">4 - Serviço</td></tr>
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;">Honorarios</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtN(o.honorarios)}</td>
+    </tr>
+    ${extraRows}
+    <tr>
+      <td style="padding:3px 8px;font-size:12px;"></td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;font-weight:700;border-top:1px solid #ccc;">${fmtN(totalServico)}</td>
+    </tr>
+  </table>
+
+  <!-- TOTAL GERAL -->
+  <table>
+    <tr>
+      <td style="padding:5px 8px;font-size:12px;font-weight:700;text-align:right;">TOTAL:</td>
+      <td style="padding:5px 8px;font-size:13px;font-weight:700;text-align:right;border-top:2px solid #000;">${fmtN(totalGeral)}</td>
+    </tr>
+    ${o.taxaUsd ? `<tr>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;"></td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtN(totalUsd)}</td>
+    </tr>` : ''}
+  </table>
+
+</div>
+</body>
+</html>`;
   }
 }
