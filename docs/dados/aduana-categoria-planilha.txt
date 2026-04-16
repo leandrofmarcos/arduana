@@ -1,0 +1,15 @@
+Clientes
+Processos / Embarques
+Navios / Transporte marítimo
+Containers / Cargas
+Portos (origem e destino)
+Datas (embarque, chegada, previsão, etc.)
+Documentação (BL, DI, etc.)
+Status / Situação do processo
+Despachantes / Operadores
+Produtos / Mercadorias
+Valores financeiros (frete, custos, taxas)
+Tipo de operação (importação/exportação)
+Transportadoras / Armadores
+Países (origem/destino)
+Observações / Notas operacionais
