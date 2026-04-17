@@ -1,4 +1,5 @@
-using Comex133Api.Core.Database;
+﻿using Comex133Api.Core.Database;
+using Comex133Api.Core.Models;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ public class ImportadoresService
     private readonly AppDbContext _db;
     public ImportadoresService(AppDbContext db) => _db = db;
 
-    public async Task<List<ImportadorDto>> GetAllAsync() =>
-        await _db.Importadores.OrderBy(x => x.RazaoSocial).Select(x => ToDto(x)).ToListAsync();
+    public async Task<PagedResult<ImportadorDto>> GetAllAsync(PaginationQuery pagination) =>
+        await _db.Importadores.OrderBy(x => x.RazaoSocial).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
 
     public async Task<ImportadorDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));
@@ -61,3 +62,5 @@ public class ImportadoresService
     private static ImportadorDto ToDto(Importador x) =>
         new(x.Id, x.RazaoSocial, x.Cnpj, x.Email, x.Telefone, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
+
+

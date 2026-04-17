@@ -1,4 +1,5 @@
-using Comex133Api.Core.Database;
+﻿using Comex133Api.Core.Database;
+using Comex133Api.Core.Models;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ public class DespachantesService
     private readonly AppDbContext _db;
     public DespachantesService(AppDbContext db) => _db = db;
 
-    public async Task<List<DespachantDto>> GetAllAsync() =>
-        await _db.Despachantes.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToListAsync();
+    public async Task<PagedResult<DespachantDto>> GetAllAsync(PaginationQuery pagination) =>
+        await _db.Despachantes.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
 
     public async Task<DespachantDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));
@@ -61,3 +62,5 @@ public class DespachantesService
     private static DespachantDto ToDto(Despachante x) =>
         new(x.Id, x.Nome, x.Crn, x.Email, x.Telefone, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
+
+

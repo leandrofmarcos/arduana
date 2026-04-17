@@ -1,4 +1,5 @@
-using Comex133Api.Core.Database;
+﻿using Comex133Api.Core.Database;
+using Comex133Api.Core.Models;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ public class ListaPrecoLclService
     private readonly AppDbContext _db;
     public ListaPrecoLclService(AppDbContext db) => _db = db;
 
-    public async Task<List<ListaPrecoLclDto>> GetAllAsync() =>
-        await _db.ListaPrecoLcl.OrderBy(x => x.Categoria).ThenBy(x => x.Descricao).Select(x => ToDto(x)).ToListAsync();
+    public async Task<PagedResult<ListaPrecoLclDto>> GetAllAsync(PaginationQuery pagination) =>
+        await _db.ListaPrecoLcl.OrderBy(x => x.Categoria).ThenBy(x => x.Descricao).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
 
     public async Task<ListaPrecoLclDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));
@@ -65,3 +66,5 @@ public class ListaPrecoLclService
     private static ListaPrecoLclDto ToDto(Domain.Entities.ListaPrecoLcl x) =>
         new(x.Id, x.Categoria, x.Descricao, x.NomeChines, x.PrecoUsdPorCbm, x.PrecoUsdPorKg, x.DataVigencia, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
+
+

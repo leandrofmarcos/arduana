@@ -1,4 +1,5 @@
-using Comex133Api.Core.Database;
+﻿using Comex133Api.Core.Database;
+using Comex133Api.Core.Models;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ public class ClientesService
     private readonly AppDbContext _db;
     public ClientesService(AppDbContext db) => _db = db;
 
-    public async Task<List<ClienteDto>> GetAllAsync() =>
-        await _db.Clientes.OrderBy(x => x.RazaoSocial).Select(x => ToDto(x)).ToListAsync();
+    public async Task<PagedResult<ClienteDto>> GetAllAsync(PaginationQuery pagination) =>
+        await _db.Clientes.OrderBy(x => x.RazaoSocial).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
 
     public async Task<ClienteDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));
@@ -61,3 +62,5 @@ public class ClientesService
     private static ClienteDto ToDto(Cliente x) =>
         new(x.Id, x.RazaoSocial, x.Cnpj, x.Email, x.Telefone, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
+
+

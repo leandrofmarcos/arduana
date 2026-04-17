@@ -1,5 +1,6 @@
 using Comex133Api.Core.Database;
 using Comex133Api.Core.Exceptions;
+using Comex133Api.Core.Models;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,12 +15,13 @@ public class RoleService
         _db = db;
     }
 
-    public async Task<IEnumerable<RoleDto>> GetAllAsync()
+    public async Task<PagedResult<RoleDto>> GetAllAsync(PaginationQuery pagination)
     {
-        var roles = await _db.Roles
+        var query = _db.Roles
             .OrderBy(r => r.Nome)
-            .ToListAsync();
-        return roles.Select(ToDto);
+            .Select(r => ToDto(r));
+
+        return await query.ToPagedResultAsync(pagination);
     }
 
     public async Task<RoleDto> GetByIdAsync(int id)

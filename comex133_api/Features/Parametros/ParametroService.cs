@@ -1,5 +1,6 @@
 using Comex133Api.Core.Database;
 using Comex133Api.Core.Exceptions;
+using Comex133Api.Core.Models;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,12 +15,12 @@ public class ParametroService
         _db = db;
     }
 
-    public async Task<List<ParametroDto>> GetAllAsync()
+    public async Task<PagedResult<ParametroDto>> GetAllAsync(PaginationQuery pagination)
     {
         return await _db.ParametrosSistema
             .OrderBy(p => p.Chave)
             .Select(p => ToDto(p))
-            .ToListAsync();
+            .ToPagedResultAsync(pagination);
     }
 
     public async Task<ParametroDto> GetByIdAsync(int id)

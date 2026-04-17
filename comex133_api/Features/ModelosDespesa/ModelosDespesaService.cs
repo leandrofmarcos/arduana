@@ -1,4 +1,5 @@
-using Comex133Api.Core.Database;
+﻿using Comex133Api.Core.Database;
+using Comex133Api.Core.Models;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ public class ModelosDespesaService
     private readonly AppDbContext _db;
     public ModelosDespesaService(AppDbContext db) => _db = db;
 
-    public async Task<List<ModeloDespesaDto>> GetAllAsync() =>
-        await _db.ModelosDespesa.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToListAsync();
+    public async Task<PagedResult<ModeloDespesaDto>> GetAllAsync(PaginationQuery pagination) =>
+        await _db.ModelosDespesa.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
 
     public async Task<ModeloDespesaDetalheDto> GetByIdAsync(int id)
     {
@@ -63,7 +64,7 @@ public class ModelosDespesaService
         await _db.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<ModeloDespesaItemDto>> GetItensAsync(int id)
+    public async Task<PagedResult<ModeloDespesaItemDto>> GetItensAsync(int id, PaginationQuery pagination)
     {
         await FindOrThrowAsync(id);
         return await _db.ModelosDespesaItens
@@ -72,7 +73,7 @@ public class ModelosDespesaService
             .OrderBy(i => i.DespesaCatalogo.Categoria)
             .ThenBy(i => i.DespesaCatalogo.Descricao)
             .Select(i => ToItemDto(i))
-            .ToListAsync();
+            .ToPagedResultAsync(pagination);
     }
 
     public async Task<ModeloDespesaItemDto> AddItemAsync(int id, AddItemRequest request)
@@ -122,3 +123,5 @@ public class ModelosDespesaService
     private static ModeloDespesaItemDto ToItemDto(ModeloDespesaItem i) =>
         new(i.DespesaCatalogoId, i.DespesaCatalogo.Descricao, i.DespesaCatalogo.Valor, i.DespesaCatalogo.Categoria, i.AdicionadoEm);
 }
+
+

@@ -1,4 +1,5 @@
-using Comex133Api.Core.Database;
+﻿using Comex133Api.Core.Database;
+using Comex133Api.Core.Models;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ public class NcmsService
     private readonly AppDbContext _db;
     public NcmsService(AppDbContext db) => _db = db;
 
-    public async Task<List<NcmDto>> GetAllAsync() =>
-        await _db.Ncms.OrderBy(x => x.CodigoNcm).Select(x => ToDto(x)).ToListAsync();
+    public async Task<PagedResult<NcmDto>> GetAllAsync(PaginationQuery pagination) =>
+        await _db.Ncms.OrderBy(x => x.CodigoNcm).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
 
     public async Task<NcmDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));
@@ -74,3 +75,5 @@ public class NcmsService
     private static NcmDto ToDto(Ncm x) =>
         new(x.Id, x.CodigoNcm, x.Descricao, x.AliqII, x.AliqIPI, x.AliqPIS, x.AliqCOFINS, x.AliqICMS, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
+
+

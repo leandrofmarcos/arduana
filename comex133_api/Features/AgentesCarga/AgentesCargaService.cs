@@ -1,4 +1,5 @@
-using Comex133Api.Core.Database;
+﻿using Comex133Api.Core.Database;
+using Comex133Api.Core.Models;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ public class AgentesCargaService
     private readonly AppDbContext _db;
     public AgentesCargaService(AppDbContext db) => _db = db;
 
-    public async Task<List<AgenteCargaDto>> GetAllAsync() =>
-        await _db.AgentesCarga.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToListAsync();
+    public async Task<PagedResult<AgenteCargaDto>> GetAllAsync(PaginationQuery pagination) =>
+        await _db.AgentesCarga.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
 
     public async Task<AgenteCargaDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));
@@ -61,3 +62,5 @@ public class AgentesCargaService
     private static AgenteCargaDto ToDto(AgenteCarga x) =>
         new(x.Id, x.Nome, x.Documento, x.Pais, x.Contato, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
+
+

@@ -1,4 +1,4 @@
-using Comex133Api.Core.Models;
+﻿using Comex133Api.Core.Models;
 using Comex133Api.Features.ModelosDespesa;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -26,8 +26,8 @@ public class ModelosDespesaController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() =>
-        Ok(ApiResponse.Ok(await _service.GetAllAsync()));
+    public async Task<IActionResult> GetAll([FromQuery] PaginationQuery pagination) =>
+        Ok(ApiResponse.Ok(await _service.GetAllAsync(pagination)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id) =>
@@ -69,11 +69,11 @@ public class ModelosDespesaController : ControllerBase
         return Ok(ApiResponse.Ok(message: "Modelo de Despesa removido com sucesso."));
     }
 
-    // ─── Item management ──────────────────────────────────────────────────────
+    // Item management
 
     [HttpGet("{id:int}/itens")]
-    public async Task<IActionResult> GetItens(int id) =>
-        Ok(ApiResponse.Ok(await _service.GetItensAsync(id)));
+    public async Task<IActionResult> GetItens(int id, [FromQuery] PaginationQuery pagination) =>
+        Ok(ApiResponse.Ok(await _service.GetItensAsync(id, pagination)));
 
     [HttpPost("{id:int}/itens")]
     public async Task<IActionResult> AddItem(int id, [FromBody] AddItemRequest request)
@@ -89,3 +89,5 @@ public class ModelosDespesaController : ControllerBase
         return Ok(ApiResponse.Ok(message: "Item removido do modelo com sucesso."));
     }
 }
+
+

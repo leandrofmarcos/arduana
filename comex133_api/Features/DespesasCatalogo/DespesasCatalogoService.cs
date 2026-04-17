@@ -1,4 +1,5 @@
-using Comex133Api.Core.Database;
+﻿using Comex133Api.Core.Database;
+using Comex133Api.Core.Models;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ public class DespesasCatalogoService
     private readonly AppDbContext _db;
     public DespesasCatalogoService(AppDbContext db) => _db = db;
 
-    public async Task<List<DespesaCatalogoDto>> GetAllAsync() =>
-        await _db.DespesasCatalogo.OrderBy(x => x.Categoria).ThenBy(x => x.Descricao).Select(x => ToDto(x)).ToListAsync();
+    public async Task<PagedResult<DespesaCatalogoDto>> GetAllAsync(PaginationQuery pagination) =>
+        await _db.DespesasCatalogo.OrderBy(x => x.Categoria).ThenBy(x => x.Descricao).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
 
     public async Task<DespesaCatalogoDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));
@@ -63,3 +64,5 @@ public class DespesasCatalogoService
     private static DespesaCatalogoDto ToDto(DespesaCatalogo x) =>
         new(x.Id, x.Descricao, x.Valor, x.Categoria, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
+
+

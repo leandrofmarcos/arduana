@@ -1,5 +1,6 @@
 using Comex133Api.Core.Database;
 using Comex133Api.Core.Exceptions;
+using Comex133Api.Core.Models;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,14 +15,14 @@ public class UsuarioService
         _db = db;
     }
 
-    public async Task<IEnumerable<UsuarioDto>> GetAllAsync()
+    public async Task<PagedResult<UsuarioDto>> GetAllAsync(PaginationQuery pagination)
     {
-        var usuarios = await _db.Usuarios
+        var query = _db.Usuarios
             .Include(u => u.UsuarioRoles).ThenInclude(ur => ur.Role)
             .OrderBy(u => u.NomeCompleto)
-            .ToListAsync();
+            .Select(u => ToDto(u));
 
-        return usuarios.Select(ToDto);
+        return await query.ToPagedResultAsync(pagination);
     }
 
     public async Task<UsuarioDto> GetByIdAsync(int id)

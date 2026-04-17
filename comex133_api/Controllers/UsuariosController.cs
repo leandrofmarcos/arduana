@@ -31,9 +31,9 @@ public class UsuariosController : ControllerBase
 
     /// <summary>Lista todos os usuários.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] PaginationQuery pagination)
     {
-        var items = await _service.GetAllAsync();
+        var items = await _service.GetAllAsync(pagination);
         return Ok(ApiResponse.Ok(items));
     }
 

@@ -1,4 +1,5 @@
-using Comex133Api.Core.Database;
+﻿using Comex133Api.Core.Database;
+using Comex133Api.Core.Models;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ public class PortosOrigemService
     private readonly AppDbContext _db;
     public PortosOrigemService(AppDbContext db) => _db = db;
 
-    public async Task<List<PortoOrigemDto>> GetAllAsync() =>
-        await _db.PortosOrigem.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToListAsync();
+    public async Task<PagedResult<PortoOrigemDto>> GetAllAsync(PaginationQuery pagination) =>
+        await _db.PortosOrigem.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
 
     public async Task<PortoOrigemDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));
@@ -59,3 +60,5 @@ public class PortosOrigemService
     private static PortoOrigemDto ToDto(PortoOrigem x) =>
         new(x.Id, x.Nome, x.Codigo, x.Pais, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
+
+

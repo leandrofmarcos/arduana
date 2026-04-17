@@ -1,4 +1,4 @@
-using Comex133Api.Core.Models;
+﻿using Comex133Api.Core.Models;
 using Comex133Api.Features.DespesasCatalogo;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -26,8 +26,8 @@ public class DespesasCatalogoController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() =>
-        Ok(ApiResponse.Ok(await _service.GetAllAsync()));
+    public async Task<IActionResult> GetAll([FromQuery] PaginationQuery pagination) =>
+        Ok(ApiResponse.Ok(await _service.GetAllAsync(pagination)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id) =>
@@ -59,13 +59,15 @@ public class DespesasCatalogoController : ControllerBase
     public async Task<IActionResult> SetAtivo(int id, [FromBody] AtivoRequest request)
     {
         await _service.SetAtivoAsync(id, request.Ativo);
-        return Ok(ApiResponse.Ok(message: $"Despesa Catálogo {(request.Ativo ? "ativada" : "desativada")} com sucesso."));
+        return Ok(ApiResponse.Ok(message: $"Despesa CatÃ¡logo {(request.Ativo ? "ativada" : "desativada")} com sucesso."));
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
         await _service.DeleteAsync(id);
-        return Ok(ApiResponse.Ok(message: "Despesa Catálogo removida com sucesso."));
+        return Ok(ApiResponse.Ok(message: "Despesa CatÃ¡logo removida com sucesso."));
     }
 }
+
+

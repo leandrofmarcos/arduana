@@ -1,4 +1,5 @@
-using Comex133Api.Core.Database;
+﻿using Comex133Api.Core.Database;
+using Comex133Api.Core.Models;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,8 @@ public class FabricantesService
     private readonly AppDbContext _db;
     public FabricantesService(AppDbContext db) => _db = db;
 
-    public async Task<List<FabricanteDto>> GetAllAsync() =>
-        await _db.Fabricantes.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToListAsync();
+    public async Task<PagedResult<FabricanteDto>> GetAllAsync(PaginationQuery pagination) =>
+        await _db.Fabricantes.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
 
     public async Task<FabricanteDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));
@@ -61,3 +62,5 @@ public class FabricantesService
     private static FabricanteDto ToDto(Fabricante x) =>
         new(x.Id, x.Nome, x.Pais, x.Cidade, x.Contato, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
+
+

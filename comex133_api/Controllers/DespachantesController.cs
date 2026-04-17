@@ -1,4 +1,4 @@
-using Comex133Api.Core.Models;
+﻿using Comex133Api.Core.Models;
 using Comex133Api.Features.Despachantes;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -26,8 +26,8 @@ public class DespachantesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() =>
-        Ok(ApiResponse.Ok(await _service.GetAllAsync()));
+    public async Task<IActionResult> GetAll([FromQuery] PaginationQuery pagination) =>
+        Ok(ApiResponse.Ok(await _service.GetAllAsync(pagination)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id) =>
@@ -69,3 +69,5 @@ public class DespachantesController : ControllerBase
         return Ok(ApiResponse.Ok(message: "Despachante removido com sucesso."));
     }
 }
+
+
