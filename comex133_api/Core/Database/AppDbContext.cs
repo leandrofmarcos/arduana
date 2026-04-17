@@ -13,6 +13,21 @@ public class AppDbContext : DbContext
     public DbSet<UsuarioRole> UsuarioRoles => Set<UsuarioRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+    // Phase 3 — Cadastros
+    public DbSet<PortoOrigem>       PortosOrigem      => Set<PortoOrigem>();
+    public DbSet<PortoDestino>      PortosDestino     => Set<PortoDestino>();
+    public DbSet<Cliente>           Clientes          => Set<Cliente>();
+    public DbSet<Importador>        Importadores      => Set<Importador>();
+    public DbSet<Exportador>        Exportadores      => Set<Exportador>();
+    public DbSet<AgenteCarga>       AgentesCarga      => Set<AgenteCarga>();
+    public DbSet<Fabricante>        Fabricantes       => Set<Fabricante>();
+    public DbSet<Despachante>       Despachantes      => Set<Despachante>();
+    public DbSet<Ncm>               Ncms              => Set<Ncm>();
+    public DbSet<ListaPrecoLcl>     ListaPrecoLcl     => Set<ListaPrecoLcl>();
+    public DbSet<DespesaCatalogo>   DespesasCatalogo  => Set<DespesaCatalogo>();
+    public DbSet<ModeloDespesa>     ModelosDespesa    => Set<ModeloDespesa>();
+    public DbSet<ModeloDespesaItem> ModelosDespesaItens => Set<ModeloDespesaItem>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -30,6 +45,24 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.HasIndex(e => e.Token).IsUnique();
+        });
+
+        modelBuilder.Entity<Ncm>(entity =>
+        {
+            entity.HasIndex(e => e.CodigoNcm).IsUnique();
+        });
+
+        modelBuilder.Entity<ModeloDespesaItem>(entity =>
+        {
+            entity.HasOne(i => i.ModeloDespesa)
+                  .WithMany(m => m.Itens)
+                  .HasForeignKey(i => i.ModeloDespesaId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(i => i.DespesaCatalogo)
+                  .WithMany(d => d.ModeloDespesaItens)
+                  .HasForeignKey(i => i.DespesaCatalogoId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<UsuarioRole>(entity =>
@@ -98,6 +131,38 @@ public class AppDbContext : DbContext
             .Where(e => e.State == EntityState.Added))
         {
             entry.Entity.AtribuidoEm = now;
+        }
+
+        // Phase 3 — Cadastros
+        SetTimestamps<PortoOrigem>(now);
+        SetTimestamps<PortoDestino>(now);
+        SetTimestamps<Cliente>(now);
+        SetTimestamps<Importador>(now);
+        SetTimestamps<Exportador>(now);
+        SetTimestamps<AgenteCarga>(now);
+        SetTimestamps<Fabricante>(now);
+        SetTimestamps<Despachante>(now);
+        SetTimestamps<Ncm>(now);
+        SetTimestamps<ListaPrecoLcl>(now);
+        SetTimestamps<DespesaCatalogo>(now);
+        SetTimestamps<ModeloDespesa>(now);
+
+        foreach (var entry in ChangeTracker.Entries<ModeloDespesaItem>()
+            .Where(e => e.State == EntityState.Added))
+        {
+            entry.Entity.AdicionadoEm = now;
+        }
+    }
+
+    private void SetTimestamps<TEntity>(DateTime now)
+        where TEntity : class, IHasTimestamps
+    {
+        foreach (var entry in ChangeTracker.Entries<TEntity>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified))
+        {
+            entry.Entity.AtualizadoEm = now;
+            if (entry.State == EntityState.Added)
+                entry.Entity.CriadoEm = now;
         }
     }
 }

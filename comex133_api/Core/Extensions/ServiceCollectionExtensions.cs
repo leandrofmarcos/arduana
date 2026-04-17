@@ -1,6 +1,18 @@
 using Comex133Api.Core.Database;
+using Comex133Api.Features.AgentesCarga;
 using Comex133Api.Features.Auth;
+using Comex133Api.Features.Clientes;
+using Comex133Api.Features.Despachantes;
+using Comex133Api.Features.DespesasCatalogo;
+using Comex133Api.Features.Exportadores;
+using Comex133Api.Features.Fabricantes;
+using Comex133Api.Features.Importadores;
+using Comex133Api.Features.ListaPrecoLcl;
+using Comex133Api.Features.ModelosDespesa;
+using Comex133Api.Features.Ncms;
 using Comex133Api.Features.Parametros;
+using Comex133Api.Features.PortosDestino;
+using Comex133Api.Features.PortosOrigem;
 using Comex133Api.Features.Roles;
 using Comex133Api.Features.Usuarios;
 using FluentValidation;
@@ -70,6 +82,20 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AuthService>();
         services.AddScoped<UsuarioService>();
         services.AddScoped<RoleService>();
+
+        // Phase 3 — Cadastros
+        services.AddScoped<PortosOrigemService>();
+        services.AddScoped<PortosDestinoService>();
+        services.AddScoped<ClientesService>();
+        services.AddScoped<ImportadoresService>();
+        services.AddScoped<ExportadoresService>();
+        services.AddScoped<AgentesCargaService>();
+        services.AddScoped<FabricantesService>();
+        services.AddScoped<DespachantesService>();
+        services.AddScoped<NcmsService>();
+        services.AddScoped<ListaPrecoLclService>();
+        services.AddScoped<DespesasCatalogoService>();
+        services.AddScoped<ModelosDespesaService>();
         return services;
     }
 
@@ -91,6 +117,32 @@ public static class ServiceCollectionExtensions
         // Roles
         services.AddScoped<IValidator<CreateRoleRequest>, CreateRoleRequestValidator>();
         services.AddScoped<IValidator<UpdateRoleRequest>, UpdateRoleRequestValidator>();
+
+        // Phase 3 — Cadastros
+        services.AddScoped<IValidator<CreatePortoOrigemRequest>,        CreatePortoOrigemValidator>();
+        services.AddScoped<IValidator<UpdatePortoOrigemRequest>,        UpdatePortoOrigemValidator>();
+        services.AddScoped<IValidator<CreatePortoDestinoRequest>,       CreatePortoDestinoValidator>();
+        services.AddScoped<IValidator<UpdatePortoDestinoRequest>,       UpdatePortoDestinoValidator>();
+        services.AddScoped<IValidator<CreateClienteRequest>,            CreateClienteValidator>();
+        services.AddScoped<IValidator<UpdateClienteRequest>,            UpdateClienteValidator>();
+        services.AddScoped<IValidator<CreateImportadorRequest>,         CreateImportadorValidator>();
+        services.AddScoped<IValidator<UpdateImportadorRequest>,         UpdateImportadorValidator>();
+        services.AddScoped<IValidator<CreateExportadorRequest>,         CreateExportadorValidator>();
+        services.AddScoped<IValidator<UpdateExportadorRequest>,         UpdateExportadorValidator>();
+        services.AddScoped<IValidator<CreateAgenteCargaRequest>,        CreateAgenteCargaValidator>();
+        services.AddScoped<IValidator<UpdateAgenteCargaRequest>,        UpdateAgenteCargaValidator>();
+        services.AddScoped<IValidator<CreateFabricanteRequest>,         CreateFabricanteValidator>();
+        services.AddScoped<IValidator<UpdateFabricanteRequest>,         UpdateFabricanteValidator>();
+        services.AddScoped<IValidator<CreateDespachantRequest>,         CreateDespachantValidator>();
+        services.AddScoped<IValidator<UpdateDespachantRequest>,         UpdateDespachantValidator>();
+        services.AddScoped<IValidator<CreateNcmRequest>,                CreateNcmValidator>();
+        services.AddScoped<IValidator<UpdateNcmRequest>,                UpdateNcmValidator>();
+        services.AddScoped<IValidator<CreateListaPrecoLclRequest>,      CreateListaPrecoLclValidator>();
+        services.AddScoped<IValidator<UpdateListaPrecoLclRequest>,      UpdateListaPrecoLclValidator>();
+        services.AddScoped<IValidator<CreateDespesaCatalogoRequest>,    CreateDespesaCatalogoValidator>();
+        services.AddScoped<IValidator<UpdateDespesaCatalogoRequest>,    UpdateDespesaCatalogoValidator>();
+        services.AddScoped<IValidator<CreateModeloDespesaRequest>,      CreateModeloDespesaValidator>();
+        services.AddScoped<IValidator<UpdateModeloDespesaRequest>,      UpdateModeloDespesaValidator>();
 
         return services;
     }

@@ -1,0 +1,63 @@
+using Comex133Api.Core.Database;
+using Comex133Api.Core.Exceptions;
+using Comex133Api.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace Comex133Api.Features.Despachantes;
+
+public class DespachantesService
+{
+    private readonly AppDbContext _db;
+    public DespachantesService(AppDbContext db) => _db = db;
+
+    public async Task<List<DespachantDto>> GetAllAsync() =>
+        await _db.Despachantes.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToListAsync();
+
+    public async Task<DespachantDto> GetByIdAsync(int id) =>
+        ToDto(await FindOrThrowAsync(id));
+
+    public async Task<DespachantDto> CreateAsync(CreateDespachantRequest request)
+    {
+        var entity = new Despachante
+        {
+            Nome     = request.Nome.Trim(),
+            Crn      = request.Crn?.Trim(),
+            Email    = request.Email?.Trim().ToLowerInvariant(),
+            Telefone = request.Telefone?.Trim()
+        };
+        _db.Despachantes.Add(entity);
+        await _db.SaveChangesAsync();
+        return ToDto(entity);
+    }
+
+    public async Task<DespachantDto> UpdateAsync(int id, UpdateDespachantRequest request)
+    {
+        var entity = await FindOrThrowAsync(id);
+        entity.Nome     = request.Nome.Trim();
+        entity.Crn      = request.Crn?.Trim();
+        entity.Email    = request.Email?.Trim().ToLowerInvariant();
+        entity.Telefone = request.Telefone?.Trim();
+        await _db.SaveChangesAsync();
+        return ToDto(entity);
+    }
+
+    public async Task SetAtivoAsync(int id, bool ativo)
+    {
+        var entity = await FindOrThrowAsync(id);
+        entity.Ativo = ativo;
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        var entity = await FindOrThrowAsync(id);
+        _db.Despachantes.Remove(entity);
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task<Despachante> FindOrThrowAsync(int id) =>
+        await _db.Despachantes.FindAsync(id) ?? throw new NotFoundException("Despachante", id);
+
+    private static DespachantDto ToDto(Despachante x) =>
+        new(x.Id, x.Nome, x.Crn, x.Email, x.Telefone, x.Ativo, x.CriadoEm, x.AtualizadoEm);
+}
