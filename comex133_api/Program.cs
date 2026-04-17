@@ -58,6 +58,8 @@ builder.Services.AddSwaggerGen(options =>
             Array.Empty<string>()
         }
     });
+
+    options.CustomSchemaIds(type => type.FullName);
 });
 
 // Banco de dados SQL Server
