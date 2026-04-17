@@ -1,0 +1,157 @@
+# ============================================================
+# ROOT .gitignore — prototipos-html
+# Cobre: Angular (import-costs), .NET 8 (import-costs-api,
+#        comex133_api) e arquivos de infraestrutura local.
+# ============================================================
+
+
+# ------------------------------------------------------------
+# Azurite (emulador local de Azure Blob Storage)
+# ------------------------------------------------------------
+__azurite_db_blob__.json
+__azurite_db_blob_extent__.json
+__azurite_db_queue*.json
+__azurite_db_table*.json
+__blobstorage__/
+__queuestorage__/
+__tablestorage__/
+
+
+# ------------------------------------------------------------
+# .NET — saídas de compilação e publish
+# ------------------------------------------------------------
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Pp]ublish/
+publish_ftp/
+artifacts/
+bld/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+# .NET — arquivos temporários e de usuário
+*.user
+*.suo
+*.rsuser
+*.userosscache
+*.sln.docstates
+project.lock.json
+project.fragment.lock.json
+*.tmp_proj
+*_wpftmp.csproj
+ScaffoldingReadMe.txt
+
+# .NET — arquivos binários gerados pelo compilador
+*.ilk
+*.iobj
+*.ipdb
+*.pdb
+*.pgc
+*.pgd
+*.sbr
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+
+# Visual Studio
+.vs/
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+
+# ------------------------------------------------------------
+# Angular / Node.js
+# ------------------------------------------------------------
+node_modules/
+npm-debug.log
+yarn-error.log
+.yarn-integrity
+package-lock.json
+
+# Saídas de build Angular
+dist/
+tmp/
+out-tsc/
+bazel-out/
+
+# Cache Angular
+.angular/
+
+# Sass
+.sass-cache/
+
+# Cobertura de testes
+coverage/
+/libpeerconnection.log
+testem.log
+/typings
+/connect.lock
+
+# Storybook
+*storybook.log
+storybook-static/
+
+# Arquivos gerados localmente
+build_output.txt
+
+
+# ------------------------------------------------------------
+# Configurações sensíveis (não subir credenciais)
+# ------------------------------------------------------------
+appsettings.Development.json
+appsettings.*.local.json
+*.env
+.env
+.env.*
+
+
+# ------------------------------------------------------------
+# IDEs e editores
+# ------------------------------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+.idea/
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+
+
+# ------------------------------------------------------------
+# Sistema operacional
+# ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+
+# ------------------------------------------------------------
+# Logs gerais
+# ------------------------------------------------------------
+*.log
+!web.config

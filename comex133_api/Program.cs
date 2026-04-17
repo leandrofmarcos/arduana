@@ -77,19 +77,29 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.SetIsOriginAllowed(origin =>
+        if (builder.Environment.IsDevelopment())
         {
-            if (string.IsNullOrEmpty(origin)) return false;
-            var uri = new Uri(origin);
-            if (builder.Environment.IsDevelopment())
-                return uri.Host == "localhost" || uri.Host == "127.0.0.1";
+            // Em desenvolvimento, permitir localhost em qualquer porta
+            policy.SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrEmpty(origin)) return false;
+                var uri = new Uri(origin);
+                return (uri.Host == "localhost" || uri.Host == "127.0.0.1") && uri.Scheme == "http";
+            })
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+        }
+        else
+        {
+            // Em produção, usar origens configuradas
             var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
                           ?? Array.Empty<string>();
-            return origins.Contains(origin);
-        })
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials();
+            policy.WithOrigins(origins)
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials();
+        }
     });
 });
 

@@ -1,0 +1,124 @@
+@baseUrl = http://www.viaveritascomex.com.br/api
+@localUrl = http://localhost:5001/api
+
+########################################
+# SELEÇÃO DO SERVIDOR
+########################################
+# Altere a linha abaixo para testar em diferentes ambientes:
+#   @baseUrl = http://www.viaveritascomex.com.br/api  (REMOTO - Produção)
+#   @baseUrl = http://localhost:5001/api              (LOCAL - Desenvolvimento)
+
+@serverUrl = http://www.viaveritascomex.com.br/api
+
+########################################
+# HEALTH CHECK
+########################################
+### Verificar saúde da API
+GET {{serverUrl}}/health
+Accept: application/json
+
+########################################
+# AUTENTICAÇÃO - LOGIN
+########################################
+### Login com credenciais do administrador
+POST {{serverUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@comex133.com.br",
+  "senha": "Pa$$word"
+}
+
+########################################
+# AUTENTICAÇÃO - REFRESH TOKEN
+########################################
+### Renovar token (insira um refresh token válido abaixo)
+@refreshToken = SEU_REFRESH_TOKEN_AQUI
+POST {{serverUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+########################################
+# AUTENTICAÇÃO - DADOS DO USUÁRIO LOGADO
+########################################
+### Obter dados do usuário autenticado
+@accessToken = SEU_ACCESS_TOKEN_AQUI
+GET {{serverUrl}}/auth/me
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+########################################
+# AUTENTICAÇÃO - LOGOUT
+########################################
+### Fazer logout (revoga refresh token)
+POST {{serverUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+########################################
+# CLIENTES
+########################################
+### Listar todos os clientes
+GET {{serverUrl}}/clientes?page=1&pageSize=10
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Obter cliente por ID
+GET {{serverUrl}}/clientes/1
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+########################################
+# IMPORTADORES
+########################################
+### Listar importadores
+GET {{serverUrl}}/importadores?page=1&pageSize=10
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+########################################
+# PORTOS
+########################################
+### Listar portos de origem
+GET {{serverUrl}}/portos-origem?page=1&pageSize=10
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Listar portos de destino
+GET {{serverUrl}}/portos-destino?page=1&pageSize=10
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+########################################
+# SOLICITAÇÕES DE ORÇAMENTO
+########################################
+### Listar solicitações de orçamento
+GET {{serverUrl}}/solicitacoes-orcamento?page=1&pageSize=10
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Obter solicitação de orçamento por ID
+GET {{serverUrl}}/solicitacoes-orcamento/1
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+########################################
+# NOTAS
+########################################
+# 1. Para usar este arquivo HTTP, você precisa da extensão "REST Client" no VS Code
+# 2. Inicie um teste clicando em "Send Request" acima de cada bloco
+# 3. Para testes autenticados:
+#    a) Execute primeiro "Login com credenciais do administrador"
+#    b) Copie o accessToken da resposta e cole em @accessToken
+#    c) Copie o refreshToken da resposta e cole em @refreshToken
+#    d) Use esses valores nos testes subsequentes
+# 4. Altere @serverUrl conforme necessário para LOCAL ou REMOTO
+# 5. Para credenciais, você pode testar com:
+#    - admin@comex133.com.br / Pa$$word
