@@ -28,6 +28,11 @@ public class AppDbContext : DbContext
     public DbSet<ModeloDespesa>     ModelosDespesa    => Set<ModeloDespesa>();
     public DbSet<ModeloDespesaItem> ModelosDespesaItens => Set<ModeloDespesaItem>();
 
+    // Phase 4 — Fluxo operacional
+    public DbSet<SolicitacaoOrcamento> SolicitacoesOrcamento => Set<SolicitacaoOrcamento>();
+    public DbSet<SolicitacaoOrcamentoDespachante> SolicitacoesOrcamentoDespachantes => Set<SolicitacaoOrcamentoDespachante>();
+    public DbSet<SolicitacaoOrcamentoDocumento> SolicitacoesOrcamentoDocumentos => Set<SolicitacaoOrcamentoDocumento>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -63,6 +68,54 @@ public class AppDbContext : DbContext
                   .WithMany(d => d.ModeloDespesaItens)
                   .HasForeignKey(i => i.DespesaCatalogoId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SolicitacaoOrcamento>(entity =>
+        {
+            entity.HasIndex(x => x.CodigoInterno).IsUnique();
+
+            entity.HasOne(x => x.Cliente)
+                .WithMany()
+                .HasForeignKey(x => x.ClienteId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Importador)
+                .WithMany()
+                .HasForeignKey(x => x.ImportadorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.PortoOrigem)
+                .WithMany()
+                .HasForeignKey(x => x.PortoOrigemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.PortoDestino)
+                .WithMany()
+                .HasForeignKey(x => x.PortoDestinoId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SolicitacaoOrcamentoDespachante>(entity =>
+        {
+            entity.HasIndex(x => new { x.SolicitacaoOrcamentoId, x.DespachanteId }).IsUnique();
+
+            entity.HasOne(x => x.SolicitacaoOrcamento)
+                .WithMany(x => x.Despachantes)
+                .HasForeignKey(x => x.SolicitacaoOrcamentoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Despachante)
+                .WithMany()
+                .HasForeignKey(x => x.DespachanteId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SolicitacaoOrcamentoDocumento>(entity =>
+        {
+            entity.HasOne(x => x.SolicitacaoOrcamento)
+                .WithMany(x => x.Documentos)
+                .HasForeignKey(x => x.SolicitacaoOrcamentoId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<UsuarioRole>(entity =>
@@ -146,6 +199,9 @@ public class AppDbContext : DbContext
         SetTimestamps<ListaPrecoLcl>(now);
         SetTimestamps<DespesaCatalogo>(now);
         SetTimestamps<ModeloDespesa>(now);
+        SetTimestamps<SolicitacaoOrcamento>(now);
+        SetTimestamps<SolicitacaoOrcamentoDespachante>(now);
+        SetTimestamps<SolicitacaoOrcamentoDocumento>(now);
 
         foreach (var entry in ChangeTracker.Entries<ModeloDespesaItem>()
             .Where(e => e.State == EntityState.Added))

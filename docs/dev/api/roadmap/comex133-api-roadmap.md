@@ -628,6 +628,34 @@ comex133_api/
 ## Fase 4 — Fluxo Operacional
 *(Após estabilização dos cadastros da Fase 3)*
 
+> **Status:** Em execução — incremento 1 concluído e validado em localhost (17/04/2026)
+
+### Entregas do incremento 1 (Fase 4)
+
+- Nova branch da fase criada: `feat/phase4-fluxo-operacional`
+- Módulo `SolicitacoesOrcamento` implementado no backend com:
+  - entidade principal (`SolicitacoesOrcamento`)
+  - vínculo de despachantes (`SolicitacoesOrcamentoDespachantes`)
+  - vínculo de documentos (`SolicitacoesOrcamentoDocumentos`)
+  - service + validators + controller protegidos por `Admin`
+- Migration criada e aplicada localmente:
+  - `20260417011551_AddFase4SolicitacoesOrcamento`
+- Endpoints validados em localhost:
+  - `GET /api/solicitacoes-orcamento`
+  - `POST /api/solicitacoes-orcamento`
+  - `GET /api/solicitacoes-orcamento/{id}`
+  - `POST /api/solicitacoes-orcamento/{id}/despachantes`
+  - `GET /api/solicitacoes-orcamento/{id}/despachantes`
+  - `POST /api/solicitacoes-orcamento/{id}/documentos`
+  - `GET /api/solicitacoes-orcamento/{id}/documentos`
+
+### Pendências da Fase 4
+
+- Implementar módulos restantes: `CustoDespachante`, `OrcamentoVenda`, `EmbarqueAduana`, `ControleNavio`, `Documento`
+- Definir e aplicar transições de status entre os módulos operacionais
+- Executar validação integrada de ponta a ponta (solicitação -> custo -> orçamento -> embarque)
+- Após validação funcional local completa, realizar deploy
+
 | Entidade | Complexidade |
 |---------|-------------|
 | SolicitacaoOrcamento | Alta |
@@ -667,14 +695,4 @@ comex133_api/
 
 ## Próximo Passo
 
-**→ Aguardando ordem para iniciar Fase 2 — Autenticação e Autorização (Usuários, Roles e JWT)**
-
-Quando autorizado, a implementação seguirá esta ordem:
-1. `ATI-02-01` — Entidades + migrations + seed (Role Admin + usuário admin@comex133.com.br)
-2. `ATI-02-02` — Geração e validação de JWT (access + refresh token)
-3. `ATI-02-03` — Controller de autenticação (`/api/auth/*`)
-4. `ATI-02-04` — CRUD de usuários
-5. `ATI-02-05` — CRUD de roles
-6. `ATI-02-06` — Proteção de endpoints + remoção da API Key fixa
-7. `ATI-02-07` — Rate limiting + limpeza de tokens + headers de segurança
-8. Deploy + validação em produção
+**→ Continuar Fase 4 com o módulo `CustoDespachante` (incremento 2), mantendo validação local antes de deploy.**

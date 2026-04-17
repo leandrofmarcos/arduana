@@ -14,6 +14,7 @@ using Comex133Api.Features.Parametros;
 using Comex133Api.Features.PortosDestino;
 using Comex133Api.Features.PortosOrigem;
 using Comex133Api.Features.Roles;
+using Comex133Api.Features.SolicitacoesOrcamento;
 using Comex133Api.Features.Usuarios;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -96,6 +97,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ListaPrecoLclService>();
         services.AddScoped<DespesasCatalogoService>();
         services.AddScoped<ModelosDespesaService>();
+        services.AddScoped<SolicitacoesOrcamentoService>();
         return services;
     }
 
@@ -143,6 +145,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IValidator<UpdateDespesaCatalogoRequest>,    UpdateDespesaCatalogoValidator>();
         services.AddScoped<IValidator<CreateModeloDespesaRequest>,      CreateModeloDespesaValidator>();
         services.AddScoped<IValidator<UpdateModeloDespesaRequest>,      UpdateModeloDespesaValidator>();
+        services.AddScoped<IValidator<CreateSolicitacaoOrcamentoRequest>,      CreateSolicitacaoOrcamentoValidator>();
+        services.AddScoped<IValidator<UpdateSolicitacaoOrcamentoRequest>,      UpdateSolicitacaoOrcamentoValidator>();
+        services.AddScoped<IValidator<UpdateSolicitacaoOrcamentoStatusRequest>, UpdateSolicitacaoOrcamentoStatusValidator>();
+        services.AddScoped<IValidator<AddSolicitacaoDespachanteRequest>,       AddSolicitacaoDespachanteValidator>();
+        services.AddScoped<IValidator<AddSolicitacaoDocumentoRequest>,          AddSolicitacaoDocumentoValidator>();
 
         return services;
     }
