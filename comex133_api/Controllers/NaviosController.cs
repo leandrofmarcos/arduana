@@ -94,6 +94,24 @@ public class NaviosController : ControllerBase
         return StatusCode(201, ApiResponse.Created(await _service.AddTrajetoAsync(navioId, request)));
     }
 
+    [HttpPatch("{navioId:int}/trajetos")]
+    public async Task<IActionResult> ReplaceTrajetos(int navioId, [FromBody] IList<CreateNavioTrajetoRequest> requests)
+    {
+        var payload = requests ?? new List<CreateNavioTrajetoRequest>();
+
+        foreach (var req in payload)
+        {
+            var v = await _createTrajetoValidator.ValidateAsync(req);
+            if (!v.IsValid)
+            {
+                return BadRequest(ApiResponse.ValidationError(
+                    v.Errors.Select(e => new ValidationError { Field = e.PropertyName, Message = e.ErrorMessage }).ToList()));
+            }
+        }
+
+        return Ok(ApiResponse.Ok(await _service.ReplaceTrajetosAsync(navioId, payload)));
+    }
+
     [HttpPut("{navioId:int}/trajetos/{id:int}")]
     public async Task<IActionResult> UpdateTrajeto(int navioId, int id, [FromBody] UpdateNavioTrajetoRequest request)
     {

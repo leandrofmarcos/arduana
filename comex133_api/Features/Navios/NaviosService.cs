@@ -121,11 +121,39 @@ public class NaviosService
         await ValidatePortosExistAsync(request.PortoOrigemId, request.PortoDestinoId);
 
         var (etd, eta) = ParseDates(request.Etd, request.Eta);
+        var numeroViagem = NormalizeNumeroViagem(request.NumeroViagem);
+
+        // Upsert idempotente por (NavioId + NumeroViagem + Sequencia)
+        // evita duplicação quando o cliente reenvia o mesmo POST.
+        var existente = await _db.NaviosTrajetos
+            .Include(t => t.PortoOrigem)
+            .Include(t => t.PortoDestino)
+            .FirstOrDefaultAsync(t =>
+                t.NavioId == navioId &&
+                t.NumeroViagem == numeroViagem &&
+                t.Sequencia == request.Sequencia);
+
+        if (existente is not null)
+        {
+            existente.PortoOrigemId  = request.PortoOrigemId;
+            existente.PortoDestinoId = request.PortoDestinoId;
+            existente.Etd            = etd;
+            existente.Eta            = eta;
+            existente.StatusPerna    = request.StatusPerna;
+            existente.Observacao     = request.Observacao?.Trim();
+
+            await _db.SaveChangesAsync();
+            await _db.Entry(existente).Reference(t => t.PortoOrigem).LoadAsync();
+            await _db.Entry(existente).Reference(t => t.PortoDestino).LoadAsync();
+            await SyncEtaEmbarquesAsync(existente.Id, eta);
+
+            return ToTrajetoDto(existente);
+        }
 
         var trajeto = new NavioTrajeto
         {
             NavioId       = navioId,
-            NumeroViagem  = request.NumeroViagem.Trim(),
+            NumeroViagem  = numeroViagem,
             Sequencia     = request.Sequencia,
             PortoOrigemId = request.PortoOrigemId,
             PortoDestinoId = request.PortoDestinoId,
@@ -141,6 +169,103 @@ public class NaviosService
         await _db.Entry(trajeto).Reference(t => t.PortoDestino).LoadAsync();
 
         return ToTrajetoDto(trajeto);
+    }
+
+    public async Task<IList<NavioTrajetoDto>> ReplaceTrajetosAsync(int navioId, IList<CreateNavioTrajetoRequest> requests)
+    {
+        await FindOrThrowAsync(navioId);
+
+        var payload = requests ?? new List<CreateNavioTrajetoRequest>();
+        var normalizedRequests = payload
+            .Select((req, idx) => req with
+            {
+                NumeroViagem = NormalizeNumeroViagem(req.NumeroViagem),
+                Sequencia = req.Sequencia > 0 ? req.Sequencia : idx + 1,
+                Observacao = req.Observacao?.Trim()
+            })
+            .ToList();
+
+        foreach (var req in normalizedRequests)
+        {
+            await ValidatePortosExistAsync(req.PortoOrigemId, req.PortoDestinoId);
+            ParseDates(req.Etd, req.Eta);
+        }
+
+        var existentes = await _db.NaviosTrajetos
+            .Where(t => t.NavioId == navioId)
+            .ToListAsync();
+
+        var trajetosComVinculoAtivo = await _db.EmbarqueNavioVinculos
+            .Where(v => v.NavioId == navioId && v.Ativo && v.NavioTrajetoId.HasValue)
+            .Select(v => v.NavioTrajetoId!.Value)
+            .Distinct()
+            .ToListAsync();
+        var idsComVinculoAtivo = trajetosComVinculoAtivo.ToHashSet();
+
+        var existentesPorChave = new Dictionary<string, NavioTrajeto>(StringComparer.OrdinalIgnoreCase);
+        foreach (var group in existentes.GroupBy(t => BuildTrajetoKey(t.NumeroViagem, t.Sequencia)))
+        {
+            var canonical = group
+                .OrderByDescending(t => idsComVinculoAtivo.Contains(t.Id))
+                .ThenByDescending(t => t.AtualizadoEm)
+                .ThenByDescending(t => t.CriadoEm)
+                .First();
+
+            existentesPorChave[group.Key] = canonical;
+
+            var duplicadosRemoviveis = group
+                .Where(t => t.Id != canonical.Id && !idsComVinculoAtivo.Contains(t.Id))
+                .ToList();
+
+            if (duplicadosRemoviveis.Count > 0)
+                _db.NaviosTrajetos.RemoveRange(duplicadosRemoviveis);
+        }
+
+        var chavesSolicitadas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var req in normalizedRequests)
+        {
+            var chave = BuildTrajetoKey(req.NumeroViagem, req.Sequencia);
+            chavesSolicitadas.Add(chave);
+            var (etd, eta) = ParseDates(req.Etd, req.Eta);
+
+            if (existentesPorChave.TryGetValue(chave, out var existente))
+            {
+                existente.PortoOrigemId  = req.PortoOrigemId;
+                existente.PortoDestinoId = req.PortoDestinoId;
+                existente.Etd            = etd;
+                existente.Eta            = eta;
+                existente.StatusPerna    = req.StatusPerna;
+                existente.Observacao     = req.Observacao;
+            }
+            else
+            {
+                _db.NaviosTrajetos.Add(new NavioTrajeto
+                {
+                    NavioId        = navioId,
+                    NumeroViagem   = req.NumeroViagem,
+                    Sequencia      = req.Sequencia,
+                    PortoOrigemId  = req.PortoOrigemId,
+                    PortoDestinoId = req.PortoDestinoId,
+                    Etd            = etd,
+                    Eta            = eta,
+                    StatusPerna    = req.StatusPerna,
+                    Observacao     = req.Observacao
+                });
+            }
+        }
+
+        var removiveis = existentes
+            .Where(t =>
+                !idsComVinculoAtivo.Contains(t.Id) &&
+                !chavesSolicitadas.Contains(BuildTrajetoKey(t.NumeroViagem, t.Sequencia)))
+            .ToList();
+
+        if (removiveis.Count > 0)
+            _db.NaviosTrajetos.RemoveRange(removiveis);
+
+        await _db.SaveChangesAsync();
+        return await GetTrajetosAsync(navioId);
     }
 
     public async Task<NavioTrajetoDto> UpdateTrajetoAsync(int navioId, int trajetoId, UpdateNavioTrajetoRequest request)
@@ -328,7 +453,7 @@ public class NaviosService
 
     private async Task<IList<NavioOperacionalDto>> GetControleNaviosOperacionalCoreAsync()
     {
-        // Buscar navios que têm ao menos 1 vínculo de embarque ativo
+        // Buscar vínculos de embarque ativos para compor contagem operacional
         var vinculos = await _db.EmbarqueNavioVinculos
             .Include(v => v.Navio)
             .Include(v => v.NavioTrajeto)
@@ -336,6 +461,7 @@ public class NaviosService
             .Include(v => v.NavioTrajeto)
                 .ThenInclude(t => t!.PortoDestino)
             .Include(v => v.EmbarqueAduana)
+                .ThenInclude(e => e.Cliente)
             .Where(v => v.Ativo)
             .ToListAsync();
 
@@ -348,33 +474,51 @@ public class NaviosService
                 !statusFinais.Contains(v.EmbarqueAduana.Status ?? string.Empty, StringComparer.OrdinalIgnoreCase))
             .ToList();
 
-        if (!vinculosAtivos.Any())
-            return new List<NavioOperacionalDto>();
+        // Agrupar vínculos ativos por navio
+        var grupos = vinculosAtivos
+            .GroupBy(v => v.NavioId)
+            .ToDictionary(g => g.Key, g => g.ToList());
 
-        // Agrupar por navio
-        var grupos = vinculosAtivos.GroupBy(v => v.NavioId);
-
-        // Buscar trajetos de cada navio envolvido
-        var navioIds = grupos.Select(g => g.Key).ToList();
+        // Buscar todos os trajetos cadastrados para navios ativos.
+        // Isso garante que um trajeto recém salvo apareça no controle,
+        // mesmo quando ainda não existem embarques vinculados.
         var trajetos = await _db.NaviosTrajetos
+            .Include(t => t.Navio)
             .Include(t => t.PortoOrigem)
             .Include(t => t.PortoDestino)
-            .Where(t => navioIds.Contains(t.NavioId))
+            .Where(t => t.Navio != null && t.Navio.Ativo)
             .OrderBy(t => t.NumeroViagem)
             .ThenBy(t => t.Sequencia)
             .ToListAsync();
+
+        // União dos navios com vínculos ativos + navios que possuem trajetos
+        var navioIds = grupos.Keys
+            .Union(trajetos.Select(t => t.NavioId))
+            .Distinct()
+            .ToList();
+
+        if (!navioIds.Any())
+            return new List<NavioOperacionalDto>();
+
+        var navios = await _db.Navios
+            .Where(n => navioIds.Contains(n.Id) && n.Ativo)
+            .ToDictionaryAsync(n => n.Id, n => n);
 
         var trajetosPorNavio = trajetos.GroupBy(t => t.NavioId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
         var result = new List<NavioOperacionalDto>();
 
-        foreach (var grupo in grupos)
+        foreach (var navioId in navioIds)
         {
-            var navio = grupo.First().Navio;
-            if (navio is null) continue;
+            if (!navios.TryGetValue(navioId, out var navio))
+                continue;
 
-            var trajetosDoNavio = trajetosPorNavio.TryGetValue(grupo.Key, out var tj) ? tj : new();
+            var grupo = grupos.TryGetValue(navioId, out var grupoAtivo)
+                ? grupoAtivo
+                : new List<EmbarqueNavioVinculo>();
+
+            var trajetosDoNavio = trajetosPorNavio.TryGetValue(navioId, out var tj) ? tj : new();
 
             // Porto atual: perna Atracado mais recente ou Em Transito
             var pernaAtual = trajetosDoNavio
@@ -397,7 +541,10 @@ public class NaviosService
                         v.EmbarqueAduanaId,
                         v.EmbarqueAduana.CodigoInterno ?? string.Empty,
                         v.EmbarqueAduana.Status ?? string.Empty,
-                        v.NumeroViagem
+                        v.NumeroViagem,
+                        v.EmbarqueAduana.Cliente?.RazaoSocial,
+                        v.EmbarqueAduana.TamContainer,
+                        ToDateOnly(t.Eta)
                     )).ToList();
 
                 return new NavioTrajetoOperacionalDto(
@@ -474,6 +621,15 @@ public class NaviosService
         return (etd.Date, eta.Date);
     }
 
+    private static string NormalizeNumeroViagem(string? numeroViagem)
+    {
+        var value = (numeroViagem ?? string.Empty).Trim();
+        return string.IsNullOrWhiteSpace(value) ? "SEM-VIAGEM" : value;
+    }
+
+    private static string BuildTrajetoKey(string numeroViagem, int sequencia) =>
+        $"{NormalizeNumeroViagem(numeroViagem)}::{sequencia}";
+
     private static string ToDateOnly(DateTime dt) => dt.ToString("yyyy-MM-dd");
 
     // ── Mapeamento ────────────────────────────────────────────────────────────
@@ -534,5 +690,8 @@ public record EmbarqueResumoDto(
     int     EmbarqueId,
     string  CodigoInterno,
     string  Status,
-    string? NumeroViagem
+    string? NumeroViagem,
+    string? ClienteNome,
+    string? ContainerBl,
+    string? Eta
 );
