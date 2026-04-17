@@ -1,4 +1,4 @@
-# Plano de Migração Frontend -> API Comex133 (Fases 1 a 5)
+# Plano de Migração Frontend -> API Comex133 (Fases 1 a 6)
 
 > **Projeto:** import-costs (Angular V2)  
 > **Objetivo:** migrar o frontend de localStorage para API real, com autenticação JWT, cadastros e fluxo operacional completos  
@@ -285,11 +285,89 @@ Ordem recomendada:
 
 ---
 
-## Fase 5 — Migração do Fluxo Operacional (Backend Fase 4)
+## Fase 5 — Remoção Completa do Legado V1 (Descomissionamento)
+
+**Objetivo:** eliminar dependências, rotas, componentes e artefatos de UI da versão legada (V1), mantendo somente a V2 como base oficial da aplicação.
+
+### Baseline técnico validado (estado atual do frontend)
+- O acesso à V1 está centralizado no bloco de rota `path: 'legacy'` em `app.routes.ts`.
+- A entrada para V1 ainda está visível na V2 pelo item de menu `routerLink="/legacy"` em `shell-v2.component.ts`.
+- O layout da V1 está concentrado em `core/layout/shell.component.ts`.
+- As telas V1 são carregadas dentro do bloco `/legacy` (dashboard, alíquotas, portos, clientes, despachantes, funcionários, templates packlist, custo, orçamentos, aduana, histórico e profile).
+- Não foi identificado acoplamento direto de imports entre `src/app/v2/**` e `src/app/features/**`.
+- Ponto crítico identificado: o link de perfil da V2 usa `routerLink="/profile"`, porém a rota `profile` hoje está dentro do bloco legado; a remoção da V1 exige criar rota de perfil própria para V2 antes de desativar o legado.
+
+### Escopo seguro de remoção (o que NÃO remover)
+- Não remover a feature de autenticação em `src/app/features/auth/**` (é usada pela aplicação atual para login/sessão/guards).
+- Não remover `core/api/**` e serviços de integração usados pela V2.
+- Não remover componentes/páginas da V2 em `src/app/v2/**`.
+- Não remover rotas administrativas/operacionais da V2 já ativas.
+
+### ATI-17 — Inventário e mapeamento de impactos do legado V1
+- Mapear tudo que ainda referencia V1 no frontend:
+  - rotas e redirecionamentos para `/legacy`
+  - componentes/layouts da V1
+  - serviços e models exclusivos da V1
+  - links de menu para telas legadas
+- Registrar matriz de dependências para cada item legado:
+  - origem da referência
+  - destino
+  - ação (remover, substituir, manter temporariamente)
+- Classificar itens por tipo:
+  - remoção imediata
+  - migração necessária para V2
+  - desativação temporária controlada por flag
+
+**Critério de aceite:** inventário completo validado e sem referência órfã não catalogada.
+
+---
+
+### ATI-18 — Remover acesso de navegação ao legado
+- Pré-requisito obrigatório: criar rota de perfil fora do bloco legado para não quebrar o link de perfil da V2.
+- Remover link “Versão Legada (V1)” da navegação.
+- Remover rotas públicas/internas de entrada na V1.
+- Garantir redirecionamento seguro para V2 quando houver acesso a paths antigos (`/legacy` e filhos).
+
+**Critério de aceite:** usuário não acessa mais telas da V1 por menu nem por rota antiga ativa.
+
+---
+
+### ATI-19 — Desacoplar e remover artefatos técnicos da V1
+- Remover componentes, páginas e módulos V1 não utilizados.
+- Remover serviços e helpers exclusivos V1 sem uso na V2.
+- Limpar imports, providers e referências de build ligados à V1.
+- Preservar explicitamente os artefatos compartilhados não-legados (auth, api client, guards e contratos em uso da V2).
+- Manter apenas os contratos necessários para compatibilidade temporária (se houver), com data de expiração definida.
+
+**Critério de aceite:** código legado V1 não participa mais do fluxo de execução da aplicação.
+
+---
+
+### ATI-20 — Limpeza de configuração e documentação pós-remoção
+- Atualizar documentação técnica indicando V2 como única versão ativa.
+- Atualizar mapa de rotas oficial sem referências V1.
+- Remover observações de convivência V1/V2 dos documentos de operação.
+
+**Critério de aceite:** documentação e configuração refletem exclusivamente a arquitetura V2.
+
+---
+
+### ATI-21 — Validação final de regressão pós-descomissionamento
+- Executar smoke test de navegação nas principais áreas V2.
+- Validar autenticação, autorização e menu sem qualquer quebra por remoção da V1.
+- Validar acesso ao perfil na V2 após desacoplamento da rota legada.
+- Validar build sem warnings críticos relacionados a imports órfãos do legado.
+- Executar busca por referências residuais (`/legacy`, `shell.component`, imports de `src/app/features/*` não compartilhados).
+
+**Critério de aceite:** aplicação estável após remoção da V1, sem regressões funcionais críticas.
+
+---
+
+## Fase 6 — Migração do Fluxo Operacional (Backend Fase 4)
 
 **Objetivo:** conectar o fluxo fim a fim do processo operacional no frontend usando API real.
 
-### ATI-17 — SolicitacaoOrcamento (incremento inicial)
+### ATI-22 — SolicitacaoOrcamento (incremento inicial)
 - Integrar endpoints já entregues:
   - `GET /api/solicitacoes-orcamento`
   - `POST /api/solicitacoes-orcamento`
@@ -303,7 +381,7 @@ Ordem recomendada:
 
 ---
 
-### ATI-18 — CustoDespachante (próximo incremento)
+### ATI-23 — CustoDespachante (próximo incremento)
 - Migrar wizard de 4 etapas para API.
 - Persistir itens LI, despesas e status de forma transacional.
 
@@ -311,7 +389,7 @@ Ordem recomendada:
 
 ---
 
-### ATI-19 — OrcamentoVenda
+### ATI-24 — OrcamentoVenda
 - Integrar geração e edição de orçamento vinculada à solicitação/custo.
 - Validar totais, composição de despesas e status.
 
@@ -319,7 +397,7 @@ Ordem recomendada:
 
 ---
 
-### ATI-20 — EmbarqueAduana e ControleNavio
+### ATI-25 — EmbarqueAduana e ControleNavio
 - Integrar timeline de status de embarque.
 - Integrar vínculo com controle de navio e dados logísticos.
 
@@ -327,7 +405,7 @@ Ordem recomendada:
 
 ---
 
-### ATI-21 — Documentos
+### ATI-26 — Documentos
 - Integrar gestão de tipo de documento e vínculo por entidade.
 - Padronizar upload, listagem e remoção com segurança.
 
@@ -353,6 +431,11 @@ Ordem recomendada:
 - Bloqueio de acesso para usuário não Admin em rotas administrativas.
 
 ### Testes obrigatórios Fase 5
+- Não existir entrada de navegação para V1 no menu.
+- Rotas legadas retornarem para fluxo V2 definido.
+- Build sem referência ativa a componentes da V1 removidos.
+
+### Testes obrigatórios Fase 6
 - Fluxo mínimo: Solicitação -> vínculo de despachante -> vínculo de documento.
 - Persistência confirmada após recarregar página.
 - Tratamento de erro 401/403/404 em tela operacional.
@@ -375,6 +458,7 @@ Ordem recomendada:
 2. Fase 2 — Infra padrão de API e paginação.
 3. Fase 3 — Cadastros base por ordem de prioridade.
 4. Fase 4 — Administração completa (Roles e Usuários com CRUD e autorização por perfil Admin).
-5. Fase 5 — Fluxo operacional incremental (Solicitação -> Custo -> Orçamento -> Embarque -> Documentos).
+5. Fase 5 — Descomissionamento completo do legado V1.
+6. Fase 6 — Fluxo operacional incremental (Solicitação -> Custo -> Orçamento -> Embarque -> Documentos).
 
 Essa ordem reduz risco, permite validação contínua no app e evita retrabalho estrutural ao longo da migração.
