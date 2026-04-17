@@ -30,6 +30,13 @@ public class AppDbContext : DbContext
 
     // Phase 4 — Fluxo operacional
     public DbSet<SolicitacaoOrcamento> SolicitacoesOrcamento => Set<SolicitacaoOrcamento>();
+    public DbSet<ControleNavio>        ControleNavios        => Set<ControleNavio>();
+    public DbSet<ControleNavioTrajeto> ControleNaviosTrajetos => Set<ControleNavioTrajeto>();
+
+    // Phase 5 — Navios (cadastro mestre + trajetoria operacional)
+    public DbSet<Navio>               Navios               => Set<Navio>();
+    public DbSet<NavioTrajeto>        NaviosTrajetos       => Set<NavioTrajeto>();
+    public DbSet<EmbarqueNavioVinculo> EmbarqueNavioVinculos => Set<EmbarqueNavioVinculo>();
     public DbSet<SolicitacaoOrcamentoDespachante> SolicitacoesOrcamentoDespachantes => Set<SolicitacaoOrcamentoDespachante>();
     public DbSet<SolicitacaoOrcamentoDocumento> SolicitacoesOrcamentoDocumentos => Set<SolicitacaoOrcamentoDocumento>();
 
@@ -118,6 +125,29 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<ControleNavio>(entity =>
+        {
+            entity.HasIndex(e => e.NumeroViagem).IsUnique();
+        });
+
+        modelBuilder.Entity<ControleNavioTrajeto>(entity =>
+        {
+            entity.HasOne(t => t.ControleNavio)
+                  .WithMany(n => n.Trajetos)
+                  .HasForeignKey(t => t.ControleNavioId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(t => t.PortoOrigem)
+                  .WithMany()
+                  .HasForeignKey(t => t.PortoOrigemId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.PortoDestino)
+                  .WithMany()
+                  .HasForeignKey(t => t.PortoDestinoId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<UsuarioRole>(entity =>
         {
             entity.HasKey(ur => new { ur.UsuarioId, ur.RoleId });
@@ -131,6 +161,43 @@ public class AppDbContext : DbContext
                   .WithMany(r => r.UsuarioRoles)
                   .HasForeignKey(ur => ur.RoleId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Phase 5 — Navios
+        modelBuilder.Entity<NavioTrajeto>(entity =>
+        {
+            entity.HasOne(t => t.Navio)
+                  .WithMany(n => n.Trajetos)
+                  .HasForeignKey(t => t.NavioId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(t => t.PortoOrigem)
+                  .WithMany()
+                  .HasForeignKey(t => t.PortoOrigemId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(t => t.PortoDestino)
+                  .WithMany()
+                  .HasForeignKey(t => t.PortoDestinoId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EmbarqueNavioVinculo>(entity =>
+        {
+            entity.HasOne(v => v.EmbarqueAduana)
+                  .WithMany()
+                  .HasForeignKey(v => v.EmbarqueAduanaId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(v => v.Navio)
+                  .WithMany(n => n.Vinculos)
+                  .HasForeignKey(v => v.NavioId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(v => v.NavioTrajeto)
+                  .WithMany(t => t.Vinculos)
+                  .HasForeignKey(v => v.NavioTrajetoId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
     }
 
@@ -202,6 +269,8 @@ public class AppDbContext : DbContext
         SetTimestamps<SolicitacaoOrcamento>(now);
         SetTimestamps<SolicitacaoOrcamentoDespachante>(now);
         SetTimestamps<SolicitacaoOrcamentoDocumento>(now);
+        SetTimestamps<ControleNavio>(now);
+        SetTimestamps<ControleNavioTrajeto>(now);
 
         foreach (var entry in ChangeTracker.Entries<ModeloDespesaItem>()
             .Where(e => e.State == EntityState.Added))

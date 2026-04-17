@@ -12,7 +12,17 @@ public class ModelosDespesaService
     public ModelosDespesaService(AppDbContext db) => _db = db;
 
     public async Task<PagedResult<ModeloDespesaDto>> GetAllAsync(PaginationQuery pagination) =>
-        await _db.ModelosDespesa.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
+        await _db.ModelosDespesa
+            .OrderBy(x => x.Nome)
+            .Select(x => new ModeloDespesaDto(
+                x.Id,
+                x.Nome ?? string.Empty,
+                x.Descricao,
+                x.Ativo,
+                EF.Property<DateTime?>(x, nameof(ModeloDespesa.CriadoEm)) ?? DateTime.UnixEpoch,
+                EF.Property<DateTime?>(x, nameof(ModeloDespesa.AtualizadoEm)) ?? DateTime.UnixEpoch
+            ))
+            .ToPagedResultAsync(pagination);
 
     public async Task<ModeloDespesaDetalheDto> GetByIdAsync(int id)
     {
@@ -70,9 +80,15 @@ public class ModelosDespesaService
         return await _db.ModelosDespesaItens
             .Where(i => i.ModeloDespesaId == id)
             .Include(i => i.DespesaCatalogo)
-            .OrderBy(i => i.DespesaCatalogo.Categoria)
-            .ThenBy(i => i.DespesaCatalogo.Descricao)
-            .Select(i => ToItemDto(i))
+            .OrderBy(i => i.DespesaCatalogo != null ? i.DespesaCatalogo.Categoria : string.Empty)
+            .ThenBy(i => i.DespesaCatalogo != null ? i.DespesaCatalogo.Descricao : string.Empty)
+            .Select(i => new ModeloDespesaItemDto(
+                i.DespesaCatalogoId,
+                i.DespesaCatalogo != null ? i.DespesaCatalogo.Descricao : string.Empty,
+                i.DespesaCatalogo != null ? i.DespesaCatalogo.Valor : 0m,
+                i.DespesaCatalogo != null ? i.DespesaCatalogo.Categoria : string.Empty,
+                EF.Property<DateTime?>(i, nameof(ModeloDespesaItem.AdicionadoEm)) ?? DateTime.UnixEpoch
+            ))
             .ToPagedResultAsync(pagination);
     }
 

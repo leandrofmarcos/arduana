@@ -71,6 +71,7 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 // Serviços e validators das features
 builder.Services.AddFeatureServices();
 builder.Services.AddFeatureValidators();
+builder.Services.AddMemoryCache();
 
 // CORS
 builder.Services.AddCors(options =>

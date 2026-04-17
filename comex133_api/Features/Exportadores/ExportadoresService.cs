@@ -12,10 +12,22 @@ public class ExportadoresService
     public ExportadoresService(AppDbContext db) => _db = db;
 
     public async Task<PagedResult<ExportadorDto>> GetAllAsync(PaginationQuery pagination) =>
-        await _db.Exportadores.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
+        await _db.Exportadores
+            .OrderBy(x => x.Nome)
+            .Select(x => new ExportadorDto(
+                x.Id,
+                x.Nome ?? string.Empty,
+                x.Documento,
+                x.Pais ?? string.Empty,
+                x.Cidade,
+                x.Ativo,
+                x.CriadoEm,
+                x.AtualizadoEm
+            ))
+            .ToPagedResultAsync(pagination);
 
     public async Task<ExportadorDto> GetByIdAsync(int id) =>
-        ToDto(await FindOrThrowAsync(id));
+        ToDtoSafe(await FindOrThrowAsync(id));
 
     public async Task<ExportadorDto> CreateAsync(CreateExportadorRequest request)
     {
@@ -28,7 +40,7 @@ public class ExportadoresService
         };
         _db.Exportadores.Add(entity);
         await _db.SaveChangesAsync();
-        return ToDto(entity);
+        return ToDtoSafe(entity);
     }
 
     public async Task<ExportadorDto> UpdateAsync(int id, UpdateExportadorRequest request)
@@ -39,7 +51,7 @@ public class ExportadoresService
         entity.Pais      = request.Pais.Trim();
         entity.Cidade    = request.Cidade?.Trim();
         await _db.SaveChangesAsync();
-        return ToDto(entity);
+        return ToDtoSafe(entity);
     }
 
     public async Task SetAtivoAsync(int id, bool ativo)
@@ -59,8 +71,8 @@ public class ExportadoresService
     private async Task<Exportador> FindOrThrowAsync(int id) =>
         await _db.Exportadores.FindAsync(id) ?? throw new NotFoundException("Exportador", id);
 
-    private static ExportadorDto ToDto(Exportador x) =>
-        new(x.Id, x.Nome, x.Documento, x.Pais, x.Cidade, x.Ativo, x.CriadoEm, x.AtualizadoEm);
+    private static ExportadorDto ToDtoSafe(Exportador x) =>
+        new(x.Id, x.Nome ?? string.Empty, x.Documento, x.Pais ?? string.Empty, x.Cidade, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
 
 

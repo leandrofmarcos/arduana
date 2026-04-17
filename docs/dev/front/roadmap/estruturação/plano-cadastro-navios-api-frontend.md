@@ -1,554 +1,381 @@
-# Plano de Cadastro de Navios — API + Frontend
+# Plano Revisado — Navios em Cadastros + Trajeto Operacional Bidirecional
 
 > Projeto: import-costs / comex133_api  
-> Tema: Cadastro de Navios / Viagens e integração com Embarque Aduana  
-> Objetivo: viabilizar cadastro real de navios para que a tela de Embarques e o Controle de Navios funcionem com dados persistidos na API  
-> Status atual: frontend já possui estrutura visual e serviço cliente para `controle-navios`, mas o backend ainda não expõe endpoints reais para a feature
+> Objetivo: padronizar Navio como cadastro mestre, modelar Trajeto como entidade operacional de primeira classe com sincronizacao bidirecional com Embarques, e usar Logistica como visao operacional consolidada.
 
 ---
 
-## 1. Problema Atual
+## 1. Decisao Arquitetural
 
-Na tela de Embarque Aduana, o campo de seleção de navio depende da fonte de dados de `ControleNavio`.
+A partir desta revisao:
 
-Hoje, o frontend já tenta consumir os seguintes endpoints:
+- **Navio** e entidade de cadastro mestre (estatica), gerenciada em Cadastros.
+- **NavioTrajeto** e entidade operacional de primeira classe — representa uma perna da viagem (Porto A → Porto B com ETD e ETA).
+  - Pode ser atualizado pela tela de Logistica/Controle de Navios.
+  - Atualizacoes no trajeto refletem no Embarque vinculado (ex.: ETA atualizado).
+- **EmbarqueNavioVinculo** e a tabela de ligacao entre Embarque e o trecho especifico do navio onde aquela carga esta embarcada.
+  - Atualizacoes no Embarque (ex.: mudanca de porto destino) podem refletir no trajeto associado.
+- **Logistica/Controle de Navios** e visao operacional: lista navios que tem embarques ativos, seus trajetos e a posicao atual no porto.
 
-- `GET /api/controle-navios`
-- `POST /api/controle-navios`
-- `PUT /api/controle-navios/{id}`
-- `DELETE /api/controle-navios/{id}`
-- `GET /api/controle-navios/trajetos`
-- `POST /api/controle-navios/{id}/trajetos`
-- `DELETE /api/controle-navios/{id}/trajetos/{trajetoId}`
-- `PATCH /api/controle-navios/{id}/trajetos`
+Resumo funcional:
 
-Porém, no backend atual não existe implementação dessa feature. Como consequência:
-
-- a tela de Embarques não encontra navios cadastrados;
-- o select de navio em Embarque Aduana permanece vazio;
-- a tela de Controle de Navios não consegue operar com persistência real;
-- a integração entre logística e embarque fica incompleta.
-
----
-
-## 2. Estrutura Funcional Já Prevista no Frontend
-
-### 2.1 Entidade principal
-
-```ts
-export interface ControleNavio {
-  id: string;
-  numeroViagem: string;
-  nomeNavio: string;
-  observacao?: string;
-  ativo: boolean;
-}
-```
-
-### 2.2 Entidade de trajetos
-
-```ts
-export interface ControleNavioTrajeto {
-  id: string;
-  controleNavioId: string;
-  portoOrigemId: string;
-  portoDestinoId: string;
-  etd: string;
-  eta: string;
-  trajetoDescricao?: string;
-}
-```
-
-### 2.3 Uso no Embarque
-
-A entidade `EmbarqueAduana` já possui o vínculo:
-
-```ts
-controleNavioId: string;
-```
-
-Isso significa que o módulo de navios precisa ser tratado como cadastro mestre operacional, e não apenas como uma tela isolada.
+1. **Cadastros/Navios**: cria, edita, ativa/inativa navios (dados fixos do navio).
+2. **Embarque Aduana**: associa o embarque a um navio e a uma perna especifica do trajeto.
+3. **Logistica/Controle de Navios**:
+   - Gerencia trajetos de navios em operacao (pernas Porto A → Porto B, ETD/ETA, status, sequencia).
+   - Visualiza embarques ativos por navio.
+   - Permite ver "navio esta no Porto X" e listar quais embarques estao naquele porto.
+   - Atualizacoes de trajeto refletem nos embarques vinculados.
 
 ---
 
-## 3. Regras de Negócio Consolidadas
+## 2. Regras de Negocio
 
-As regras abaixo já aparecem na documentação funcional e/ou no comportamento esperado do frontend:
+### 2.1 Navio
 
-### RN-01 — Navio representa uma viagem operacional
+- Cadastro mestre imutavel durante operacao (nome, IMO, armador).
+- Ativo/Inativo: somente navios ativos podem ser vinculados a novos embarques.
+- Exclusao bloqueada quando houver vinculo de embarque ativo.
 
-Cada registro de `ControleNavio` representa uma viagem identificável por:
+### 2.2 NavioTrajeto (perna da viagem)
 
-- número da viagem;
-- nome do navio;
-- observação opcional;
-- status lógico de ativo.
+- Representa um trecho: Porto Origem → Porto Destino, com ETD, ETA e Status.
+- Um navio pode ter multiplos trechos em sequencia para a mesma viagem.
+- Status de perna: Previsto, Em Transito, Atracado, Concluido.
+- "Porto atual do navio" = porto destino da perna com status Atracado ou porto origem da perna Em Transito.
+- Atualizacao do ETA de uma perna dispara atualizacao do ETA esperado nos embarques vinculados a essa perna.
 
-### RN-02 — Um navio possui 1:N trajetos
+### 2.3 EmbarqueNavioVinculo
 
-Um navio pode possuir múltiplos trajetos.
-Cada trajeto representa um trecho da viagem, com:
+- Liga um Embarque Aduana a um Navio e, opcionalmente, a uma perna especifica (NavioTrajetoId).
+- Um embarque tem no maximo 1 vinculo ativo por vez.
+- Historico de trocas de navio e mantido (vinculo anterior fica inativo).
+- Campos de rota do embarque (ex.: ETA prevista de chegada) sao derivados/sincronizados da perna vinculada.
 
-- porto de origem;
-- porto de destino;
-- ETD;
-- ETA;
-- descrição opcional.
+### 2.4 Sincronizacao bidirecional
 
-### RN-03 — ETA deve ser maior ou igual ao ETD
+- **Trajeto → Embarque**: quando ETA/status de uma perna e atualizado, todos os embarques vinculados a essa perna devem ter seu ETA esperado atualizado.
+- **Embarque → Trajeto**: quando porto de destino do embarque e alterado, o vinculo e atualizado para a perna correspondente.
+- Regra de conflito: a ultima atualizacao vence (sem merge automatico); o usuario e responsavel por validar discrepancias.
 
-Todo trajeto deve respeitar consistência temporal:
+### 2.5 Visao operacional em Logistica
 
-- `eta >= etd`
-
-### RN-04 — Embarque referencia navio por FK
-
-`EmbarqueAduana.controleNavioId` deve apontar para um navio válido.
-
-### RN-05 — Exclusão de navio remove seus trajetos
-
-Ao excluir um `ControleNavio`, os `ControleNavioTrajeto` vinculados devem ser removidos em cascata.
-
-### RN-06 — Navegação de Embarque depende da existência de navios
-
-Sem cadastro de navio persistido, o frontend não consegue listar ou associar embarques a viagens.
-
-### RN-07 — Apenas navios ativos devem ser oferecidos como seleção no Embarque
-
-Para evitar vínculo com viagens obsoletas, a tela de Embarque deve trabalhar preferencialmente com navios ativos.
+- Somente aparecem navios com pelo menos 1 embarque ativo vinculado.
+- Embarque ativo: status com ordem menor que Entregue/Finalizado.
+- Quando todos os embarques ativos de um navio sao encerrados, o navio sai da visao operacional.
 
 ---
 
-## 4. Escopo do Backend (API)
+## 3. Modelo de Dados
 
-## 4.1 Objetivo do backend
+### 3.1 Navio (cadastro mestre)
 
-A API deve fornecer persistência real para:
-
-- cadastro de navios/viagens;
-- cadastro de trajetos do navio;
-- consulta de navios para uso na logística e embarque;
-- manutenção completa do relacionamento com `EmbarqueAduana`.
-
-## 4.2 Entidades sugeridas
-
-### ControleNavio
-
-Campos mínimos:
-
-- `Id: int`
-- `NumeroViagem: string`
-- `NomeNavio: string`
-- `Observacao: string?`
-- `Ativo: bool`
-- `CriadoEm: DateTime`
-- `AtualizadoEm: DateTime`
-
-### ControleNavioTrajeto
-
-Campos mínimos:
-
-- `Id: int`
-- `ControleNavioId: int`
-- `PortoOrigemId: int` ou `string`, conforme modelagem já adotada na API
-- `PortoDestinoId: int` ou `string`, conforme modelagem já adotada na API
-- `Etd: DateOnly` ou `DateTime`
-- `Eta: DateOnly` ou `DateTime`
-- `TrajetoDescricao: string?`
-- `CriadoEm: DateTime`
-- `AtualizadoEm: DateTime`
-
-## 4.3 Relacionamentos esperados
-
-- `ControleNavio 1:N ControleNavioTrajeto`
-- `ControleNavio 1:N EmbarqueAduana`
-- `ControleNavioTrajeto N:1 PortoOrigem`
-- `ControleNavioTrajeto N:1 PortoDestino`
-
-## 4.4 Endpoints recomendados
-
-### Navios
-
-- `GET /api/controle-navios`
-- `GET /api/controle-navios/{id}`
-- `POST /api/controle-navios`
-- `PUT /api/controle-navios/{id}`
-- `PATCH /api/controle-navios/{id}/ativo`
-- `DELETE /api/controle-navios/{id}`
-
-### Trajetos
-
-- `GET /api/controle-navios/trajetos`
-- `GET /api/controle-navios/{id}/trajetos`
-- `POST /api/controle-navios/{id}/trajetos`
-- `DELETE /api/controle-navios/{id}/trajetos/{trajetoId}`
-- `PATCH /api/controle-navios/{id}/trajetos`
-
-## 4.5 Contratos de request/response sugeridos
-
-### DTO de resposta de navio
-
-```csharp
-public record ControleNavioDto(
-    int Id,
-    string NumeroViagem,
-    string NomeNavio,
-    string? Observacao,
-    bool Ativo,
-    DateTime CriadoEm,
-    DateTime AtualizadoEm);
+```
+Navio
+  Id
+  NomeNavio          (obrigatorio)
+  CodigoImo          (opcional, unico quando informado)
+  Armador            (opcional)
+  Observacao         (opcional)
+  Ativo              (bool)
+  CriadoEm
+  AtualizadoEm
 ```
 
-### DTO de criação de navio
+Nota: NumeroViagem nao fica no cadastro mestre do navio — varia por operacao e fica no vinculo.
 
-```csharp
-public record CreateControleNavioRequest(
-    string NumeroViagem,
-    string NomeNavio,
-    string? Observacao,
-    bool Ativo);
+### 3.2 NavioTrajeto (perna da viagem)
+
+```
+NavioTrajeto
+  Id
+  NavioId            (FK → Navio)
+  NumeroViagem       (ex.: "V-2026-041", agrupa pernas da mesma viagem)
+  Sequencia          (int, ordem das pernas: 1, 2, 3...)
+  PortoOrigemId      (FK → Porto)
+  PortoDestinoId     (FK → Porto)
+  Etd                (date, estimativa de saida do porto origem)
+  Eta                (date, estimativa de chegada no porto destino)
+  StatusPerna        (enum: Previsto | EmTransito | Atracado | Concluido)
+  Observacao         (opcional)
+  CriadoEm
+  AtualizadoEm
 ```
 
-### DTO de atualização de navio
+Regra de posicao atual:
+- Porto atual do navio = PortoDestino da perna com StatusPerna = Atracado (mais recente)
+- Se nenhuma Atracado: PortoOrigem da perna Em Transito
 
-```csharp
-public record UpdateControleNavioRequest(
-    string NumeroViagem,
-    string NomeNavio,
-    string? Observacao,
-    bool Ativo);
+### 3.3 EmbarqueNavioVinculo (ligacao embarque x perna)
+
+```
+EmbarqueNavioVinculo
+  Id
+  EmbarqueAduanaId   (FK → EmbarqueAduana)
+  NavioId            (FK → Navio)
+  NavioTrajetoId     (FK → NavioTrajeto, opcional — perna especifica onde a carga esta)
+  NumeroViagem       (desnormalizado para facilitar queries sem join)
+  Ativo              (bool)
+  VinculadoEm
+  DesvinculadoEm     (nullable)
+  Observacao         (opcional)
 ```
 
-### DTO de resposta de trajeto
+Regras:
+- 1 EmbarqueNavioVinculo ativo por EmbarqueAduanaId.
+- NavioTrajetoId pode ser nulo inicialmente e informado depois conforme a operacao.
+- Historico e mantido (registros inativos).
 
-```csharp
-public record ControleNavioTrajetoDto(
-    int Id,
-    int ControleNavioId,
-    string PortoOrigemId,
-    string PortoDestinoId,
-    string Etd,
-    string Eta,
-    string? TrajetoDescricao);
+### 3.4 Compatibilidade legada
+
+- EmbarqueAduana.controleNavioId permanece durante transicao.
+- Sincronizacao: ao criar/atualizar EmbarqueNavioVinculo, atualizar tambem controleNavioId do embarque.
+- No futuro, controleNavioId pode ser depreciado em favor do vinculo dedicado.
+
+---
+
+## 4. Fluxos Operacionais
+
+### Fluxo 1 — Cadastrar navio e preparar viagem
+
+1. Criar Navio em Cadastros.
+2. Criar NavioTrajeto pernas da viagem (via tela de Logistica ou API).
+3. Embarque associa o navio e opcionalmente a perna especifica.
+
+### Fluxo 2 — Acompanhar embarque pelo navio
+
+1. Abrir Logistica/Controle de Navios.
+2. Ver navio com embarques ativos listados.
+3. Ver em qual porto o navio esta atualmente.
+4. Atualizar ETA de uma perna → embarques vinculados atualizam automaticamente.
+
+### Fluxo 3 — Ver por porto qual embarque esta la
+
+1. Abrir Logistica, selecionar um navio.
+2. Ver trajeto com pernas e status.
+3. Na perna com status Atracado ou Em Transito, ver lista de embarques daquela perna.
+4. Isso responde: "navio esta no Porto X, os embarques A, B e C estao nele".
+
+### Fluxo 4 — Embarque atualiza rota
+
+1. Operador abre embarque, muda porto de destino.
+2. Sistema atualiza o NavioTrajetoId do vinculo para a nova perna correspondente (ou operador seleciona a perna).
+3. ETA do embarque e derivada da perna vinculada.
+
+---
+
+## 5. Escopo API — Ordem de Implementacao
+
+### API-01 — Cadastros/Navios
+
+```
+GET    /api/navios
+GET    /api/navios/{id}
+POST   /api/navios
+PUT    /api/navios/{id}
+PATCH  /api/navios/{id}/ativo
+DELETE /api/navios/{id}   (bloqueado se houver vinculo ativo)
 ```
 
-### DTO de criação/atualização de trajetos
+### API-02 — NavioTrajeto (pernas da viagem)
 
-```csharp
-public record UpsertControleNavioTrajetoRequest(
-    string PortoOrigemId,
-    string PortoDestinoId,
-    string Etd,
-    string Eta,
-    string? TrajetoDescricao);
+```
+GET    /api/navios/{navioId}/trajetos
+POST   /api/navios/{navioId}/trajetos
+PUT    /api/navios/{navioId}/trajetos/{id}
+DELETE /api/navios/{navioId}/trajetos/{id}
+PATCH  /api/navios/{navioId}/trajetos/{id}/status
 ```
 
-### DTO para ativação
+Ao atualizar ETA via PUT ou PATCH/status:
+- disparar sincronizacao de ETA nos EmbarqueNavioVinculo vinculados a essa perna.
 
-```csharp
-public record AtivoRequest(bool Ativo);
+### API-03 — EmbarqueNavioVinculo
+
+```
+GET    /api/embarques/{embarqueId}/navio-vinculo
+POST   /api/embarques/{embarqueId}/navio-vinculo
+PATCH  /api/embarques/{embarqueId}/navio-vinculo
+DELETE /api/embarques/{embarqueId}/navio-vinculo
 ```
 
-## 4.6 Regras de validação no backend
+Ao criar/atualizar vinculo:
+- sincronizar EmbarqueAduana.controleNavioId durante transicao.
 
-A API deve validar no mínimo:
+### API-04 — Logistica operacional (visao consolidada)
 
-### Navio
+```
+GET /api/logistica/controle-navios
+GET /api/logistica/controle-navios/{navioId}
+```
 
-- `NumeroViagem` obrigatório
-- `NumeroViagem` com limite de tamanho definido
-- `NomeNavio` obrigatório
-- unicidade recomendada para `NumeroViagem`
-- normalização de espaços em branco
+Retorna:
+- navio com pernas de trajeto ativas.
+- por perna: porto atual, embarques vinculados.
+- filtro obrigatorio: somente navios com embarque ativo.
 
-### Trajeto
+Query util: "qual porto esta o navio e quais embarques estao la":
+- perna com StatusPerna = Atracado ou EmTransito, com embarques vinculados listados.
 
-- `PortoOrigemId` obrigatório
-- `PortoDestinoId` obrigatório
-- `Etd` obrigatório
-- `Eta` obrigatório
-- `Eta >= Etd`
-- opcionalmente bloquear origem igual a destino
+---
 
-## 4.7 Comportamento esperado do serviço backend
+## 6. Escopo Frontend — Ordem de Implementacao
 
-### Listagem de navios
+### FE-01 — Cadastro de Navios em Cadastros
 
-A API deve retornar paginação padrão do projeto:
+- Listagem, criacao, edicao, ativacao/inativacao.
+- Padrao dos outros cadastros do sistema.
+
+### FE-02 — Embarque Aduana
+
+- Select de navio (GET /api/navios — ativos).
+- Ao selecionar navio, carregar pernas disponíveis (GET /api/navios/{id}/trajetos).
+- Operador pode vincular embarque a uma perna especifica.
+- Ao salvar: criar/atualizar EmbarqueNavioVinculo.
+
+### FE-03 — Logistica/Controle de Navios
+
+- Consumir GET /api/logistica/controle-navios.
+- Mostrar somente navios com embarques ativos.
+- Expandir para ver pernas do trajeto e embarques por perna.
+- Permitir atualizar ETA/status de uma perna diretamente na tela.
+- Atualizacao de perna exibe quais embarques serao afetados antes de confirmar.
+- Coluna/indicador de "porto atual do navio".
+
+### FE-04 — Transicao de compatibilidade
+
+- Manter leitura do campo legado controleNavioId enquanto nao for migrado.
+- Migrar gradualmente para EmbarqueNavioVinculo como fonte de verdade.
+
+---
+
+## 7. Contratos de Integracao
+
+### 7.1 Navio
 
 ```json
 {
-  "success": true,
-  "data": {
-    "items": [],
-    "totalCount": 0,
-    "page": 1,
-    "pageSize": 100,
-    "totalPages": 0,
-    "hasNextPage": false,
-    "hasPreviousPage": false
-  }
-}
-```
-
-### Listagem de trajetos
-
-Pode seguir um dos dois caminhos:
-
-1. `GET /api/controle-navios/trajetos` com paginação global.
-2. `GET /api/controle-navios/{id}/trajetos` por navio.
-
-Como o frontend atual já espera `GET /controle-navios/trajetos`, o ideal é atender esse contrato ou ajustar frontend e API em conjunto.
-
-## 4.8 Decisão importante para a API
-
-A recomendação é manter compatibilidade com o frontend já preparado:
-
-- `GET /controle-navios`
-- `GET /controle-navios/trajetos`
-- `PATCH /controle-navios/{id}/trajetos` para replace da lista completa
-
-Isso reduz retrabalho e acelera a ativação da tela.
-
----
-
-## 5. Escopo do Frontend
-
-## 5.1 Objetivo do frontend
-
-Garantir que o cadastro de navios seja utilizável como fonte de dados para:
-
-- Controle de Navios;
-- Embarque Aduana;
-- Acompanhamento de Embarques;
-- futuras visões de logística.
-
-## 5.2 Tela de Controle de Navios
-
-A tela já existe e deve operar com API real.
-
-Campos do formulário:
-
-- Número da Viagem
-- Nome do Navio
-- Observação
-- Ativo
-- seção inline de trajetos
-
-Campos do trajeto:
-
-- Porto Origem
-- Porto Destino
-- ETD
-- ETA
-- Descrição
-
-## 5.3 Comportamento esperado no frontend
-
-### Cadastro de navio
-
-- criar navio;
-- incluir múltiplos trajetos inline;
-- salvar navio primeiro;
-- sincronizar trajetos em seguida.
-
-### Edição de navio
-
-- carregar navio e seus trajetos;
-- permitir substituição da lista de trajetos;
-- refletir alterações imediatamente na listagem.
-
-### Exclusão
-
-- confirmar ação com usuário;
-- excluir navio;
-- atualizar lista sem reload completo da aplicação.
-
-## 5.4 Integração com Embarque Aduana
-
-A tela de Embarque Aduana deve:
-
-- carregar lista de navios via `ControleNavioService.getAll()`;
-- popular o select de navios;
-- exibir o nome do navio nas telas de detalhe e acompanhamento;
-- manter vínculo por `controleNavioId`.
-
-## 5.5 Melhorias necessárias no frontend
-
-Mesmo após a API existir, recomenda-se ajustar:
-
-- tratamento explícito de estado vazio no select de navio em Embarque;
-- mensagem orientando cadastro quando não houver navios disponíveis;
-- filtro preferencial por navios ativos;
-- refresh controlado após criação/edição de navio.
-
----
-
-## 6. Contrato de Integração API ↔ Frontend
-
-## 6.1 Contrato mínimo obrigatório
-
-O frontend já assume os campos abaixo.
-A API deve devolver exatamente estes dados ou exigir ajuste sincronizado:
-
-### Navio
-
-```json
-{
-  "id": 1,
-  "numeroViagem": "2026-001",
+  "id": 12,
   "nomeNavio": "MSC Aurora",
-  "observacao": "Viagem Ásia-Brasil",
+  "codigoImo": "9876543",
+  "armador": "MSC",
+  "observacao": "",
   "ativo": true
 }
 ```
 
-### Trajeto
+### 7.2 NavioTrajeto
 
 ```json
 {
-  "id": 10,
-  "controleNavioId": 1,
-  "portoOrigemId": "12",
-  "portoDestinoId": "7",
-  "etd": "2026-04-01",
-  "eta": "2026-04-25",
-  "trajetoDescricao": "Trecho principal"
+  "id": 55,
+  "navioId": 12,
+  "numeroViagem": "V-2026-041",
+  "sequencia": 2,
+  "portoOrigemId": 3,
+  "portoOrigemNome": "Shanghai",
+  "portoDestinoId": 8,
+  "portoDestinoNome": "Santos",
+  "etd": "2026-04-15",
+  "eta": "2026-05-10",
+  "statusPerna": "EmTransito"
 }
 ```
 
-## 6.2 Ordem recomendada de integração
+### 7.3 EmbarqueNavioVinculo
 
-1. Backend publica `GET /controle-navios`.
-2. Backend publica `GET /controle-navios/trajetos`.
-3. Backend publica `POST /controle-navios`.
-4. Backend publica `PATCH /controle-navios/{id}/trajetos`.
-5. Frontend valida cadastro completo.
-6. Frontend valida consumo do select em Embarque Aduana.
-7. Backend publica demais endpoints de manutenção (`PUT`, `DELETE`, `PATCH ativo`, etc.).
+```json
+{
+  "id": 101,
+  "embarqueAduanaId": 9001,
+  "navioId": 12,
+  "navioTrajetoId": 55,
+  "numeroViagem": "V-2026-041",
+  "ativo": true,
+  "vinculadoEm": "2026-04-01T10:20:00Z"
+}
+```
 
-## 6.3 Critério objetivo de integração bem-sucedida
+### 7.4 Logistica consolidada — visao por navio
 
-A integração será considerada completa quando:
-
-- for possível cadastrar navio e trajetos pela tela de Controle de Navios;
-- o navio recém-criado aparecer no select de Embarque Aduana;
-- for possível salvar um embarque com `controleNavioId` válido;
-- o nome do navio aparecer nas telas de embarque e acompanhamento;
-- o build do frontend ocorrer sem fallback local para navios.
-
----
-
-## 7. Tarefas Recomendadas para Backend
-
-### Etapa BE-01 — Modelagem
-
-- criar entidade `ControleNavio`;
-- criar entidade `ControleNavioTrajeto`;
-- mapear relacionamento com `EmbarqueAduana`.
-
-### Etapa BE-02 — Persistência
-
-- criar migrations;
-- validar índices e FK;
-- definir cascade delete para trajetos.
-
-### Etapa BE-03 — DTOs e Validators
-
-- criar DTOs;
-- criar validators de criação/edição;
-- padronizar envelope `ApiResponse`.
-
-### Etapa BE-04 — Controller e Service
-
-- expor endpoints listados neste documento;
-- manter paginação padrão do projeto;
-- garantir mensagens de erro consistentes.
-
-### Etapa BE-05 — Testes
-
-- teste de criação de navio;
-- teste de replace de trajetos;
-- teste de exclusão em cascata;
-- teste de vínculo com embarque.
+```json
+{
+  "items": [
+    {
+      "navioId": 12,
+      "nomeNavio": "MSC Aurora",
+      "numeroViagem": "V-2026-041",
+      "portoAtualNome": "Shanghai",
+      "embarquesAtivos": 3,
+      "trajetos": [
+        {
+          "id": 55,
+          "sequencia": 2,
+          "portoOrigemNome": "Shanghai",
+          "portoDestinoNome": "Santos",
+          "etd": "2026-04-15",
+          "eta": "2026-05-10",
+          "statusPerna": "EmTransito",
+          "embarques": [
+            {
+              "embarqueId": 9001,
+              "codigoInterno": "EMB-2026-001",
+              "status": "EmTransito",
+              "importadorNome": "Empresa X"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
 
 ---
 
-## 8. Tarefas Recomendadas para Frontend
+## 8. Criticos de Negocio
 
-### Etapa FE-01 — Compatibilização do service
-
-- validar se o contrato final da API bate com `ControleNavioService` atual;
-- ajustar mapeamentos, se necessário;
-- remover qualquer workaround temporário se existir.
-
-### Etapa FE-02 — UX de Cadastro
-
-- garantir formulário consistente para navio + trajetos;
-- mensagens de erro amigáveis;
-- validação de `ETA >= ETD` no cliente também.
-
-### Etapa FE-03 — Integração com Embarque
-
-- exibir placeholder adequado quando não houver navios;
-- recarregar navios quando necessário;
-- impedir referência inválida.
-
-### Etapa FE-04 — Acompanhamento
-
-- confirmar lookup do nome do navio nas páginas de embarque e acompanhamento;
-- validar fluxo completo com dados reais da API.
+- Navio e cadastro mestre, gerenciado em Cadastros, nao em Logistica.
+- Trajeto (NavioTrajeto) e entidade operacional de primeira classe — nao derivada do embarque.
+- Vinculo embarque x perna do trajeto permite localizar embarques por porto.
+- Atualizacao de ETA/status do trajeto sincroniza embarques vinculados automaticamente.
+- Visao de Logistica: somente navios com embarques ativos. Sem embarque ativo, navio nao aparece.
+- "Porto atual do navio" e derivado da perna com status Atracado ou Em Transito.
+- Exclusao de navio bloqueada se houver vinculo ativo.
 
 ---
 
-## 9. Critérios de Aceite
+## 9. Plano de Entrega — Sequencia Obrigatoria
 
-## Backend
-
-- existe CRUD de `ControleNavio`;
-- existe manutenção de `ControleNavioTrajeto`;
-- API responde no padrão do projeto;
-- validações essenciais estão implementadas;
-- embarque consegue referenciar navio válido.
-
-## Frontend
-
-- tela de Controle de Navios salva e edita dados reais;
-- tela de Embarque exibe navios no select;
-- embarque salvo mantém vínculo com navio;
-- tela de acompanhamento resolve nome do navio corretamente.
-
-## Integração fim a fim
-
-- criar navio;
-- criar trajeto;
-- abrir tela de embarque;
-- selecionar navio;
-- salvar embarque;
-- visualizar embarque com navio associado;
-- visualizar navio no acompanhamento/logística.
+1. API-01: Cadastros/Navios
+2. API-02: NavioTrajeto (pernas)
+3. API-03: EmbarqueNavioVinculo
+4. API-04: Logistica operacional consolidada
+5. FE-01: Cadastro de Navios em Cadastros
+6. FE-02: Embarque com vinculo a navio e perna
+7. FE-03: Logistica operacional com trajetos e embarques por perna
 
 ---
 
-## 10. Riscos e Cuidados
+## 10. Criterios de Aceite
 
-- divergência entre tipo de ID de porto no frontend e no backend;
-- ausência de endpoint global de trajetos pode exigir ajuste no service atual;
-- exclusão de navio com embarques vinculados precisa de regra clara:
-  - bloquear exclusão quando houver embarques;
-  - ou permitir apenas se não houver vínculo ativo.
-
-Recomendação: o backend deve bloquear exclusão de navio se já houver `EmbarqueAduana` vinculado, para evitar inconsistência operacional.
+- Existe cadastro de navio em Cadastros com API funcionando.
+- Embarque associa navio e perna de trajeto via vinculo dedicado.
+- Tela de Logistica lista somente navios com embarques ativos.
+- Atualizacao de ETA numa perna reflete no ETA esperado dos embarques vinculados.
+- E possivel ver "navio esta no Porto X" e listar embarques daquela perna.
+- Ao encerrar todos os embarques ativos de um navio, navio sai da visao operacional.
+- Fluxo fim a fim validado: cadastrar navio → criar trajeto com pernas → vincular embarque a perna → visualizar em Logistica → atualizar ETA → ver reflexo no embarque.
 
 ---
 
-## 11. Recomendação Final
+## 11. Observacao de Execucao
 
-Para destravar o Embarque Aduana, o caminho mais seguro é:
+Este documento define a reorganizacao funcional e tecnica completa.
+Implementacao segue a sequencia de etapas acima.
+Nenhuma etapa deve ser pulada — cada uma e pre-requisito da proxima.
 
-1. Implementar primeiro a API de `ControleNavio` e `ControleNavioTrajeto`.
-2. Validar listagem na tela de Controle de Navios.
-3. Validar que a tela de Embarque passa a carregar navios.
-4. Só então avançar para melhorias adicionais de logística e automação de atracação.
+Proxima etapa de implementacao deve seguir exatamente a ordem:
 
-Sem esse cadastro mestre persistido na API, a integração de Embarque com Navio continuará incompleta.
+- primeiro API;
+- depois Frontend.

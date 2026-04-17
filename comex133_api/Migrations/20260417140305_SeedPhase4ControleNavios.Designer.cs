@@ -4,6 +4,7 @@ using Comex133Api.Core.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Comex133Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260417140305_SeedPhase4ControleNavios")]
+    partial class SeedPhase4ControleNavios
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -258,57 +261,6 @@ namespace Comex133Api.Migrations
                     b.ToTable("DespesasCatalogo");
                 });
 
-            modelBuilder.Entity("Comex133Api.Domain.Entities.EmbarqueNavioVinculo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("AtualizadoEm")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("DesvinculadoEm")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("EmbarqueAduanaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NavioId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("NavioTrajetoId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("NumeroViagem")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Observacao")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("VinculadoEm")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmbarqueAduanaId");
-
-                    b.HasIndex("NavioId");
-
-                    b.HasIndex("NavioTrajetoId");
-
-                    b.ToTable("EmbarqueNavioVinculos");
-                });
-
             modelBuilder.Entity("Comex133Api.Domain.Entities.Exportador", b =>
                 {
                     b.Property<int>("Id")
@@ -520,100 +472,6 @@ namespace Comex133Api.Migrations
                     b.HasIndex("DespesaCatalogoId");
 
                     b.ToTable("ModelosDespesaItens");
-                });
-
-            modelBuilder.Entity("Comex133Api.Domain.Entities.Navio", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Armador")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("AtualizadoEm")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CodigoImo")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("NomeNavio")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("Observacao")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Navios");
-                });
-
-            modelBuilder.Entity("Comex133Api.Domain.Entities.NavioTrajeto", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("AtualizadoEm")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("Eta")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("Etd")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("NavioId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("NumeroViagem")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Observacao")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<int>("PortoDestinoId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PortoOrigemId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Sequencia")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StatusPerna")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NavioId");
-
-                    b.HasIndex("PortoDestinoId");
-
-                    b.HasIndex("PortoOrigemId");
-
-                    b.ToTable("NaviosTrajetos");
                 });
 
             modelBuilder.Entity("Comex133Api.Domain.Entities.Ncm", b =>
@@ -1085,32 +943,6 @@ namespace Comex133Api.Migrations
                     b.Navigation("PortoOrigem");
                 });
 
-            modelBuilder.Entity("Comex133Api.Domain.Entities.EmbarqueNavioVinculo", b =>
-                {
-                    b.HasOne("Comex133Api.Domain.Entities.SolicitacaoOrcamento", "EmbarqueAduana")
-                        .WithMany()
-                        .HasForeignKey("EmbarqueAduanaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Comex133Api.Domain.Entities.Navio", "Navio")
-                        .WithMany("Vinculos")
-                        .HasForeignKey("NavioId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Comex133Api.Domain.Entities.NavioTrajeto", "NavioTrajeto")
-                        .WithMany("Vinculos")
-                        .HasForeignKey("NavioTrajetoId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("EmbarqueAduana");
-
-                    b.Navigation("Navio");
-
-                    b.Navigation("NavioTrajeto");
-                });
-
             modelBuilder.Entity("Comex133Api.Domain.Entities.ModeloDespesaItem", b =>
                 {
                     b.HasOne("Comex133Api.Domain.Entities.DespesaCatalogo", "DespesaCatalogo")
@@ -1128,33 +960,6 @@ namespace Comex133Api.Migrations
                     b.Navigation("DespesaCatalogo");
 
                     b.Navigation("ModeloDespesa");
-                });
-
-            modelBuilder.Entity("Comex133Api.Domain.Entities.NavioTrajeto", b =>
-                {
-                    b.HasOne("Comex133Api.Domain.Entities.Navio", "Navio")
-                        .WithMany("Trajetos")
-                        .HasForeignKey("NavioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Comex133Api.Domain.Entities.PortoDestino", "PortoDestino")
-                        .WithMany()
-                        .HasForeignKey("PortoDestinoId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Comex133Api.Domain.Entities.PortoOrigem", "PortoOrigem")
-                        .WithMany()
-                        .HasForeignKey("PortoOrigemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Navio");
-
-                    b.Navigation("PortoDestino");
-
-                    b.Navigation("PortoOrigem");
                 });
 
             modelBuilder.Entity("Comex133Api.Domain.Entities.RefreshToken", b =>
@@ -1263,18 +1068,6 @@ namespace Comex133Api.Migrations
             modelBuilder.Entity("Comex133Api.Domain.Entities.ModeloDespesa", b =>
                 {
                     b.Navigation("Itens");
-                });
-
-            modelBuilder.Entity("Comex133Api.Domain.Entities.Navio", b =>
-                {
-                    b.Navigation("Trajetos");
-
-                    b.Navigation("Vinculos");
-                });
-
-            modelBuilder.Entity("Comex133Api.Domain.Entities.NavioTrajeto", b =>
-                {
-                    b.Navigation("Vinculos");
                 });
 
             modelBuilder.Entity("Comex133Api.Domain.Entities.Role", b =>

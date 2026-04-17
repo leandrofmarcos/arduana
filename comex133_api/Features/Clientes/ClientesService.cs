@@ -12,7 +12,19 @@ public class ClientesService
     public ClientesService(AppDbContext db) => _db = db;
 
     public async Task<PagedResult<ClienteDto>> GetAllAsync(PaginationQuery pagination) =>
-        await _db.Clientes.OrderBy(x => x.RazaoSocial).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
+        await _db.Clientes
+            .OrderBy(x => x.RazaoSocial)
+            .Select(x => new ClienteDto(
+                x.Id,
+                x.RazaoSocial ?? string.Empty,
+                x.Cnpj,
+                x.Email,
+                x.Telefone,
+                x.Ativo,
+                EF.Property<DateTime?>(x, nameof(Cliente.CriadoEm)) ?? DateTime.UnixEpoch,
+                EF.Property<DateTime?>(x, nameof(Cliente.AtualizadoEm)) ?? DateTime.UnixEpoch
+            ))
+            .ToPagedResultAsync(pagination);
 
     public async Task<ClienteDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));

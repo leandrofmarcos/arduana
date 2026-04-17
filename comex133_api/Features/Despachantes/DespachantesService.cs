@@ -12,7 +12,19 @@ public class DespachantesService
     public DespachantesService(AppDbContext db) => _db = db;
 
     public async Task<PagedResult<DespachantDto>> GetAllAsync(PaginationQuery pagination) =>
-        await _db.Despachantes.OrderBy(x => x.Nome).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
+        await _db.Despachantes
+            .OrderBy(x => x.Nome)
+            .Select(x => new DespachantDto(
+                x.Id,
+                x.Nome ?? string.Empty,
+                x.Crn,
+                x.Email,
+                x.Telefone,
+                x.Ativo,
+                EF.Property<DateTime?>(x, nameof(Despachante.CriadoEm)) ?? DateTime.UnixEpoch,
+                EF.Property<DateTime?>(x, nameof(Despachante.AtualizadoEm)) ?? DateTime.UnixEpoch
+            ))
+            .ToPagedResultAsync(pagination);
 
     public async Task<DespachantDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));

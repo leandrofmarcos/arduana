@@ -20,19 +20,19 @@ public class SolicitacoesOrcamentoService
             .ThenByDescending(x => x.Id)
             .Select(x => new SolicitacaoOrcamentoDto(
                 x.Id,
-                x.CodigoInterno,
+                x.CodigoInterno ?? string.Empty,
                 x.ClienteId,
                 x.ImportadorId,
                 x.PortoOrigemId,
                 x.PortoDestinoId,
-                x.Responsavel,
-                x.TamContainer,
+                x.Responsavel ?? string.Empty,
+                x.TamContainer ?? string.Empty,
                 x.Peso,
                 x.Observacao,
-                x.Status,
-                x.Data,
-                x.CriadoEm,
-                x.AtualizadoEm,
+                x.Status ?? string.Empty,
+                EF.Property<DateTime?>(x, nameof(SolicitacaoOrcamento.Data)) ?? DateTime.UnixEpoch,
+                EF.Property<DateTime?>(x, nameof(SolicitacaoOrcamento.CriadoEm)) ?? DateTime.UnixEpoch,
+                EF.Property<DateTime?>(x, nameof(SolicitacaoOrcamento.AtualizadoEm)) ?? DateTime.UnixEpoch,
                 x.Despachantes.Count,
                 x.Documentos.Count));
 

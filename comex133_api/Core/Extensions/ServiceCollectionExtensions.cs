@@ -1,7 +1,9 @@
 using Comex133Api.Core.Database;
 using Comex133Api.Features.AgentesCarga;
 using Comex133Api.Features.Auth;
+using Comex133Api.Features.Navios;
 using Comex133Api.Features.Clientes;
+using Comex133Api.Features.ControleNavios;
 using Comex133Api.Features.Despachantes;
 using Comex133Api.Features.DespesasCatalogo;
 using Comex133Api.Features.Exportadores;
@@ -37,7 +39,7 @@ public static class ServiceCollectionExtensions
                     sqlOptions.EnableRetryOnFailure(
                         maxRetryCount: 3,
                         maxRetryDelay: TimeSpan.FromSeconds(5),
-                        errorNumbersToAdd: null);
+                        errorNumbersToAdd: new[] { 17892, 18456, 233 });
                 });
         });
 
@@ -98,6 +100,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DespesasCatalogoService>();
         services.AddScoped<ModelosDespesaService>();
         services.AddScoped<SolicitacoesOrcamentoService>();
+        services.AddScoped<ControleNaviosService>();
+
+        // Phase 5 — Navios
+        services.AddScoped<NaviosService>();
         return services;
     }
 
@@ -150,6 +156,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IValidator<UpdateSolicitacaoOrcamentoStatusRequest>, UpdateSolicitacaoOrcamentoStatusValidator>();
         services.AddScoped<IValidator<AddSolicitacaoDespachanteRequest>,       AddSolicitacaoDespachanteValidator>();
         services.AddScoped<IValidator<AddSolicitacaoDocumentoRequest>,          AddSolicitacaoDocumentoValidator>();
+        services.AddScoped<IValidator<CreateControleNavioRequest>,             CreateControleNavioValidator>();
+        services.AddScoped<IValidator<UpdateControleNavioRequest>,             UpdateControleNavioValidator>();
+        services.AddScoped<IValidator<UpsertControleNavioTrajetoRequest>,      UpsertControleNavioTrajetoValidator>();
+
+        // Phase 5 — Navios
+        services.AddScoped<IValidator<CreateNavioRequest>,                    CreateNavioValidator>();
+        services.AddScoped<IValidator<UpdateNavioRequest>,                    UpdateNavioValidator>();
+        services.AddScoped<IValidator<CreateNavioTrajetoRequest>,             CreateNavioTrajetoValidator>();
+        services.AddScoped<IValidator<UpdateNavioTrajetoRequest>,             UpdateNavioTrajetoValidator>();
+        services.AddScoped<IValidator<CreateEmbarqueNavioVinculoRequest>,     CreateEmbarqueNavioVinculoValidator>();
 
         return services;
     }

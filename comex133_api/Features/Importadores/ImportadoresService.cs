@@ -12,7 +12,19 @@ public class ImportadoresService
     public ImportadoresService(AppDbContext db) => _db = db;
 
     public async Task<PagedResult<ImportadorDto>> GetAllAsync(PaginationQuery pagination) =>
-        await _db.Importadores.OrderBy(x => x.RazaoSocial).Select(x => ToDto(x)).ToPagedResultAsync(pagination);
+        await _db.Importadores
+            .OrderBy(x => x.RazaoSocial)
+            .Select(x => new ImportadorDto(
+                x.Id,
+                x.RazaoSocial ?? string.Empty,
+                x.Cnpj,
+                x.Email,
+                x.Telefone,
+                x.Ativo,
+                EF.Property<DateTime?>(x, nameof(Importador.CriadoEm)) ?? DateTime.UnixEpoch,
+                EF.Property<DateTime?>(x, nameof(Importador.AtualizadoEm)) ?? DateTime.UnixEpoch
+            ))
+            .ToPagedResultAsync(pagination);
 
     public async Task<ImportadorDto> GetByIdAsync(int id) =>
         ToDto(await FindOrThrowAsync(id));

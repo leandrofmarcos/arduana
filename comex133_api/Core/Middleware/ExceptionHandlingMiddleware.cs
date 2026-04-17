@@ -1,5 +1,6 @@
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Core.Models;
+using Microsoft.Data.SqlClient;
 using System.Net;
 using System.Text.Json;
 
@@ -44,6 +45,9 @@ public class ExceptionHandlingMiddleware
                 StatusCode = (int)HttpStatusCode.BadRequest
             },
             BusinessException business => ApiResponse.Error(business.Message, (int)HttpStatusCode.BadRequest),
+            SqlException sqlException when IsTransientSqlLoginFailure(sqlException)
+                => ApiResponse.Error("Banco de dados temporariamente indisponível. Tente novamente em alguns instantes.",
+                    (int)HttpStatusCode.ServiceUnavailable),
             _ => ApiResponse.Error("Erro interno do servidor", (int)HttpStatusCode.InternalServerError)
         };
 
@@ -59,5 +63,16 @@ public class ExceptionHandlingMiddleware
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
         await context.Response.WriteAsync(json);
+    }
+
+    private static bool IsTransientSqlLoginFailure(SqlException sqlException)
+    {
+        foreach (SqlError error in sqlException.Errors)
+        {
+            if (error.Number is 17892 or 18456 or 233)
+                return true;
+        }
+
+        return false;
     }
 }
