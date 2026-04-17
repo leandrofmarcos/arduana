@@ -172,6 +172,32 @@ Ordem recomendada:
 
 ---
 
+### ATI-11B — Remoção completa de persistência local e seed no frontend (incremento Fase 3)
+- Remover uso de `localStorage` para dados do módulo V2.
+- Migrar serviços de cadastros da Fase 3 para consumo API-first:
+  - Portos de Origem
+  - Portos de Destino
+  - Clientes
+  - Importadores
+  - Exportadores
+  - Agentes de Carga
+  - Fabricantes
+  - Despachantes
+  - NCMs
+  - Lista Preço LCL
+  - Despesas Catálogo
+  - Modelos de Despesa
+- Desativar seed local automático no shell/layout.
+- Desativar seed demo e carga de dados fictícios no dashboard.
+- Manter helper legado de storage apenas como memória volátil (sem persistência local).
+
+**Critério de aceite:**
+- Nenhuma entidade da Fase 3 grava em `localStorage`.
+- Cadastros da Fase 3 são carregados por comunicação HTTP com a API.
+- Reiniciar navegador não reaproveita dados locais persistidos do V2.
+
+---
+
 ## Fase 4 — Migração do Fluxo Operacional (Backend Fase 4)
 
 **Objetivo:** conectar o fluxo fim a fim do processo operacional no frontend usando API real.
