@@ -1,4 +1,4 @@
-# Plano de Migração Frontend -> API Comex133 (Fases 1 a 4)
+# Plano de Migração Frontend -> API Comex133 (Fases 1 a 5)
 
 > **Projeto:** import-costs (Angular V2)  
 > **Objetivo:** migrar o frontend de localStorage para API real, com autenticação JWT, cadastros e fluxo operacional completos  
@@ -198,11 +198,98 @@ Ordem recomendada:
 
 ---
 
-## Fase 4 — Migração do Fluxo Operacional (Backend Fase 4)
+## Fase 4 — Administração Completa (Roles e Usuários)
+
+**Objetivo:** implementar o módulo administrativo completo via telas, com integração 100% API para Roles e Usuários, mantendo segurança por perfil Admin.
+
+### ATI-12 — Mapeamento de contrato e arquitetura do módulo administrativo
+- Consolidar contratos reais da API backend para administração:
+  - `api/roles` (CRUD completo)
+  - `api/usuarios` (CRUD + ativação + senha + atribuição de roles)
+- Definir modelos frontend tipados para requests e responses:
+  - `RoleDto`, `CreateRoleRequest`, `UpdateRoleRequest`
+  - `UsuarioDto`, `CreateUsuarioRequest`, `UpdateUsuarioRequest`, `AtivoRequest`, `AtribuirRolesRequest`, `AlterarSenhaAdminRequest`
+- Definir pasta e padrão por feature:
+  - `v2/features/administracao/roles/{models,data,pages}`
+  - `v2/features/administracao/usuarios/{models,data,pages}`
+
+**Critério de aceite:** contratos de frontend alinhados aos DTOs reais do backend e sem campos ambíguos.
+
+---
+
+### ATI-13 — Tela completa de Roles (CRUD)
+- Implementar listagem paginada de roles:
+  - `GET /api/roles?page={page}&pageSize={pageSize}`
+- Implementar detalhe:
+  - `GET /api/roles/{id}`
+- Implementar criação:
+  - `POST /api/roles`
+- Implementar edição:
+  - `PUT /api/roles/{id}`
+- Implementar exclusão:
+  - `DELETE /api/roles/{id}`
+- Regras de UX:
+  - confirmação antes de excluir
+  - feedback visual para sucesso/erro
+  - validação de formulário para `nome` obrigatório
+
+**Critério de aceite:** CRUD de roles funcional em tela, com paginação real e validações de erro da API.
+
+---
+
+### ATI-14 — Tela completa de Usuários (CRUD + operações administrativas)
+- Implementar listagem paginada de usuários:
+  - `GET /api/usuarios?page={page}&pageSize={pageSize}`
+- Implementar detalhe:
+  - `GET /api/usuarios/{id}`
+- Implementar criação de usuário:
+  - `POST /api/usuarios`
+- Implementar edição de dados básicos:
+  - `PUT /api/usuarios/{id}`
+- Implementar ativar/desativar:
+  - `PATCH /api/usuarios/{id}/ativo`
+- Implementar atribuição de roles:
+  - `PUT /api/usuarios/{id}/roles`
+- Implementar redefinição de senha por Admin:
+  - `PATCH /api/usuarios/{id}/senha`
+- Implementar exclusão:
+  - `DELETE /api/usuarios/{id}`
+- Suporte de visualização de roles no grid e no detalhe.
+
+**Critério de aceite:** administração de usuários completa via interface, incluindo ciclo de vida e vínculo com roles.
+
+---
+
+### ATI-15 — Navegação administrativa, segurança e autorização de tela
+- Criar rotas dedicadas para administração:
+  - `/admin/roles`
+  - `/admin/usuarios`
+- Aplicar `AuthGuard` + `RoleGuard` (Admin) nas rotas administrativas.
+- Garantir ocultação de menus administrativos para usuários não Admin.
+- Exibir mensagem de acesso negado (403) quando aplicável.
+
+**Critério de aceite:** somente Admin acessa e visualiza o módulo administrativo completo.
+
+---
+
+### ATI-16 — Qualidade, testes funcionais e prontidão de entrega do módulo administrativo
+- Testar cenários positivos e negativos de Roles e Usuários:
+  - validação de campos obrigatórios
+  - conflito de dados
+  - acesso sem permissão
+- Validar paginação, filtros e atualização de estado na tela sem refresh manual.
+- Padronizar mapeamento de erros para mensagens amigáveis (400/401/403/404/422/500).
+- Remover qualquer dependência residual de storage local para features administrativas novas.
+
+**Critério de aceite:** módulo administrativo pronto para homologação com cobertura funcional mínima documentada.
+
+---
+
+## Fase 5 — Migração do Fluxo Operacional (Backend Fase 4)
 
 **Objetivo:** conectar o fluxo fim a fim do processo operacional no frontend usando API real.
 
-### ATI-12 — SolicitacaoOrcamento (incremento inicial)
+### ATI-17 — SolicitacaoOrcamento (incremento inicial)
 - Integrar endpoints já entregues:
   - `GET /api/solicitacoes-orcamento`
   - `POST /api/solicitacoes-orcamento`
@@ -216,7 +303,7 @@ Ordem recomendada:
 
 ---
 
-### ATI-13 — CustoDespachante (próximo incremento)
+### ATI-18 — CustoDespachante (próximo incremento)
 - Migrar wizard de 4 etapas para API.
 - Persistir itens LI, despesas e status de forma transacional.
 
@@ -224,7 +311,7 @@ Ordem recomendada:
 
 ---
 
-### ATI-14 — OrcamentoVenda
+### ATI-19 — OrcamentoVenda
 - Integrar geração e edição de orçamento vinculada à solicitação/custo.
 - Validar totais, composição de despesas e status.
 
@@ -232,7 +319,7 @@ Ordem recomendada:
 
 ---
 
-### ATI-15 — EmbarqueAduana e ControleNavio
+### ATI-20 — EmbarqueAduana e ControleNavio
 - Integrar timeline de status de embarque.
 - Integrar vínculo com controle de navio e dados logísticos.
 
@@ -240,7 +327,7 @@ Ordem recomendada:
 
 ---
 
-### ATI-16 — Documentos
+### ATI-21 — Documentos
 - Integrar gestão de tipo de documento e vínculo por entidade.
 - Padronizar upload, listagem e remoção com segurança.
 
@@ -261,6 +348,11 @@ Ordem recomendada:
 - Ativar/desativar refletindo em listagem.
 
 ### Testes obrigatórios Fase 4
+- Roles: criar, editar, excluir e listar com paginação.
+- Usuários: criar, editar, ativar/desativar, atribuir roles, redefinir senha e excluir.
+- Bloqueio de acesso para usuário não Admin em rotas administrativas.
+
+### Testes obrigatórios Fase 5
 - Fluxo mínimo: Solicitação -> vínculo de despachante -> vínculo de documento.
 - Persistência confirmada após recarregar página.
 - Tratamento de erro 401/403/404 em tela operacional.
@@ -282,6 +374,7 @@ Ordem recomendada:
 1. Fase 1 — Login/JWT completo.
 2. Fase 2 — Infra padrão de API e paginação.
 3. Fase 3 — Cadastros base por ordem de prioridade.
-4. Fase 4 — Fluxo operacional incremental (Solicitação -> Custo -> Orçamento -> Embarque -> Documentos).
+4. Fase 4 — Administração completa (Roles e Usuários com CRUD e autorização por perfil Admin).
+5. Fase 5 — Fluxo operacional incremental (Solicitação -> Custo -> Orçamento -> Embarque -> Documentos).
 
 Essa ordem reduz risco, permite validação contínua no app e evita retrabalho estrutural ao longo da migração.
