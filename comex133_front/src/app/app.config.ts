@@ -1,4 +1,4 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import { ApplicationConfig, provideZoneChangeDetection, isDevMode } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideClientHydration } from '@angular/platform-browser';
@@ -14,6 +14,7 @@ import { HttpClienteRepository } from './data/http/cliente.repository.http';
 import { HttpTemplatePacklistRepository } from './data/http/template-packlist.repository.http';
 import { LocalStorageDespachanteRepository } from './data/localstorage/despachante.repository.local';
 import { LocalStorageFuncionarioRepository } from './data/localstorage/funcionario.repository.local';
+import { provideServiceWorker } from '@angular/service-worker';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -30,6 +31,10 @@ export const appConfig: ApplicationConfig = {
     { provide: CLIENTE_REPOSITORY, useClass: HttpClienteRepository },
     { provide: TEMPLATE_PACKLIST_REPOSITORY, useClass: HttpTemplatePacklistRepository },
     { provide: DESPACHANTE_REPOSITORY, useClass: LocalStorageDespachanteRepository },
-    { provide: FUNCIONARIO_REPOSITORY, useClass: LocalStorageFuncionarioRepository }
+    { provide: FUNCIONARIO_REPOSITORY, useClass: LocalStorageFuncionarioRepository },
+    provideServiceWorker('ngsw-worker.js', {
+      enabled: !isDevMode(),
+      registrationStrategy: 'registerWhenStable:30000'
+    })
   ]
 };
