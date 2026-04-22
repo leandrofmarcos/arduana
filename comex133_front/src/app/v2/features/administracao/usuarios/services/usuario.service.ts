@@ -17,7 +17,7 @@ interface CreateUsuarioRequest {
   email: string;
   nomeCompleto: string;
   senha: string;
-  roleIds?: number[];
+  roleId: number;
 }
 
 interface UpdateUsuarioRequest {
@@ -61,7 +61,7 @@ export class UsuarioService {
       email: data.email.trim().toLowerCase(),
       nomeCompleto: data.nomeCompleto.trim(),
       senha: data.senha,
-      roleIds: (data.roleIds ?? []).map(r => Number(r))
+      roleId: Number(data.roleId)
     };
 
     this.apiClient.post<UsuarioApiDto>(this.endpoint, payload).subscribe({

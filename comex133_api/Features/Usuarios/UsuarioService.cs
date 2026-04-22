@@ -51,22 +51,16 @@ public class UsuarioService
         _db.Usuarios.Add(usuario);
         await _db.SaveChangesAsync();
 
-        if (request.RoleIds?.Any() == true)
-        {
-            foreach (var roleId in request.RoleIds.Distinct())
-            {
-                if (!await _db.Roles.AnyAsync(r => r.Id == roleId))
-                    throw new NotFoundException($"Role {roleId} não encontrada.");
+        if (!await _db.Roles.AnyAsync(r => r.Id == request.RoleId))
+            throw new NotFoundException($"Role {request.RoleId} não encontrada.");
 
-                _db.UsuarioRoles.Add(new UsuarioRole
-                {
-                    UsuarioId   = usuario.Id,
-                    RoleId      = roleId,
-                    AtribuidoEm = DateTime.UtcNow
-                });
-            }
-            await _db.SaveChangesAsync();
-        }
+        _db.UsuarioRoles.Add(new UsuarioRole
+        {
+            UsuarioId   = usuario.Id,
+            RoleId      = request.RoleId,
+            AtribuidoEm = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
 
         return await GetByIdAsync(usuario.Id);
     }

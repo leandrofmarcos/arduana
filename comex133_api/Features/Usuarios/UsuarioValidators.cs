@@ -22,6 +22,9 @@ public class CreateUsuarioRequestValidator : AbstractValidator<CreateUsuarioRequ
             .Matches(@"[a-z]").WithMessage("Senha deve conter ao menos uma letra minúscula.")
             .Matches(@"[0-9]").WithMessage("Senha deve conter ao menos um número.")
             .Matches(@"[^a-zA-Z0-9]").WithMessage("Senha deve conter ao menos um caractere especial.");
+
+        RuleFor(x => x.RoleId)
+            .GreaterThan(0).WithMessage("Uma role deve ser selecionada.");
     }
 }
 

@@ -49,10 +49,6 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
         font-size: 13px;
         font-weight: 500;
       }
-      .muted {
-        color: var(--color-text-muted, #6b7280);
-        font-size: 12px;
-      }
       .inline-actions {
         display: flex;
         gap: 8px;
@@ -184,16 +180,17 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
               </span>
               <span class="err-msg" *ngIf="showErrors && hasApiFieldError('senha', 'password')">{{ firstApiFieldError('senha', 'password') }}</span>
             </div>
-            <div class="field role-picker" *ngIf="!editing">
-              <label *ngFor="let r of roles">
-                <input
-                  type="checkbox"
-                  [checked]="isRoleSelecionada(r.id)"
-                  (change)="toggleRoleSelecionada(r.id, $event)"
-                />
-                <span>{{ r.nome }}</span>
-              </label>
-              <div *ngIf="roles.length === 0" class="muted">Nenhuma role cadastrada para atribuir.</div>
+            <div class="field w2" *ngIf="!editing">
+              <label>Role <span class="required">*</span></label>
+              <select
+                [(ngModel)]="form.roleId"
+                [class.err]="showErrors && !form.roleId"
+              >
+                <option value="">— Selecione uma role —</option>
+                <option *ngFor="let r of roles" [value]="r.id">{{ r.nome }}</option>
+              </select>
+              <span class="err-msg" *ngIf="showErrors && !form.roleId">Role é obrigatória</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('roleId', 'role')">{{ firstApiFieldError('roleId', 'role') }}</span>
             </div>
           </div>
           <div class="actions">
@@ -280,7 +277,7 @@ export class UsuariosComponent implements OnInit {
     email: '',
     nomeCompleto: '',
     senha: '',
-    roleIds: [] as string[]
+    roleId: ''
   };
 
   rolesSelecionadasEdicao: string[] = [];
@@ -334,13 +331,13 @@ export class UsuariosComponent implements OnInit {
           email: item.email,
           nomeCompleto: item.nomeCompleto,
           senha: '',
-          roleIds: []
+          roleId: ''
         }
       : {
           email: '',
           nomeCompleto: '',
           senha: '',
-          roleIds: []
+          roleId: ''
         };
   }
 
@@ -366,12 +363,13 @@ export class UsuariosComponent implements OnInit {
         this.toast.success('Usuario atualizado com sucesso.');
       } else {
         if (!this.senhaForte(this.form.senha)) return;
+        if (!this.form.roleId) return;
 
         const payload: CreateUsuarioInput = {
           email: this.form.email,
           nomeCompleto: this.form.nomeCompleto,
           senha: this.form.senha,
-          roleIds: this.form.roleIds
+          roleId: this.form.roleId
         };
         this.usuarioService.create(payload);
         this.toast.success('Usuario criado com sucesso.');
@@ -496,19 +494,6 @@ export class UsuariosComponent implements OnInit {
     if (!/[0-9]/.test(senha)) return false;
     if (!/[^a-zA-Z0-9]/.test(senha)) return false;
     return true;
-  }
-
-  isRoleSelecionada(roleId: string): boolean {
-    return this.form.roleIds.includes(roleId);
-  }
-
-  toggleRoleSelecionada(roleId: string, event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    if (checked) {
-      this.form.roleIds = [...this.form.roleIds, roleId];
-      return;
-    }
-    this.form.roleIds = this.form.roleIds.filter(id => id !== roleId);
   }
 
   isRoleSelecionadaEdicao(roleNome: string): boolean {

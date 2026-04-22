@@ -14,7 +14,7 @@ public record CreateUsuarioRequest(
     string Email,
     string NomeCompleto,
     string Senha,
-    IEnumerable<int>? RoleIds);
+    int RoleId);
 
 public record UpdateUsuarioRequest(
     string NomeCompleto);

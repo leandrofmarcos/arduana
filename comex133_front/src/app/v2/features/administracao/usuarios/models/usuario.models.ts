@@ -13,5 +13,5 @@ export interface CreateUsuarioInput {
   email: string;
   nomeCompleto: string;
   senha: string;
-  roleIds?: string[];
+  roleId: string;   // obrigatório — uma única role
 }
