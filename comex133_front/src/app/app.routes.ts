@@ -76,6 +76,10 @@ export const routes: Routes = [
 
       // Administração — Etapa 3
       {
+        path: 'cargos',
+        loadComponent: () => import('./v2/features/administracao/cargos/pages/cargos.component').then(m => m.CargosComponent)
+      },
+      {
         path: 'admin/roles',
         canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/administracao/roles/pages/roles.component').then(m => m.RolesComponent)
