@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { EmbarqueNavioVinculoService, EmbarqueNavioVinculoDto, NavioTrajetoListItem } from '../services/embarque-navio-vinculo.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-embarque-navio-vinculo-form',
@@ -262,7 +263,10 @@ export class EmbarqueNavioVinculoFormComponent implements OnInit, OnDestroy {
 
   private isEditMode = false;
 
-  constructor(private service: EmbarqueNavioVinculoService) {}
+  constructor(
+    private service: EmbarqueNavioVinculoService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void {
     this._subs.add(
@@ -415,10 +419,15 @@ export class EmbarqueNavioVinculoFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  confirmDelete(): void {
-    if (!confirm('Tem certeza que deseja desvincular este embarque do navio?')) {
-      return;
-    }
+  async confirmDelete(): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Desvincular embarque',
+      message: 'Tem certeza que deseja desvincular este embarque do navio?',
+      confirmText: 'Desvincular',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
 
     this.loading = true;
     this.errorMsg = '';

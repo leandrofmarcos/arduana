@@ -13,8 +13,8 @@ Este documento cobre somente planejamento e rastreabilidade. Nao inicia implemen
 ## 1.1 Status de execucao (atualizado em 2026-04-22)
 ### Resumo executivo
 - Status geral do roadmap: Em andamento
-- Backlog macro concluido: 2 de 8 itens (25%)
-- Fases iniciadas: 2 de 6 (Fases 1 e 2 implementadas)
+- Backlog macro concluido: 3 de 8 itens (37,5%)
+- Fases iniciadas: 3 de 6 (Fases 1, 2 e 3 implementadas)
 - Fases concluidas e aprovadas: 0 de 6
 
 ### Estatisticas da Fase 1 (piloto: Logistica > Controle de Navios)
@@ -27,6 +27,11 @@ Este documento cobre somente planejamento e rastreabilidade. Nao inicia implemen
 - Cobertura de telas do menu Cadastros: 13 de 13 paginas (100%)
 - Validacao funcional do usuario: Pendente
 
+### Estatisticas da Fase 3 (Operacao)
+- Entregas tecnicas implementadas: 3 de 3 atividades previstas (100% da implementacao tecnica)
+- Cobertura de telas alvo: 5 de 5 componentes/paginas (100%)
+- Validacao funcional do usuario: Pendente
+
 ### Evidencias de implementacao da Fase 2
 - Confirm dialog global implementado e integrado no app root
 - Remocao de `confirm()` nativo em 13 de 13 paginas de Cadastros
@@ -34,6 +39,18 @@ Este documento cobre somente planejamento e rastreabilidade. Nao inicia implemen
 - Substituicao de `NotificationService` por `ToastService` nas telas de Cadastros
 - Estado de erro com retry aplicado em telas com carga principal paginada (Portos e Navios)
 - Build do frontend executado com sucesso apos o rollout da fase
+
+### Evidencias de implementacao da Fase 3
+- Remocao de `alert()`/`confirm()` nativos nos fluxos de Operacao
+- Confirm dialog padronizado em acoes destrutivas (solicitacao, custo, orcamento, embarque e vinculo de navio)
+- Padronizacao de toasts em salvar, remover, finalizar, atualizar status e efetivar pagamento
+- Tratamento padronizado para bloqueio de popup em exportacoes
+- Build do frontend executado com sucesso apos o rollout da fase
+
+### Registro de fechamento tecnico
+- Fase 3 finalizada tecnicamente em 2026-04-22
+- Mudancas registradas em commit local na branch de usabilidade
+- Proxima fase recomendada: Fase 4 (Administracao e Documentos), condicionada a validacao funcional das Fases 1 a 3
 
 ### Evidencias de implementacao da Fase 1
 - Loading inline para carga principal da tela
@@ -166,6 +183,9 @@ Atividades:
 - padronizar feedback em fluxos longos
 - padronizar erro de upload/download e bloqueio popup
 - aplicar confirm dialog para acoes destrutivas
+Status de execucao da fase:
+- Implementacao tecnica concluida
+- Em validacao funcional com usuario
 
 ## Fase 4 - Rollout Administracao e Documentos
 Cobertura:
@@ -189,16 +209,16 @@ Atividades:
 | USAB-002 | 0 | Core | Contrato de feedback API | Planejado |
 | USAB-003 | 1 | Logistica/Controle de Navios | Piloto completo | Implementado (aguardando validacao) |
 | USAB-004 | 2 | Cadastros | Padrao loading + erros + paginacao | Implementado (aguardando validacao) |
-| USAB-005 | 3 | Operacao | Feedback de fluxos longos e acoes criticas | Planejado |
+| USAB-005 | 3 | Operacao | Feedback de fluxos longos e acoes criticas | Implementado (aguardando validacao) |
 | USAB-006 | 4 | Administracao | Dialogs e feedback padrao | Planejado |
 | USAB-007 | 4 | Documentos | Upload/erro/sucesso padrao | Planejado |
 | USAB-008 | 5 | Global | Auditoria e conformidade final | Planejado |
 
 ### 6.1 Estatistica de rastreabilidade
 - Itens planejados: 8
-- Itens implementados (aguardando validacao ou aprovados): 2
+- Itens implementados (aguardando validacao ou aprovados): 3
 - Itens totalmente aprovados: 0
-- Percentual de execucao tecnica: 25%
+- Percentual de execucao tecnica: 37,5%
 
 ## 7. Checklist de conformidade por tela
 Cada tela deve cumprir:

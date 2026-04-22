@@ -25,6 +25,8 @@ import { generateV2Id }                from '../../../core/helpers/storage-v2.he
 import { EmbarqueAcompanhamentoComponent } from './embarque-acompanhamento.component';
 import { EmbarqueNavioVinculoFormComponent } from '../components/embarque-navio-vinculo-form.component';
 import { ActivatedRoute }                  from '@angular/router';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 type Mode = 'list' | 'form' | 'detail' | 'acompanhamento';
 
@@ -775,7 +777,9 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     private orcSvc: OrcamentoVendaService,
     private auth: AuthService,
     private solicitacaoSvc: SolicitacaoOrcamentoService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -962,6 +966,7 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
       this.svc.update({ ...this.editing, ...data });
       this.detail = this.svc.getById(this.editing.id) ?? null;
       this.mode = 'detail';
+      this.toast.success('Embarque atualizado com sucesso.');
     } else {
       const created = this.svc.create(data);
       // Registrar status inicial no histórico
@@ -971,6 +976,7 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
       }
       this.detail = this.svc.getById(created.id) ?? null;
       this.mode = 'detail';
+      this.toast.success('Embarque criado com sucesso.');
     }
     this.editing = null;
     this.load();
@@ -982,12 +988,20 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     if (e) { this.detail = e; this.mode = 'detail'; }
   }
 
-  remove(id: string): void {
-    if (confirm('Excluir este embarque e todos os dados relacionados?')) {
-      this.svc.remove(id);
-      this.load();
-      if (this.detail?.id === id) { this.detail = null; this.mode = 'list'; }
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir embarque',
+      message: 'Excluir este embarque e todos os dados relacionados?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.svc.remove(id);
+    this.load();
+    if (this.detail?.id === id) { this.detail = null; this.mode = 'list'; }
+    this.toast.success('Embarque removido com sucesso.');
   }
 
   // ── Detail ────────────────────────────────────────────────────────────
@@ -1047,7 +1061,7 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     if (!this.detail) return;
     const { clienteId, despachanteId, portoOrigemId, portoDestinoId, etd, eta } = this.form;
     if (!clienteId || !despachanteId || !portoOrigemId || !portoDestinoId || !etd || !eta) {
-      alert('Cliente, Despachante, Portos, ETD e ETA são obrigatórios.');
+      this.toast.error('Cliente, Despachante, Portos, ETD e ETA sao obrigatorios.');
       return;
     }
     const updated: EmbarqueAduana = {
@@ -1090,6 +1104,7 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     this.editMode = false;
     this.load();
     this.loadDetail();
+    this.toast.success('Dados do embarque atualizados com sucesso.');
   }
 
   // ── Status ────────────────────────────────────────────────────────────
@@ -1131,6 +1146,7 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
         this.solicitacaoSvc.update({ ...sol, status: novoStatusSol });
       }
     }
+    this.toast.success('Status do embarque atualizado com sucesso.');
   }
 
   // ── Free Time ─────────────────────────────────────────────────────────
@@ -1142,13 +1158,22 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     this.svc.addFreeTime({ ...this.ftForm, embarqueAduanaId: this.detail!.id });
     this.showFtForm = false;
     this.loadDetail();
+    this.toast.success('Free time salvo com sucesso.');
   }
 
-  removerFreeTime(id: string): void {
-    if (confirm('Remover free time?')) {
-      this.svc.removeFreeTime(id);
-      this.loadDetail();
-    }
+  async removerFreeTime(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Remover free time',
+      message: 'Deseja remover este free time?',
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.svc.removeFreeTime(id);
+    this.loadDetail();
+    this.toast.success('Free time removido com sucesso.');
   }
 
   diasRestantes(ft: FreeTimeEmbarque): number {
@@ -1165,13 +1190,22 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     this.svc.addPagamento({ ...this.pgForm, embarqueAduanaId: this.detail!.id });
     this.showPgForm = false;
     this.loadDetail();
+    this.toast.success('Pagamento adicionado com sucesso.');
   }
 
-  removerPagamento(id: string): void {
-    if (confirm('Excluir pagamento?')) {
-      this.svc.removePagamento(id);
-      this.loadDetail();
-    }
+  async removerPagamento(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir pagamento',
+      message: 'Deseja excluir este pagamento?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.svc.removePagamento(id);
+    this.loadDetail();
+    this.toast.success('Pagamento removido com sucesso.');
   }
 
   efetivarPagamento(p: PagamentoProcesso): void {
@@ -1189,6 +1223,7 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     this.svc.efetivarPagamento(this.pgtoTarget.id, this.dataPgtoModal);
     this.fecharModalPgto();
     this.loadDetail();
+    this.toast.success('Pagamento efetivado com sucesso.');
   }
 
   totalPagamentos(): number { return this.pagamentos.reduce((a, p) => a + p.valor, 0); }

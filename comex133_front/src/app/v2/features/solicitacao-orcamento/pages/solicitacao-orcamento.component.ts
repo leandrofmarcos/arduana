@@ -28,6 +28,8 @@ import { PortoDestino } from '../../cadastros/portos-destino/models/porto-destin
 import { ClienteV2 } from '../../cadastros/clientes/models/cliente-v2.models';
 import { Importador } from '../../cadastros/importadores/models/importador.models';
 import { DespachanteV2 } from '../../cadastros/despachantes/models/despachante-v2.models';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 
 interface DespaForm {
@@ -521,7 +523,9 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     private embarqueSvc: EmbarqueAduanaService,
     private statusEmbarqueSvc: StatusEmbarqueService,
     private auth: AuthService,
-    private router: Router
+    private router: Router,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {
     this.form = this.emptyForm();
   }
@@ -678,12 +682,22 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     await this.carregar();
     this.showForm = false;
     this.showErr = false;
+    this.toast.success(eraCriacao ? 'Solicitacao criada com sucesso.' : 'Solicitacao atualizada com sucesso.');
   }
 
   async remover(id: string): Promise<void> {
-    if (!confirm('Excluir esta solicitação e todos os seus despachantes e documentos?')) return;
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir solicitacao',
+      message: 'Excluir esta solicitacao e todos os seus despachantes e documentos?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
     await this.svc.remove(id);
     await this.carregar();
+    this.toast.success('Solicitacao removida com sucesso.');
   }
 
   // ── Despachantes inline ──────────────────────────────────────────────

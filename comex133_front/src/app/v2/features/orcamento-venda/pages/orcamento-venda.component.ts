@@ -23,6 +23,8 @@ import { AuthService } from '../../../../features/auth/auth.providers';
 import { ModeloDespesaService } from '../../cadastros/modelos-despesa/services/modelo-despesa.service';
 import { ModeloDespesa } from '../../cadastros/modelos-despesa/models/modelo-despesa.models';
 import { DespesaCadastroService } from '../../cadastros/despesas-cadastro/services/despesa-cadastro.service';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 type LinhaForm = { descricao: string; valor: number };
 
@@ -664,7 +666,9 @@ export class OrcamentoVendaComponent implements OnInit {
     private modeloSvc: ModeloDespesaService,
     private despesaCadastroSvc: DespesaCadastroService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -920,6 +924,7 @@ export class OrcamentoVendaComponent implements OnInit {
   cancelForm(): void { this.showForm = false; this.editing = null; }
 
   salvar(status?: 'Rascunho' | 'Finalizado'): void {
+    const eraEdicao = !!this.editing;
     this.showErr = true;
     if (!this.form.clienteId || !this.form.data) return;
 
@@ -979,20 +984,38 @@ export class OrcamentoVendaComponent implements OnInit {
 
     this.cancelForm();
     this.load();
+    this.toast.success(status === 'Finalizado' ? 'Orcamento finalizado com sucesso.' : (eraEdicao ? 'Orcamento atualizado com sucesso.' : 'Orcamento criado com sucesso.'));
   }
 
-  finalizar(): void {
+  async finalizar(): Promise<void> {
     this.showErr = true;
     if (!this.form.clienteId || !this.form.data) return;
-    if (!confirm('Finalizar este orçamento? Ele ficará marcado como Finalizado.')) return;
+
+    const ok = await this.confirmDialog.confirm({
+      title: 'Finalizar orcamento',
+      message: 'Finalizar este orcamento? Ele ficara marcado como Finalizado.',
+      confirmText: 'Finalizar',
+      cancelText: 'Cancelar',
+      danger: false
+    });
+    if (!ok) return;
+
     this.salvar('Finalizado');
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este orçamento?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir orcamento',
+      message: 'Deseja excluir este orcamento?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Orcamento removido com sucesso.');
   }
 
   // ── Criar EmbarqueAduana ao finalizar orçamento ──────────────────────
@@ -1075,7 +1098,10 @@ export class OrcamentoVendaComponent implements OnInit {
 
   exportarOrcamentoPDF(): void {
     const win = window.open('', '_blank');
-    if (!win) { alert('Popup bloqueado. Permita pop-ups para este site e tente novamente.'); return; }
+    if (!win) {
+      this.toast.error('Popup bloqueado. Permita pop-ups para este site e tente novamente.');
+      return;
+    }
     win.document.write(this.buildOrcamentoHtml(true));
     win.document.close();
   }

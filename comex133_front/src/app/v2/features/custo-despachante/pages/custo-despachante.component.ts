@@ -26,6 +26,8 @@ import { PortoOrigem } from '../../cadastros/portos-origem/models/porto-origem.m
 import { PortoDestino } from '../../cadastros/portos-destino/models/porto-destino.models';
 import { Ncm } from '../../cadastros/ncm/models/ncm.models';
 import { ModeloDespesa } from '../../cadastros/modelos-despesa/models/modelo-despesa.models';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 type LiForm = { ncm: string; descricao: string; valor: number; data: string };
 type DespesaForm = { descricao: string; valor: number; data: string; entraBaseIcms: boolean };
@@ -981,7 +983,9 @@ export class CustoDespachanteComponent implements OnInit {
     private despesaCadastroSvc: DespesaCadastroService,
     private solicitacaoSvc: SolicitacaoOrcamentoService,
     private orcVendaSvc: OrcamentoVendaService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   private todayStr(): string { return new Date().toISOString().slice(0, 10); }
@@ -1038,7 +1042,7 @@ export class CustoDespachanteComponent implements OnInit {
 
   downloadPacklist(linkDocumento: string, nomeArquivo: string): void {
     if (!linkDocumento) {
-      alert(`Arquivo: ${nomeArquivo}\n\nO arquivo ainda não possui URL — será disponibilizado após integração com a API.`);
+      this.toast.info(`Arquivo ${nomeArquivo}: URL ainda nao disponivel.`);
       return;
     }
     const a = document.createElement('a');
@@ -1259,6 +1263,7 @@ export class CustoDespachanteComponent implements OnInit {
   cancelWizard(): void { this.showWizard = false; this.editing = null; }
 
   salvarTudo(status: StatusCustoDespachante = 'AguardandoCusto'): void {
+    const eraEdicao = !!this.editing;
     if (!this.validateP1()) return;
     const data = {
       despachanteId:  this.p1.despachanteId,
@@ -1350,13 +1355,24 @@ export class CustoDespachanteComponent implements OnInit {
 
     this.cancelWizard();
     this.load();
+    this.toast.success(status === 'Finalizado'
+      ? 'Custo finalizado com sucesso.'
+      : (eraEdicao ? 'Custo atualizado com sucesso.' : 'Custo criado com sucesso.'));
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este custo e todos os seus dados vinculados?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir custo',
+      message: 'Deseja excluir este custo e todos os seus dados vinculados?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Custo removido com sucesso.');
   }
 
   openPreview(): void {
@@ -1367,7 +1383,10 @@ export class CustoDespachanteComponent implements OnInit {
 
   exportarPDF(): void {
     const win = window.open('', '_blank');
-    if (!win) { alert('Popup bloqueado. Permita pop-ups para este site e tente novamente.'); return; }
+    if (!win) {
+      this.toast.error('Popup bloqueado. Permita pop-ups para este site e tente novamente.');
+      return;
+    }
     win.document.write(this.buildPlanilhaHtml(true));
     win.document.close();
   }
