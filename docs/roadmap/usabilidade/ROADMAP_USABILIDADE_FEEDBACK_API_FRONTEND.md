@@ -4,7 +4,7 @@
 
 ## 🎯 RESUMO EXECUTIVO CONSOLIDADO (2026-04-22)
 
-### Status Geral: Fases 0-7 ✅ CONCLUÍDAS | USAB-010 🔄 PRÓXIMA | 📅 ÚLTIMA PENDÊNCIA
+### Status Geral: Fases 0-8 ✅ 100% CONCLUÍDAS | 🏁 ENCERRADO
 
 | Fase | Tema | Implementação | Validação | Status |
 |---|---|---|---|---|
@@ -16,7 +16,7 @@
 | **5** | Auditoria de conformidade | ✅ 100% | ✅ Aprovada | **ENCERRADA** |
 | **6** | Feedback universal por status code | ✅ 100% | ✅ Aprovada | **ENCERRADA** |
 | **7** | Validação de comportamento (48 atividades F7-001 a F7-048) | ✅ 100% | ✅ Aprovada | **ENCERRADA** |
-| **8** | USAB-010: Erro inline em todos os forms | 🔄 **EM EXECUÇÃO** | 🔲 Pendente | **PRÓXIMA & FINAL** |
+| **8** | USAB-010: Erro inline em todos os forms | ✅ 100% | ✅ Aprovada | **ENCERRADA** |
 
 ### ⚡ O Que Foi Implementado (Fases 0-6)
 - ✅ **Parser universal de erro**: ApiErrorMapper normaliza 10 famílias de status code (0, 400, 401, 403, 404, 409, 422, 429, 500/502/503)
@@ -921,7 +921,7 @@ R: Sim. Copie o padrão de Solicitações (apiFieldErrors, hasApiFieldError, col
 |---|---|---|---|
 | ✅ Implementação técnica (Fases 0-7) | Fases 0-7 | **COMPLETO** | ✅ 2026-04-22 |
 | ✅ Validação funcional (Fase 7: F7-001 a F7-048) | Fase 7 | **COMPLETO** | ✅ 2026-04-22 |
-| 🔄 Propagação de erro inline (USAB-010) | USAB-010 | **EM EXECUÇÃO** | ⏰ TODAY |
+| ✅ Propagação de erro inline (USAB-010) | USAB-010 | **COMPLETO** | ✅ 2026-04-23 |
 | ✅ Build final validado | Fases 0-7 | **COMPLETO** | ✅ 2026-04-22 |
 | ✅ Matriz de pass/fail consolidada | Fase 7 | **COMPLETO** | ✅ 2026-04-22 |
 | ✅ Evidências (prints/vídeos por status code) | Fase 7 | **COMPLETO** | ✅ 2026-04-22 |
@@ -930,9 +930,9 @@ R: Sim. Copie o padrão de Solicitações (apiFieldErrors, hasApiFieldError, col
 **Critério para marcar como 100% CONCLUÍDO**:
 - [x] Fases 0-7 técnicamente 100% implementadas + validadas ✅
 - [x] Fase 7 validação 100% executada (F7-001 a F7-048 com PASS) ✅
-- [ ] **USAB-010 implementado em todos os 14 formulários (PRÓXIMA & FINAL)**
-- [ ] Zero erros de feedback ao usuário em escopo V2
-- [ ] Aprovação executiva final (após USAB-010)
+- [x] **USAB-010 implementado em todos os 21 formulários** ✅
+- [x] Zero erros de feedback ao usuário em escopo V2 ✅
+- [x] Aprovação executiva final ✅ — **ROADMAP 100% ENCERRADO**
 
 ---
 
