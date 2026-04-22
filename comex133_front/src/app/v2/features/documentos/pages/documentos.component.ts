@@ -347,6 +347,21 @@ type CategoriaFilter = '' | CategoriaDocumento;
       color: var(--color-text);
     }
     .form-error { color: var(--color-danger, #ef4444); font-size: 12px; margin-top: 10px; }
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .tabs { overflow-x:auto; flex-wrap:nowrap; }
+      .tab { flex-shrink:0; }
+      .form-grid { grid-template-columns:1fr; }
+      .form-group.col-2 { grid-column:1; }
+      .count-label { margin-left:0; width:100%; }
+    }
+    @media (max-width: 480px) {
+      .modal-box { max-width:calc(100vw - 24px); }
+      .modal-body { padding:12px; }
+      .modal-footer { padding:10px 12px; flex-wrap:wrap; }
+      .modal-footer button { flex:1; }
+      .page-title { font-size:18px; }
+    }
   `]
 })
 export class DocumentosComponent implements OnInit {

@@ -142,6 +142,28 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
     .btn-icon-sm:hover { background:#f1f5f9; }
     .preview-body { flex:1; overflow:auto; background:#d1d5db; padding:12px; }
     .preview-body iframe { width:100%; height:100%; border:none; border-radius:4px; background:#fff; min-height:600px; box-shadow:0 2px 16px rgba(0,0,0,.18); display:block; }
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .wizard-steps { overflow-x:auto; padding-bottom:8px; }
+      .wizard-step { flex-shrink:0; }
+      .inline-form-row { flex-wrap:wrap; }
+      .inline-form-row .f { min-width:calc(50% - 4px); }
+      .resumo-dados-grid { grid-template-columns:1fr 1fr; }
+      .imposto-breakdown { grid-template-columns:repeat(3,1fr); }
+      .total-geral-box { flex-direction:column; align-items:flex-start; gap:4px; }
+      .total-geral-box .valor { font-size:18px; }
+      .sol-card { flex-wrap:wrap; }
+      .preview-modal { width:100%; max-width:100%; height:100vh; border-radius:0; }
+    }
+    @media (max-width: 480px) {
+      .dashboard-header { flex-direction:column; align-items:flex-start; gap:10px; }
+      .resumo-dados-grid { grid-template-columns:1fr; }
+      .imposto-breakdown { grid-template-columns:repeat(2,1fr); }
+      .inline-form-row .f { min-width:100%; }
+      .step-label { display:none; }
+      .step-connector { min-width:12px; }
+      .ncm-card { padding:8px 10px; }
+    }
     `
   ],
   template: `

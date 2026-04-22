@@ -127,6 +127,26 @@ type LinhaForm = { descricao: string; valor: number };
     .acc-imposto-item .val { font-size:12px; font-weight:700; }
     .custo-acc-item.selected .custo-radio { background:#3b82f6; border-color:#3b82f6; }
     .custo-acc-item.selected .custo-radio::after { opacity:1; }
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .ov-panel-sticky { position:static; top:unset; }
+      .add-row { flex-wrap:wrap; }
+      .add-row .f { min-width:100%; }
+      .custo-comp-values { grid-template-columns:repeat(2,1fr); }
+      .acc-dados-grid { grid-template-columns:repeat(2,1fr); }
+      .acc-fin-grid { grid-template-columns:repeat(2,1fr); }
+      .acc-imposto-grid { grid-template-columns:repeat(3,1fr); }
+      .preview-modal { width:100%; max-width:100%; height:100vh; border-radius:0; }
+    }
+    @media (max-width: 480px) {
+      .dashboard-header { flex-direction:column; align-items:flex-start; gap:10px; }
+      .total-grand { font-size:14px; }
+      .total-panel { padding:12px; }
+      .custo-comp-values { grid-template-columns:1fr; }
+      .acc-imposto-grid { grid-template-columns:repeat(2,1fr); }
+      .acc-fin-grid { grid-template-columns:1fr; }
+      .preview-toolbar h4 { font-size:12px; }
+    }
     `
   ],
   template: `

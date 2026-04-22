@@ -119,6 +119,20 @@ const OV_STATUS_COLORS: Record<string, string> = {
     .sol-link { font-family:monospace; font-size:11px; background:var(--color-surface); border:1px solid var(--color-border); padding:2px 7px; border-radius:5px; }
     .form-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
     .form-header h2 { font-size:20px; margin:0; color:var(--color-text); }
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .section-card { padding:12px 14px; }
+      .inline-form { flex-direction:column; align-items:stretch; }
+      .inline-form .f { min-width:unset; flex:unset; width:100%; }
+      .filter-select { width:100%; flex:unset; }
+    }
+    @media (max-width: 480px) {
+      .dashboard-header { flex-direction:column; align-items:flex-start; gap:10px; }
+      .dashboard-header button { width:100%; }
+      .status-badge { font-size:10px; padding:2px 7px; }
+      .section-card h3 { font-size:11px; }
+      .sol-link { font-size:10px; }
+    }
     `
   ],
   template: `

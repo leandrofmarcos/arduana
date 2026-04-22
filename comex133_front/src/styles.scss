@@ -540,6 +540,21 @@ body {
   }
 }
 
+/* Tabelas: scroll horizontal em mobile sem precisar de wrapper no template */
+@media (max-width: 768px) {
+  table.data-table,
+  table.sub-table,
+  table.inline-table,
+  table.resumo-table,
+  table.items-table,
+  table.acc-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 480px) {
   .dashboard-container {
     padding: var(--spacing-sm);

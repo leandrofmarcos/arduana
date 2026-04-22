@@ -79,6 +79,20 @@ type Mode = 'list' | 'form' | 'detail' | 'acompanhamento';
     .edit-field { flex:1; min-width:0; padding:8px 10px; border:2px solid var(--color-border); border-radius:8px; font-size:13px; background:var(--color-surface); color:var(--color-text); transition:border-color .2s, box-shadow .2s; }
     .edit-field:focus { outline:none; border-color:var(--color-primary); box-shadow:0 0 0 3px rgba(102,126,234,.12); }
     .info-list li { align-items:center; gap:12px; }
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .detail-grid { grid-template-columns:1fr; }
+      .modal-box { padding:16px; max-width:calc(100vw - 32px); width:100%; }
+      .dashboard-header > div:last-child { flex-wrap:wrap; }
+      .dashboard-header > div:last-child button { flex:1; min-width:140px; }
+    }
+    @media (max-width: 480px) {
+      .dashboard-header { flex-direction:column; align-items:flex-start; gap:10px; }
+      .tl-label { font-size:9px; }
+      .tl-dot { width:22px; height:22px; font-size:10px; }
+      .hist-item { font-size:12px; }
+      .modal-overlay { padding:12px; }
+    }
     `
   ],
   template: `

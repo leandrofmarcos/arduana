@@ -354,6 +354,19 @@ interface ReplaceTrajetoRequest {
       .trajeto-operacional-title { font-size: 18px; }
       .btn-new-viagem { padding: 8px 14px; }
     }
+    @media (max-width: 768px) {
+      .trajeto-add-form { grid-template-columns:1fr 1fr; }
+      .trajeto-item { grid-template-columns:34px 1fr; }
+      .trajeto-item > :last-child { grid-column: 2; }
+      .header-actions { flex-wrap:wrap; }
+      .btn-new-viagem { width:100%; text-align:center; }
+    }
+    @media (max-width: 480px) {
+      .dashboard-header { flex-direction:column; align-items:flex-start; gap:10px; }
+      .trajeto-add-form { grid-template-columns:1fr; }
+      .trajeto-operacional-title { font-size:14px; }
+      .trajeto-duracao { font-size:11px; }
+    }
     `
   ],
   template: `
