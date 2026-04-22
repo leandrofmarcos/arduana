@@ -1,4 +1,4 @@
-﻿using Comex133Api.Core.Models;
+using Comex133Api.Core.Models;
 using Comex133Api.Features.Ncms;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/ncms")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class NcmsController : ControllerBase
 {
     private readonly NcmsService                   _service;

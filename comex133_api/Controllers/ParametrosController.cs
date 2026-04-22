@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class ParametrosController : ControllerBase
 {
     private readonly ParametroService _service;

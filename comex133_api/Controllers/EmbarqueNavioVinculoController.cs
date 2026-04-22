@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/embarques/{embarqueId:int}/navio-vinculo")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class EmbarqueNavioVinculoController : ControllerBase
 {
     private readonly NaviosService                                  _service;

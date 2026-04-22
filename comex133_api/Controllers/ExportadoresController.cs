@@ -1,4 +1,4 @@
-﻿using Comex133Api.Core.Models;
+using Comex133Api.Core.Models;
 using Comex133Api.Features.Exportadores;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/exportadores")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class ExportadoresController : ControllerBase
 {
     private readonly ExportadoresService                   _service;

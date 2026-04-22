@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/solicitacoes-orcamento")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class SolicitacoesOrcamentoController : ControllerBase
 {
     private readonly SolicitacoesOrcamentoService _service;

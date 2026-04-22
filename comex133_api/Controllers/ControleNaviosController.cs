@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/controle-navios")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class ControleNaviosController : ControllerBase
 {
     private readonly ControleNaviosService                              _service;

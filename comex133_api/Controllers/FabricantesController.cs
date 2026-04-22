@@ -1,4 +1,4 @@
-﻿using Comex133Api.Core.Models;
+using Comex133Api.Core.Models;
 using Comex133Api.Features.Fabricantes;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/fabricantes")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class FabricantesController : ControllerBase
 {
     private readonly FabricantesService                   _service;

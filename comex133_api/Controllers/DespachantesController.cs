@@ -1,4 +1,4 @@
-﻿using Comex133Api.Core.Models;
+using Comex133Api.Core.Models;
 using Comex133Api.Features.Despachantes;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/despachantes")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class DespachantesController : ControllerBase
 {
     private readonly DespachantesService                   _service;

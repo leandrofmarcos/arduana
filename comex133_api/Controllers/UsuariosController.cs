@@ -9,7 +9,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/usuarios")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class UsuariosController : ControllerBase
 {
     private readonly UsuarioService                        _service;

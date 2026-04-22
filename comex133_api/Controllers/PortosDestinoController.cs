@@ -1,4 +1,4 @@
-﻿using Comex133Api.Core.Models;
+using Comex133Api.Core.Models;
 using Comex133Api.Features.PortosDestino;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/portos-destino")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class PortosDestinoController : ControllerBase
 {
     private readonly PortosDestinoService                   _service;

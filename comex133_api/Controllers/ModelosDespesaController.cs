@@ -1,4 +1,4 @@
-﻿using Comex133Api.Core.Models;
+using Comex133Api.Core.Models;
 using Comex133Api.Features.ModelosDespesa;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/modelos-despesa")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class ModelosDespesaController : ControllerBase
 {
     private readonly ModelosDespesaService                   _service;

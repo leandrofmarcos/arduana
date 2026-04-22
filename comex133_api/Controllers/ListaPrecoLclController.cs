@@ -1,4 +1,4 @@
-﻿using Comex133Api.Core.Models;
+using Comex133Api.Core.Models;
 using Comex133Api.Features.ListaPrecoLcl;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/lista-preco-lcl")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class ListaPrecoLclController : ControllerBase
 {
     private readonly ListaPrecoLclService                   _service;

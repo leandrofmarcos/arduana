@@ -1,4 +1,4 @@
-﻿using Comex133Api.Core.Models;
+using Comex133Api.Core.Models;
 using Comex133Api.Features.PortosOrigem;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/portos-origem")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Administrador")]
 public class PortosOrigemController : ControllerBase
 {
     private readonly PortosOrigemService                   _service;
