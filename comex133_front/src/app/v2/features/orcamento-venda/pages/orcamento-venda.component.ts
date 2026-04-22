@@ -25,6 +25,7 @@ import { ModeloDespesa } from '../../cadastros/modelos-despesa/models/modelo-des
 import { DespesaCadastroService } from '../../cadastros/despesas-cadastro/services/despesa-cadastro.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../core/api/error-handler/api-error.mapper';
 
 type LinhaForm = { descricao: string; valor: number };
 
@@ -218,6 +219,8 @@ type LinhaForm = { descricao: string; valor: number };
 
         <span class="err-msg" *ngIf="showErr && !form.clienteId" style="display:block;margin-bottom:8px">Preencha o cliente antes de salvar</span>
         <span class="err-msg" *ngIf="showErr && !form.data" style="display:block;margin-bottom:8px">Preencha a data antes de salvar</span>
+        <span class="err-msg" *ngIf="showErr && hasApiFieldError('clienteId', 'cliente')" style="display:block;margin-bottom:8px">{{ firstApiFieldError('clienteId', 'cliente') }}</span>
+        <span class="err-msg" *ngIf="showErr && hasApiFieldError('data')" style="display:block;margin-bottom:8px">{{ firstApiFieldError('data') }}</span>
 
         <!-- Layout duas colunas -->
         <div class="ov-layout">
@@ -412,14 +415,16 @@ type LinhaForm = { descricao: string; valor: number };
                 <div class="form-grid">
                   <div class="field w2">
                     <label>Cliente <span class="required">*</span></label>
-                    <select [(ngModel)]="form.clienteId" [class.err]="showErr && !form.clienteId">
+                    <select [(ngModel)]="form.clienteId" [class.err]="showErr && (!form.clienteId || hasApiFieldError('clienteId', 'cliente'))">
                       <option value="">— Selecione —</option>
                       <option *ngFor="let c of clientes" [value]="c.id">{{ c.razaoSocial }}</option>
                     </select>
+                    <span class="err-msg" *ngIf="showErr && hasApiFieldError('clienteId', 'cliente')">{{ firstApiFieldError('clienteId', 'cliente') }}</span>
                   </div>
                   <div class="field">
                     <label>Data <span class="required">*</span></label>
-                    <input type="date" [(ngModel)]="form.data" [class.err]="showErr && !form.data" />
+                    <input type="date" [(ngModel)]="form.data" [class.err]="showErr && (!form.data || hasApiFieldError('data'))" />
+                    <span class="err-msg" *ngIf="showErr && hasApiFieldError('data')">{{ firstApiFieldError('data') }}</span>
                   </div>
                   <div class="field">
                     <label>Container</label>
@@ -611,6 +616,7 @@ export class OrcamentoVendaComponent implements OnInit {
   showForm = false;
   editing: OrcamentoVenda | null = null;
   showErr = false;
+  apiFieldErrors: Record<string, string[]> = {};
 
   // ── Lookup ────────────────────────────────────────────────────────────
   clientes: ClienteV2[] = [];
@@ -668,8 +674,7 @@ export class OrcamentoVendaComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void {
     this.clientes     = this.clienteSvc.getAtivos();
@@ -873,6 +878,7 @@ export class OrcamentoVendaComponent implements OnInit {
   openForm(item?: OrcamentoVenda): void {
     this.editing   = item ?? null;
     this.showErr   = false;
+    this.apiFieldErrors = {};
     this.despesaErro = '';
     this.extraErro   = '';
 
@@ -921,11 +927,12 @@ export class OrcamentoVendaComponent implements OnInit {
     this.showPreview = false;
   }
 
-  cancelForm(): void { this.showForm = false; this.editing = null; }
+  cancelForm(): void { this.showForm = false; this.editing = null; this.apiFieldErrors = {}; }
 
   salvar(status?: 'Rascunho' | 'Finalizado'): void {
     const eraEdicao = !!this.editing;
     this.showErr = true;
+    this.apiFieldErrors = {};
     if (!this.form.clienteId || !this.form.data) return;
 
     const totalDespesas = this.somaDespesas();
@@ -956,12 +963,20 @@ export class OrcamentoVendaComponent implements OnInit {
     };
 
     let orcId: string;
-    if (this.editing) {
-      this.service.update({ ...this.editing, ...data });
-      orcId = this.editing.id;
-    } else {
-      const created = this.service.create(data);
-      orcId = created.id;
+    try {
+      if (this.editing) {
+        this.service.update({ ...this.editing, ...data });
+        orcId = this.editing.id;
+      } else {
+        const created = this.service.create(data);
+        orcId = created.id;
+      }
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar orçamento.');
+      }
+      return;
     }
 
     this.service.replaceDespesas(orcId, this.despesasForm);
@@ -989,6 +1004,7 @@ export class OrcamentoVendaComponent implements OnInit {
 
   async finalizar(): Promise<void> {
     this.showErr = true;
+    this.apiFieldErrors = {};
     if (!this.form.clienteId || !this.form.data) return;
 
     const ok = await this.confirmDialog.confirm({
@@ -1016,6 +1032,24 @@ export class OrcamentoVendaComponent implements OnInit {
     this.service.remove(id);
     this.load();
     this.toast.success('Orcamento removido com sucesso.');
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 
   // ── Criar EmbarqueAduana ao finalizar orçamento ──────────────────────

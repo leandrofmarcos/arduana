@@ -6,6 +6,7 @@ import { ClienteV2 } from '../models/cliente-v2.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-clientes-v2',
@@ -78,8 +79,9 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <div class="field w2">
               <label>Razão Social <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.razaoSocial" placeholder="Ex: Importadora XYZ Ltda"
-                     [class.err]="showErrors && !form.razaoSocial.trim()" />
+                     [class.err]="showErrors && (!form.razaoSocial.trim() || hasApiFieldError('razaoSocial', 'nome', 'name'))" />
               <span class="err-msg" *ngIf="showErrors && !form.razaoSocial.trim()">Razão social é obrigatória</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('razaoSocial', 'nome', 'name')">{{ firstApiFieldError('razaoSocial', 'nome', 'name') }}</span>
             </div>
             <div class="field">
               <label>CNPJ</label>
@@ -117,14 +119,14 @@ export class ClientesV2Component implements OnInit {
   showForm = false;
   showErrors = false;
   editing: ClienteV2 | null = null;
+  apiFieldErrors: Record<string, string[]> = {};
 
   form = { razaoSocial: '', cnpj: '', email: '', telefone: '', ativo: true };
 
   constructor(
     private service: ClienteV2Service,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -143,6 +145,7 @@ export class ClientesV2Component implements OnInit {
   openForm(item?: ClienteV2): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.form = item
       ? { razaoSocial: item.razaoSocial, cnpj: item.cnpj, email: item.email, telefone: item.telefone, ativo: item.ativo }
       : { razaoSocial: '', cnpj: '', email: '', telefone: '', ativo: true };
@@ -156,6 +159,7 @@ export class ClientesV2Component implements OnInit {
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.form.razaoSocial.trim()) return;
 
     const data: Omit<ClienteV2, 'id'> = {
@@ -166,13 +170,22 @@ export class ClientesV2Component implements OnInit {
       ativo: this.form.ativo
     };
 
-    if (this.editing) {
-      this.service.update({ ...this.editing, ...data });
-      this.toast.success('Cliente atualizado com sucesso.');
-    } else {
-      this.service.create(data);
-      this.toast.success('Cliente criado com sucesso.');
+    try {
+      if (this.editing) {
+        this.service.update({ ...this.editing, ...data });
+        this.toast.success('Cliente atualizado com sucesso.');
+      } else {
+        this.service.create(data);
+        this.toast.success('Cliente criado com sucesso.');
+      }
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar cliente.');
+      }
+      return;
     }
+
     this.cancel();
     this.load();
   }
@@ -190,5 +203,33 @@ export class ClientesV2Component implements OnInit {
     this.service.remove(id);
     this.load();
     this.toast.success('Cliente removido com sucesso.');
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  getApiValidationSummary(): string[] {
+    const summary: string[] = [];
+    Object.values(this.apiFieldErrors).forEach((list) => {
+      list.forEach((msg) => {
+        if (msg && !summary.includes(msg)) summary.push(msg);
+      });
+    });
+    return summary.slice(0, 6);
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 }

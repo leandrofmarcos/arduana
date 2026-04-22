@@ -6,6 +6,7 @@ import { Ncm } from '../models/ncm.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-ncm',
@@ -83,16 +84,18 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <div class="field">
               <label>Código NCM <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.codigoNcm" maxlength="8" placeholder="00000000"
-                     [class.err]="showErrors && !codigoValido" />
+                     [class.err]="showErrors && (!codigoValido || hasApiFieldError('codigoNcm', 'codigo', 'ncm'))" />
               <span class="err-msg" *ngIf="showErrors && !codigoValido">
                 {{ !form.codigoNcm.trim() ? 'Código é obrigatório' : 'Deve ter exatamente 8 dígitos numéricos' }}
               </span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('codigoNcm', 'codigo', 'ncm')">{{ firstApiFieldError('codigoNcm', 'codigo', 'ncm') }}</span>
             </div>
             <div class="field w2">
               <label>Descrição <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.descricao" placeholder="Ex: Aparelhos elétricos para telefonia"
-                     [class.err]="showErrors && !form.descricao.trim()" />
+                     [class.err]="showErrors && (!form.descricao.trim() || hasApiFieldError('descricao', 'description'))" />
               <span class="err-msg" *ngIf="showErrors && !form.descricao.trim()">Descrição é obrigatória</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('descricao', 'description')">{{ firstApiFieldError('descricao', 'description') }}</span>
             </div>
 
             <!-- Alíquotas -->
@@ -140,6 +143,7 @@ export class NcmComponent implements OnInit {
   showForm = false;
   showErrors = false;
   editing: Ncm | null = null;
+  apiFieldErrors: Record<string, string[]> = {};
 
   form = {
     codigoNcm: '',
@@ -155,8 +159,7 @@ export class NcmComponent implements OnInit {
   constructor(
     private service: NcmService,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -178,16 +181,18 @@ export class NcmComponent implements OnInit {
   openForm(item?: Ncm): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.form = item
       ? { codigoNcm: item.codigoNcm, descricao: item.descricao, aliqII: item.aliqII, aliqIPI: item.aliqIPI, aliqPIS: item.aliqPIS, aliqCOFINS: item.aliqCOFINS, aliqICMS: item.aliqICMS, ativo: item.ativo }
       : { codigoNcm: '', descricao: '', aliqII: 0, aliqIPI: 0, aliqPIS: 0, aliqCOFINS: 0, aliqICMS: 0, ativo: true };
     this.showForm = true;
   }
 
-  cancel(): void { this.showForm = false; this.editing = null; }
+  cancel(): void { this.showForm = false; this.editing = null; this.apiFieldErrors = {}; }
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.codigoValido || !this.form.descricao.trim()) return;
 
     const data: Omit<Ncm, 'id'> = {
@@ -201,13 +206,22 @@ export class NcmComponent implements OnInit {
       ativo: this.form.ativo
     };
 
-    if (this.editing) {
-      this.service.update({ ...this.editing, ...data });
-      this.toast.success('NCM atualizado com sucesso.');
-    } else {
-      this.service.create(data);
-      this.toast.success('NCM criado com sucesso.');
+    try {
+      if (this.editing) {
+        this.service.update({ ...this.editing, ...data });
+        this.toast.success('NCM atualizado com sucesso.');
+      } else {
+        this.service.create(data);
+        this.toast.success('NCM criado com sucesso.');
+      }
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar NCM.');
+      }
+      return;
     }
+
     this.cancel();
     this.load();
   }
@@ -225,5 +239,23 @@ export class NcmComponent implements OnInit {
     this.service.remove(id);
     this.load();
     this.toast.success('NCM removido com sucesso.');
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 }

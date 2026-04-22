@@ -47,7 +47,7 @@ interface StatusCount {
           <div class="kpi-value">{{ kpi.portosDestino }}</div>
           <div class="kpi-label">Portos de Destino</div>
         </div>
-        <div class="kpi-card" routerLink="/ncms">
+        <div class="kpi-card" routerLink="/ncm">
           <div class="kpi-value">{{ kpi.ncms }}</div>
           <div class="kpi-label">NCMs Ativos</div>
         </div>

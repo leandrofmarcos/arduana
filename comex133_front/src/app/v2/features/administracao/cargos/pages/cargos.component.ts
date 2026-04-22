@@ -6,6 +6,7 @@ import { Cargo } from '../models/cargo.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-cargos',
@@ -73,8 +74,9 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <div class="field w2">
               <label>Nome <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.nome" placeholder="Ex: Despachante"
-                     [class.err]="showErrors && !form.nome.trim()" />
+                     [class.err]="showErrors && (!form.nome.trim() || hasApiFieldError('nome', 'name'))" />
               <span class="err-msg" *ngIf="showErrors && !form.nome.trim()">Nome é obrigatório</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('nome', 'name')">{{ firstApiFieldError('nome', 'name') }}</span>
             </div>
             <div class="field w2">
               <label>Descrição</label>
@@ -104,14 +106,14 @@ export class CargosComponent implements OnInit {
   showForm = false;
   showErrors = false;
   editing: Cargo | null = null;
+  apiFieldErrors: Record<string, string[]> = {};
 
   form = { nome: '', descricao: '', ativo: true };
 
   constructor(
     private service: CargoService,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -129,25 +131,36 @@ export class CargosComponent implements OnInit {
   openForm(item?: Cargo): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.form = item
       ? { nome: item.nome, descricao: item.descricao, ativo: item.ativo }
       : { nome: '', descricao: '', ativo: true };
     this.showForm = true;
   }
 
-  cancel(): void { this.showForm = false; this.editing = null; }
+  cancel(): void { this.showForm = false; this.editing = null; this.apiFieldErrors = {}; }
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.form.nome.trim()) return;
     const data: Omit<Cargo, 'id'> = { ...this.form, nome: this.form.nome.trim() };
-    if (this.editing) {
-      this.service.update({ ...this.editing, ...data });
-      this.toast.success('Cargo atualizado com sucesso.');
-    } else {
-      this.service.create(data);
-      this.toast.success('Cargo criado com sucesso.');
+    try {
+      if (this.editing) {
+        this.service.update({ ...this.editing, ...data });
+        this.toast.success('Cargo atualizado com sucesso.');
+      } else {
+        this.service.create(data);
+        this.toast.success('Cargo criado com sucesso.');
+      }
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar cargo.');
+      }
+      return;
     }
+
     this.cancel();
     this.load();
   }
@@ -165,5 +178,23 @@ export class CargosComponent implements OnInit {
     this.service.remove(id);
     this.load();
     this.toast.success('Cargo removido com sucesso.');
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 }

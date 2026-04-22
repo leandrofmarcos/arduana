@@ -8,6 +8,7 @@ import { Usuario, CreateUsuarioInput } from '../models/usuario.models';
 import { UsuarioService } from '../services/usuario.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-usuarios',
@@ -153,9 +154,10 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                 type="text"
                 [(ngModel)]="form.nomeCompleto"
                 placeholder="Ex: João da Silva"
-                [class.err]="showErrors && !form.nomeCompleto.trim()"
+                [class.err]="showErrors && (!form.nomeCompleto.trim() || hasApiFieldError('nomeCompleto', 'nome', 'name'))"
               />
               <span class="err-msg" *ngIf="showErrors && !form.nomeCompleto.trim()">Nome é obrigatório</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('nomeCompleto', 'nome', 'name')">{{ firstApiFieldError('nomeCompleto', 'nome', 'name') }}</span>
             </div>
             <div class="field w2">
               <label>E-mail <span class="required">*</span></label>
@@ -164,9 +166,10 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                 [(ngModel)]="form.email"
                 [disabled]="!!editing"
                 placeholder="usuario@empresa.com"
-                [class.err]="showErrors && !isEmailValido(form.email)"
+                [class.err]="showErrors && (!isEmailValido(form.email) || hasApiFieldError('email', 'userName', 'login'))"
               />
               <span class="err-msg" *ngIf="showErrors && !isEmailValido(form.email)">E-mail inválido</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('email', 'userName', 'login')">{{ firstApiFieldError('email', 'userName', 'login') }}</span>
             </div>
             <div class="field w2" *ngIf="!editing">
               <label>Senha <span class="required">*</span></label>
@@ -174,11 +177,12 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                 type="password"
                 [(ngModel)]="form.senha"
                 placeholder="Mínimo 8 caracteres, maiúscula, minúscula, número e especial"
-                [class.err]="showErrors && !senhaForte(form.senha)"
+                [class.err]="showErrors && (!senhaForte(form.senha) || hasApiFieldError('senha', 'password'))"
               />
               <span class="err-msg" *ngIf="showErrors && !senhaForte(form.senha)">
                 Senha deve ter 8+ caracteres, maiúscula, minúscula, número e especial
               </span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('senha', 'password')">{{ firstApiFieldError('senha', 'password') }}</span>
             </div>
             <div class="field role-picker" *ngIf="!editing">
               <label *ngFor="let r of roles">
@@ -237,11 +241,12 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                 type="password"
                 [(ngModel)]="novaSenha"
                 placeholder="Mínimo 8 caracteres, maiúscula, minúscula, número e especial"
-                [class.err]="showErrorsSenha && !senhaForte(novaSenha)"
+                [class.err]="showErrorsSenha && (!senhaForte(novaSenha) || hasApiFieldError('novaSenha', 'password'))"
               />
               <span class="err-msg" *ngIf="showErrorsSenha && !senhaForte(novaSenha)">
                 Senha deve ter 8+ caracteres, maiúscula, minúscula, número e especial
               </span>
+              <span class="err-msg" *ngIf="showErrorsSenha && hasApiFieldError('novaSenha', 'password')">{{ firstApiFieldError('novaSenha', 'password') }}</span>
             </div>
           </div>
           <div class="actions">
@@ -265,6 +270,7 @@ export class UsuariosComponent implements OnInit {
 
   showErrors = false;
   showErrorsSenha = false;
+  apiFieldErrors: Record<string, string[]> = {};
 
   editing: Usuario | null = null;
   rolesTarget: Usuario | null = null;
@@ -284,8 +290,7 @@ export class UsuariosComponent implements OnInit {
     private usuarioService: UsuarioService,
     private roleService: RoleService,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void {
     this.load();
@@ -319,6 +324,7 @@ export class UsuariosComponent implements OnInit {
   openForm(item?: Usuario): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.showForm = true;
     this.showRolesForm = false;
     this.showSenhaForm = false;
@@ -341,31 +347,41 @@ export class UsuariosComponent implements OnInit {
   cancel(): void {
     this.showForm = false;
     this.editing = null;
+    this.apiFieldErrors = {};
   }
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
 
     if (!this.form.nomeCompleto.trim() || !this.isEmailValido(this.form.email)) return;
 
-    if (this.editing) {
-      const updated: Usuario = {
-        ...this.editing,
-        nomeCompleto: this.form.nomeCompleto.trim()
-      };
-      this.usuarioService.update(updated);
-      this.toast.success('Usuario atualizado com sucesso.');
-    } else {
-      if (!this.senhaForte(this.form.senha)) return;
+    try {
+      if (this.editing) {
+        const updated: Usuario = {
+          ...this.editing,
+          nomeCompleto: this.form.nomeCompleto.trim()
+        };
+        this.usuarioService.update(updated);
+        this.toast.success('Usuario atualizado com sucesso.');
+      } else {
+        if (!this.senhaForte(this.form.senha)) return;
 
-      const payload: CreateUsuarioInput = {
-        email: this.form.email,
-        nomeCompleto: this.form.nomeCompleto,
-        senha: this.form.senha,
-        roleIds: this.form.roleIds
-      };
-      this.usuarioService.create(payload);
-      this.toast.success('Usuario criado com sucesso.');
+        const payload: CreateUsuarioInput = {
+          email: this.form.email,
+          nomeCompleto: this.form.nomeCompleto,
+          senha: this.form.senha,
+          roleIds: this.form.roleIds
+        };
+        this.usuarioService.create(payload);
+        this.toast.success('Usuario criado com sucesso.');
+      }
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar usuário.');
+      }
+      return;
     }
 
     this.cancel();
@@ -384,6 +400,7 @@ export class UsuariosComponent implements OnInit {
     this.showRolesForm = false;
     this.rolesTarget = null;
     this.rolesSelecionadasEdicao = [];
+    this.apiFieldErrors = {};
   }
 
   saveRoles(): void {
@@ -403,6 +420,7 @@ export class UsuariosComponent implements OnInit {
     this.senhaTarget = usuario;
     this.novaSenha = '';
     this.showErrorsSenha = false;
+    this.apiFieldErrors = {};
     this.showSenhaForm = true;
     this.showForm = false;
     this.showRolesForm = false;
@@ -413,13 +431,24 @@ export class UsuariosComponent implements OnInit {
     this.senhaTarget = null;
     this.novaSenha = '';
     this.showErrorsSenha = false;
+    this.apiFieldErrors = {};
   }
 
   saveSenha(): void {
     this.showErrorsSenha = true;
+    this.apiFieldErrors = {};
     if (!this.senhaTarget || !this.senhaForte(this.novaSenha)) return;
 
-    this.usuarioService.alterarSenhaAdmin(this.senhaTarget.id, this.novaSenha);
+    try {
+      this.usuarioService.alterarSenhaAdmin(this.senhaTarget.id, this.novaSenha);
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao redefinir senha.');
+      }
+      return;
+    }
+
     this.cancelSenha();
     this.load();
     this.toast.success('Senha redefinida com sucesso.');
@@ -500,5 +529,23 @@ export class UsuariosComponent implements OnInit {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '—';
     return `${date.toLocaleDateString('pt-BR')} ${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 }

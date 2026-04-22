@@ -28,6 +28,7 @@ import { Ncm } from '../../cadastros/ncm/models/ncm.models';
 import { ModeloDespesa } from '../../cadastros/modelos-despesa/models/modelo-despesa.models';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../core/api/error-handler/api-error.mapper';
 
 type LiForm = { ncm: string; descricao: string; valor: number; data: string };
 type DespesaForm = { descricao: string; valor: number; data: string; entraBaseIcms: boolean };
@@ -228,46 +229,52 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
           <div class="form-grid">
             <div class="field w2">
               <label>Despachante <span class="required">*</span></label>
-              <select [(ngModel)]="p1.despachanteId" [class.err]="showErr && !p1.despachanteId">
+              <select [(ngModel)]="p1.despachanteId" [class.err]="showErr && (!p1.despachanteId || hasApiFieldError('despachanteId', 'despachante'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let d of despachantes" [value]="d.id">{{ d.nome }}</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !p1.despachanteId">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('despachanteId', 'despachante')">{{ firstApiFieldError('despachanteId', 'despachante') }}</span>
             </div>
             <div class="field w2">
               <label>Importador <span class="required">*</span></label>
-              <select [(ngModel)]="p1.importadorId" [class.err]="showErr && !p1.importadorId">
+              <select [(ngModel)]="p1.importadorId" [class.err]="showErr && (!p1.importadorId || hasApiFieldError('importadorId', 'importador'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let im of importadores" [value]="im.id">{{ im.razaoSocial }}</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !p1.importadorId">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('importadorId', 'importador')">{{ firstApiFieldError('importadorId', 'importador') }}</span>
             </div>
             <div class="field w2">
               <label>Porto Origem <span class="required">*</span></label>
-              <select [(ngModel)]="p1.portoOrigemId" [class.err]="showErr && !p1.portoOrigemId">
+              <select [(ngModel)]="p1.portoOrigemId" [class.err]="showErr && (!p1.portoOrigemId || hasApiFieldError('portoOrigemId', 'portoOrigem'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let p of portosOrigem" [value]="p.id">{{ p.nome }} ({{ p.codigo }})</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !p1.portoOrigemId">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('portoOrigemId', 'portoOrigem')">{{ firstApiFieldError('portoOrigemId', 'portoOrigem') }}</span>
             </div>
             <div class="field w2">
               <label>Porto Destino <span class="required">*</span></label>
-              <select [(ngModel)]="p1.portoDestinoId" [class.err]="showErr && !p1.portoDestinoId">
+              <select [(ngModel)]="p1.portoDestinoId" [class.err]="showErr && (!p1.portoDestinoId || hasApiFieldError('portoDestinoId', 'portoDestino'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let pd of portosDestino" [value]="pd.id">{{ pd.nome }} ({{ pd.codigo }})</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !p1.portoDestinoId">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('portoDestinoId', 'portoDestino')">{{ firstApiFieldError('portoDestinoId', 'portoDestino') }}</span>
             </div>
             <div class="field w2">
               <label>Responsável <span class="required">*</span></label>
               <input type="text" [(ngModel)]="p1.responsavel" placeholder="Nome do responsável"
-                     [class.err]="showErr && !p1.responsavel.trim()" />
+                     [class.err]="showErr && (!p1.responsavel.trim() || hasApiFieldError('responsavel', 'responsável'))" />
               <span class="err-msg" *ngIf="showErr && !p1.responsavel.trim()">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('responsavel', 'responsável')">{{ firstApiFieldError('responsavel', 'responsável') }}</span>
             </div>
             <div class="field">
               <label>Data <span class="required">*</span></label>
-              <input type="date" [(ngModel)]="p1.data" [class.err]="showErr && !p1.data" />
+              <input type="date" [(ngModel)]="p1.data" [class.err]="showErr && (!p1.data || hasApiFieldError('data'))" />
               <span class="err-msg" *ngIf="showErr && !p1.data">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('data')">{{ firstApiFieldError('data') }}</span>
             </div>
             <div class="field">
               <label>Container</label>
@@ -943,6 +950,7 @@ export class CustoDespachanteComponent implements OnInit {
   completedSteps = new Set<number>();
   showErr = false;
   wizardStatus: StatusCustoDespachante = 'AguardandoCusto';
+  apiFieldErrors: Record<string, string[]> = {};
 
   p1 = {
     despachanteId: '', importadorId: '', portoOrigemId: '', portoDestinoId: '',
@@ -985,8 +993,7 @@ export class CustoDespachanteComponent implements OnInit {
     private orcVendaSvc: OrcamentoVendaService,
     private route: ActivatedRoute,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   private todayStr(): string { return new Date().toISOString().slice(0, 10); }
 
@@ -1198,6 +1205,7 @@ export class CustoDespachanteComponent implements OnInit {
     this.step = 1;
     this.completedSteps = new Set<number>();
     this.showErr = false;
+    this.apiFieldErrors = {};
     this.liErro = '';
     this.despesaErro = '';
     this.ncvErro = '';
@@ -1260,10 +1268,11 @@ export class CustoDespachanteComponent implements OnInit {
     this.showWizard = true;
   }
 
-  cancelWizard(): void { this.showWizard = false; this.editing = null; }
+  cancelWizard(): void { this.showWizard = false; this.editing = null; this.apiFieldErrors = {}; }
 
   salvarTudo(status: StatusCustoDespachante = 'AguardandoCusto'): void {
     const eraEdicao = !!this.editing;
+    this.apiFieldErrors = {};
     if (!this.validateP1()) return;
     const data = {
       despachanteId:  this.p1.despachanteId,
@@ -1287,12 +1296,20 @@ export class CustoDespachanteComponent implements OnInit {
     };
 
     let custoId: string;
-    if (this.editing) {
-      this.service.update({ ...this.editing, ...data });
-      custoId = this.editing.id;
-    } else {
-      const created = this.service.create(data);
-      custoId = created.id;
+    try {
+      if (this.editing) {
+        this.service.update({ ...this.editing, ...data });
+        custoId = this.editing.id;
+      } else {
+        const created = this.service.create(data);
+        custoId = created.id;
+      }
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar custo despachante.');
+      }
+      return;
     }
 
     const today = new Date().toISOString().split('T')[0];
@@ -1358,6 +1375,24 @@ export class CustoDespachanteComponent implements OnInit {
     this.toast.success(status === 'Finalizado'
       ? 'Custo finalizado com sucesso.'
       : (eraEdicao ? 'Custo atualizado com sucesso.' : 'Custo criado com sucesso.'));
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 
   async remove(id: string): Promise<void> {

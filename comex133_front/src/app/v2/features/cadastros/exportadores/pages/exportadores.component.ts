@@ -6,6 +6,7 @@ import { Exportador } from '../models/exportador.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-exportadores',
@@ -77,8 +78,9 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <div class="field w2">
               <label>Nome <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.nome" placeholder="Ex: Zhongshan Manufacturing Co."
-                     [class.err]="showErrors && !form.nome.trim()" />
+                     [class.err]="showErrors && (!form.nome.trim() || hasApiFieldError('nome'))" />
               <span class="err-msg" *ngIf="showErrors && !form.nome.trim()">Nome é obrigatório</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('nome')">{{ firstApiFieldError('nome') }}</span>
             </div>
             <div class="field">
               <label>Documento (CNPJ / Tax ID)</label>
@@ -115,6 +117,7 @@ export class ExportadoresComponent implements OnInit {
   q = '';
   showForm = false;
   showErrors = false;
+  apiFieldErrors: Record<string, string[]> = {};
   editing: Exportador | null = null;
 
   form = { nome: '', documento: '', pais: '', cidade: '', ativo: true };
@@ -142,27 +145,51 @@ export class ExportadoresComponent implements OnInit {
   openForm(item?: Exportador): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.form = item
       ? { nome: item.nome, documento: item.documento, pais: item.pais, cidade: item.cidade, ativo: item.ativo }
       : { nome: '', documento: '', pais: '', cidade: '', ativo: true };
     this.showForm = true;
   }
 
-  cancel(): void { this.showForm = false; this.editing = null; }
+  cancel(): void { this.showForm = false; this.editing = null; this.apiFieldErrors = {}; }
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.form.nome.trim()) return;
     const data: Omit<Exportador, 'id'> = { ...this.form, nome: this.form.nome.trim() };
-    if (this.editing) {
-      this.service.update({ ...this.editing, ...data });
-      this.toast.success('Exportador atualizado com sucesso.');
-    } else {
-      this.service.create(data);
-      this.toast.success('Exportador criado com sucesso.');
+    try {
+      if (this.editing) {
+        this.service.update({ ...this.editing, ...data });
+        this.toast.success('Exportador atualizado com sucesso.');
+      } else {
+        this.service.create(data);
+        this.toast.success('Exportador criado com sucesso.');
+      }
+      this.cancel();
+      this.load();
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar exportador.');
+      }
     }
-    this.cancel();
-    this.load();
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map(k => k?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some(k => !!this.apiFieldErrors[k]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map(k => k?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const k of normalized) { const f = this.apiFieldErrors[k]?.[0]; if (f) return f; }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 
   async remove(id: string): Promise<void> {

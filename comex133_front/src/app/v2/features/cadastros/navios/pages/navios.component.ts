@@ -7,6 +7,7 @@ import { NavioCadastro } from '../models/navio.models';
 import { NaviosCadastroService } from '../services/navios-cadastro.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-navios-cadastro',
@@ -84,8 +85,9 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
           <div class="form-grid">
             <div class="field w2">
               <label>Nome do Navio <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="form.nomeNavio" [class.err]="showErrors && !form.nomeNavio.trim()" />
+              <input type="text" [(ngModel)]="form.nomeNavio" [class.err]="showErrors && (!form.nomeNavio.trim() || hasApiFieldError('nomeNavio', 'nome', 'name'))" />
               <span class="err-msg" *ngIf="showErrors && !form.nomeNavio.trim()">Nome é obrigatório</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('nomeNavio', 'nome', 'name')">{{ firstApiFieldError('nomeNavio', 'nome', 'name') }}</span>
             </div>
             <div class="field">
               <label>Código IMO</label>
@@ -128,6 +130,7 @@ export class NaviosComponent implements OnInit, OnDestroy {
   showForm = false;
   showErrors = false;
   editing: NavioCadastro | null = null;
+  apiFieldErrors: Record<string, string[]> = {};
 
   private readonly subs = new Subscription();
 
@@ -142,8 +145,7 @@ export class NaviosComponent implements OnInit, OnDestroy {
   constructor(
     private service: NaviosCadastroService,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void {
     this.subs.add(this.service.navios$.subscribe(items => this.items = [...items]));
@@ -172,6 +174,7 @@ export class NaviosComponent implements OnInit, OnDestroy {
   openForm(item?: NavioCadastro): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.form = item
       ? {
           nomeNavio: item.nomeNavio,
@@ -193,10 +196,12 @@ export class NaviosComponent implements OnInit, OnDestroy {
   cancel(): void {
     this.showForm = false;
     this.editing = null;
+    this.apiFieldErrors = {};
   }
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.form.nomeNavio.trim()) return;
 
     const payload: Omit<NavioCadastro, 'id'> = {
@@ -210,12 +215,22 @@ export class NaviosComponent implements OnInit, OnDestroy {
     if (this.editing) {
       this.service.update({ ...this.editing, ...payload }).subscribe({
         next: () => this.toast.success('Navio atualizado com sucesso.'),
-        error: (err) => this.toast.error(err?.message ?? 'Erro ao atualizar navio.')
+        error: (err) => {
+          this.apiFieldErrors = this.collectFieldErrors(err);
+          if (!Object.keys(this.apiFieldErrors).length) {
+            this.toast.error(err?.message ?? 'Erro ao atualizar navio.');
+          }
+        }
       });
     } else {
       this.service.create(payload).subscribe({
         next: () => this.toast.success('Navio criado com sucesso.'),
-        error: (err) => this.toast.error(err?.message ?? 'Erro ao criar navio.')
+        error: (err) => {
+          this.apiFieldErrors = this.collectFieldErrors(err);
+          if (!Object.keys(this.apiFieldErrors).length) {
+            this.toast.error(err?.message ?? 'Erro ao criar navio.');
+          }
+        }
       });
     }
 
@@ -240,5 +255,23 @@ export class NaviosComponent implements OnInit, OnDestroy {
 
   retryLoad(): void {
     this.service.reload();
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 }

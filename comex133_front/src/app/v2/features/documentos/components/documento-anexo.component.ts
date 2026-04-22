@@ -7,6 +7,7 @@ import { DocumentoComVinculo, TipoDocumento } from '../models/documento.models';
 import { AuthService } from '../../../../features/auth/auth.providers';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-documento-anexo',
@@ -31,6 +32,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
               <option value="">Selecione...</option>
               <option *ngFor="let t of tiposAtivos" [value]="t.id">{{ t.codigo }} — {{ t.nome }}</option>
             </select>
+            <div class="upload-error" *ngIf="hasApiFieldError('uploadTipoId', 'tipoDocumentoId', 'tipo')">{{ firstApiFieldError('uploadTipoId', 'tipoDocumentoId', 'tipo') }}</div>
           </div>
           <div class="form-group">
             <label>Arquivo *</label>
@@ -41,6 +43,7 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
               (change)="onFileSelected($event)"
               accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.xlsx,.xls,.docx,.doc,.txt,.csv"
             />
+            <div class="upload-error" *ngIf="hasApiFieldError('arquivo', 'file', 'selectedFile')">{{ firstApiFieldError('arquivo', 'file', 'selectedFile') }}</div>
           </div>
         </div>
         <div class="form-group">
@@ -237,14 +240,14 @@ export class DocumentoAnexoComponent implements OnInit, OnChanges {
   selectedFile: File | null = null;
   uploadError = '';
   previewDoc: DocumentoComVinculo | null = null;
+  apiFieldErrors: Record<string, string[]> = {};
 
   constructor(
     public svc: DocumentoService,
     private tipoSvc: TipoDocumentoService,
     private auth: AuthService,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void {
     this.tiposAtivos = this.tipoSvc.getAtivos();
@@ -267,9 +270,11 @@ export class DocumentoAnexoComponent implements OnInit, OnChanges {
     const input = event.target as HTMLInputElement;
     this.selectedFile = input.files?.[0] ?? null;
     this.uploadError = '';
+    this.apiFieldErrors = {};
   }
 
   async anexar(): Promise<void> {
+    this.apiFieldErrors = {};
     if (!this.selectedFile || !this.uploadTipoId) return;
 
     const MAX_BYTES = 8 * 1024 * 1024; // 8 MB safety limit for localStorage
@@ -296,9 +301,12 @@ export class DocumentoAnexoComponent implements OnInit, OnChanges {
       this.uploadTipoId = '';
       this.uploadObs = '';
       this.toast.success('Documento anexado com sucesso.');
-    } catch {
-      this.uploadError = 'Erro ao processar o arquivo.';
-      this.toast.error('Erro ao anexar documento.');
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      this.uploadError = Object.keys(this.apiFieldErrors).length
+        ? 'Corrija os campos destacados e tente novamente.'
+        : 'Erro ao processar o arquivo.';
+      this.toast.error(err?.message ?? 'Erro ao anexar documento.');
     } finally {
       this.uploading = false;
     }
@@ -336,5 +344,23 @@ export class DocumentoAnexoComponent implements OnInit, OnChanges {
     const wordExts = ['docx', 'doc'];
     if (wordExts.includes(doc.extensao)) return '📝';
     return '📎';
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 }

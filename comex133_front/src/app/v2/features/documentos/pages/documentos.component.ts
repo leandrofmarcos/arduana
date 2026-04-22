@@ -7,6 +7,7 @@ import { TipoDocumento, CategoriaDocumento, Documento } from '../models/document
 import { CRUD_STYLES } from '../../../shared/styles/crud-page.styles';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../core/api/error-handler/api-error.mapper';
 
 type TabType = 'tipos' | 'todos';
 type CategoriaFilter = '' | CategoriaDocumento;
@@ -132,10 +133,12 @@ type CategoriaFilter = '' | CategoriaDocumento;
             <div class="form-group col-2">
               <label>Nome *</label>
               <input type="text" [(ngModel)]="form.nome" class="form-control" placeholder="Ex: Bill of Lading" />
+              <div class="form-error" *ngIf="hasApiFieldError('nome', 'name')">{{ firstApiFieldError('nome', 'name') }}</div>
             </div>
             <div class="form-group">
               <label>Código *</label>
               <input type="text" [(ngModel)]="form.codigo" class="form-control" placeholder="Ex: BL" style="text-transform:uppercase" />
+              <div class="form-error" *ngIf="hasApiFieldError('codigo', 'code')">{{ firstApiFieldError('codigo', 'code') }}</div>
             </div>
             <div class="form-group">
               <label>Categoria *</label>
@@ -147,6 +150,7 @@ type CategoriaFilter = '' | CategoriaDocumento;
                 <option value="Contrato">Contrato</option>
                 <option value="Outro">Outro</option>
               </select>
+              <div class="form-error" *ngIf="hasApiFieldError('categoria', 'category')">{{ firstApiFieldError('categoria', 'category') }}</div>
             </div>
             <div class="form-group">
               <label>Status</label>
@@ -355,6 +359,7 @@ export class DocumentosComponent implements OnInit {
   editId: string | null = null;
   form: { nome: string; codigo: string; categoria: CategoriaDocumento | ''; ativo: boolean } = this.emptyForm();
   formError = '';
+  apiFieldErrors: Record<string, string[]> = {};
 
   // Todos tab
   searchTodos = '';
@@ -365,8 +370,7 @@ export class DocumentosComponent implements OnInit {
     private tipoSvc: TipoDocumentoService,
     public svc: DocumentoService,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void {
     this.loadTipos();
@@ -389,6 +393,7 @@ export class DocumentosComponent implements OnInit {
     this.editId = null;
     this.form = this.emptyForm();
     this.formError = '';
+    this.apiFieldErrors = {};
     this.showModal = true;
   }
 
@@ -396,10 +401,12 @@ export class DocumentosComponent implements OnInit {
     this.editId = t.id;
     this.form = { nome: t.nome, codigo: t.codigo, categoria: t.categoria, ativo: t.ativo };
     this.formError = '';
+    this.apiFieldErrors = {};
     this.showModal = true;
   }
 
   salvarTipo(): void {
+    this.apiFieldErrors = {};
     if (!this.form.nome.trim() || !this.form.codigo.trim() || !this.form.categoria) {
       this.formError = 'Preencha todos os campos obrigatórios.';
       return;
@@ -410,13 +417,22 @@ export class DocumentosComponent implements OnInit {
       categoria: this.form.categoria as CategoriaDocumento,
       ativo: this.form.ativo
     };
-    if (this.editId) {
-      this.tipoSvc.update({ ...data, id: this.editId });
-      this.toast.success('Tipo de documento atualizado com sucesso.');
-    } else {
-      this.tipoSvc.create(data);
-      this.toast.success('Tipo de documento criado com sucesso.');
+    try {
+      if (this.editId) {
+        this.tipoSvc.update({ ...data, id: this.editId });
+        this.toast.success('Tipo de documento atualizado com sucesso.');
+      } else {
+        this.tipoSvc.create(data);
+        this.toast.success('Tipo de documento criado com sucesso.');
+      }
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      this.formError = Object.keys(this.apiFieldErrors).length
+        ? 'Corrija os campos destacados e tente novamente.'
+        : (err?.message ?? 'Erro ao salvar tipo de documento.');
+      return;
     }
+
     this.loadTipos();
     this.fecharModal();
   }
@@ -439,6 +455,7 @@ export class DocumentosComponent implements OnInit {
   fecharModal(): void {
     this.showModal = false;
     this.formError = '';
+    this.apiFieldErrors = {};
   }
 
   // ── Todos os documentos ───────────────────────────────────────────────────
@@ -501,5 +518,23 @@ export class DocumentosComponent implements OnInit {
 
   private emptyForm(): { nome: string; codigo: string; categoria: CategoriaDocumento | ''; ativo: boolean } {
     return { nome: '', codigo: '', categoria: '', ativo: true };
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 }

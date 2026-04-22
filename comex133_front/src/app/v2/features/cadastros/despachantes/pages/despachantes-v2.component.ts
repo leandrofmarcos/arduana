@@ -6,6 +6,7 @@ import { DespachanteV2 } from '../models/despachante-v2.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-despachantes-v2',
@@ -78,8 +79,9 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <div class="field w2">
               <label>Nome <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.nome" placeholder="Ex: João Silva Despachos"
-                     [class.err]="showErrors && !form.nome.trim()" />
+                     [class.err]="showErrors && (!form.nome.trim() || hasApiFieldError('nome', 'name'))" />
               <span class="err-msg" *ngIf="showErrors && !form.nome.trim()">Nome é obrigatório</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('nome', 'name')">{{ firstApiFieldError('nome', 'name') }}</span>
             </div>
             <div class="field">
               <label>CRN (nº do registro)</label>
@@ -117,14 +119,14 @@ export class DespachantesV2Component implements OnInit {
   showForm = false;
   showErrors = false;
   editing: DespachanteV2 | null = null;
+  apiFieldErrors: Record<string, string[]> = {};
 
   form = { nome: '', crn: '', email: '', telefone: '', ativo: true };
 
   constructor(
     private service: DespachanteV2Service,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -143,6 +145,7 @@ export class DespachantesV2Component implements OnInit {
   openForm(item?: DespachanteV2): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.form = item
       ? { nome: item.nome, crn: item.crn, email: item.email, telefone: item.telefone, ativo: item.ativo }
       : { nome: '', crn: '', email: '', telefone: '', ativo: true };
@@ -156,6 +159,7 @@ export class DespachantesV2Component implements OnInit {
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.form.nome.trim()) return;
 
     const data: Omit<DespachanteV2, 'id'> = {
@@ -166,13 +170,22 @@ export class DespachantesV2Component implements OnInit {
       ativo: this.form.ativo
     };
 
-    if (this.editing) {
-      this.service.update({ ...this.editing, ...data });
-      this.toast.success('Despachante atualizado com sucesso.');
-    } else {
-      this.service.create(data);
-      this.toast.success('Despachante criado com sucesso.');
+    try {
+      if (this.editing) {
+        this.service.update({ ...this.editing, ...data });
+        this.toast.success('Despachante atualizado com sucesso.');
+      } else {
+        this.service.create(data);
+        this.toast.success('Despachante criado com sucesso.');
+      }
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar despachante.');
+      }
+      return;
     }
+
     this.cancel();
     this.load();
   }
@@ -190,5 +203,23 @@ export class DespachantesV2Component implements OnInit {
     this.service.remove(id);
     this.load();
     this.toast.success('Despachante removido com sucesso.');
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 }

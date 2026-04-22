@@ -6,6 +6,7 @@ import { Importador } from '../models/importador.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-importadores',
@@ -78,8 +79,9 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <div class="field w2">
               <label>Razão Social <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.razaoSocial" placeholder="Ex: Importadora ABC Ltda"
-                     [class.err]="showErrors && !form.razaoSocial.trim()" />
+                     [class.err]="showErrors && (!form.razaoSocial.trim() || hasApiFieldError('razaoSocial'))" />
               <span class="err-msg" *ngIf="showErrors && !form.razaoSocial.trim()">Razão social é obrigatória</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('razaoSocial')">{{ firstApiFieldError('razaoSocial') }}</span>
             </div>
             <div class="field">
               <label>CNPJ</label>
@@ -116,6 +118,7 @@ export class ImportadoresComponent implements OnInit {
   q = '';
   showForm = false;
   showErrors = false;
+  apiFieldErrors: Record<string, string[]> = {};
   editing: Importador | null = null;
 
   form = { razaoSocial: '', cnpj: '', email: '', telefone: '', ativo: true };
@@ -143,6 +146,7 @@ export class ImportadoresComponent implements OnInit {
   openForm(item?: Importador): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.form = item
       ? { razaoSocial: item.razaoSocial, cnpj: item.cnpj, email: item.email, telefone: item.telefone, ativo: item.ativo }
       : { razaoSocial: '', cnpj: '', email: '', telefone: '', ativo: true };
@@ -152,10 +156,12 @@ export class ImportadoresComponent implements OnInit {
   cancel(): void {
     this.showForm = false;
     this.editing = null;
+    this.apiFieldErrors = {};
   }
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.form.razaoSocial.trim()) return;
 
     const data: Omit<Importador, 'id'> = {
@@ -166,15 +172,37 @@ export class ImportadoresComponent implements OnInit {
       ativo: this.form.ativo
     };
 
-    if (this.editing) {
-      this.service.update({ ...this.editing, ...data });
-      this.toast.success('Importador atualizado com sucesso.');
-    } else {
-      this.service.create(data);
-      this.toast.success('Importador criado com sucesso.');
+    try {
+      if (this.editing) {
+        this.service.update({ ...this.editing, ...data });
+        this.toast.success('Importador atualizado com sucesso.');
+      } else {
+        this.service.create(data);
+        this.toast.success('Importador criado com sucesso.');
+      }
+      this.cancel();
+      this.load();
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar importador.');
+      }
     }
-    this.cancel();
-    this.load();
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map(k => k?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some(k => !!this.apiFieldErrors[k]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map(k => k?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const k of normalized) { const f = this.apiFieldErrors[k]?.[0]; if (f) return f; }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 
   async remove(id: string): Promise<void> {

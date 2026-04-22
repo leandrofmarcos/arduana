@@ -27,6 +27,7 @@ import { EmbarqueNavioVinculoFormComponent } from '../components/embarque-navio-
 import { ActivatedRoute }                  from '@angular/router';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../core/api/error-handler/api-error.mapper';
 
 type Mode = 'list' | 'form' | 'detail' | 'acompanhamento';
 
@@ -166,35 +167,39 @@ type Mode = 'list' | 'form' | 'detail' | 'acompanhamento';
           <div class="form-grid">
             <div class="field w2">
               <label>Cliente <span class="required">*</span></label>
-              <select [(ngModel)]="form.clienteId" [class.err]="showErr && !form.clienteId">
+              <select [(ngModel)]="form.clienteId" [class.err]="showErr && (!form.clienteId || hasApiFieldError('clienteId', 'cliente'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let c of clientes" [value]="c.id">{{ c.razaoSocial }}</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !form.clienteId">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('clienteId', 'cliente')">{{ firstApiFieldError('clienteId', 'cliente') }}</span>
             </div>
             <div class="field">
               <label>Despachante <span class="required">*</span></label>
-              <select [(ngModel)]="form.despachanteId" [class.err]="showErr && !form.despachanteId">
+              <select [(ngModel)]="form.despachanteId" [class.err]="showErr && (!form.despachanteId || hasApiFieldError('despachanteId', 'despachante'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let d of despachantes" [value]="d.id">{{ d.nome }}</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !form.despachanteId">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('despachanteId', 'despachante')">{{ firstApiFieldError('despachanteId', 'despachante') }}</span>
             </div>
             <div class="field">
               <label>Porto Origem <span class="required">*</span></label>
-              <select [(ngModel)]="form.portoOrigemId" [class.err]="showErr && !form.portoOrigemId">
+              <select [(ngModel)]="form.portoOrigemId" [class.err]="showErr && (!form.portoOrigemId || hasApiFieldError('portoOrigemId', 'portoOrigem'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let p of portosOrigem" [value]="p.id">{{ p.nome }}</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !form.portoOrigemId">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('portoOrigemId', 'portoOrigem')">{{ firstApiFieldError('portoOrigemId', 'portoOrigem') }}</span>
             </div>
             <div class="field">
               <label>Porto Destino <span class="required">*</span></label>
-              <select [(ngModel)]="form.portoDestinoId" [class.err]="showErr && !form.portoDestinoId">
+              <select [(ngModel)]="form.portoDestinoId" [class.err]="showErr && (!form.portoDestinoId || hasApiFieldError('portoDestinoId', 'portoDestino'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let p of portosDestino" [value]="p.id">{{ p.nome }}</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !form.portoDestinoId">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('portoDestinoId', 'portoDestino')">{{ firstApiFieldError('portoDestinoId', 'portoDestino') }}</span>
             </div>
             <div class="field">
               <label>Agente de Carga</label>
@@ -277,13 +282,15 @@ type Mode = 'list' | 'form' | 'detail' | 'acompanhamento';
           <div class="form-grid">
             <div class="field">
               <label>ETD <span class="required">*</span></label>
-              <input type="date" [(ngModel)]="form.etd" [class.err]="showErr && !form.etd" />
+              <input type="date" [(ngModel)]="form.etd" [class.err]="showErr && (!form.etd || hasApiFieldError('etd'))" />
               <span class="err-msg" *ngIf="showErr && !form.etd">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('etd')">{{ firstApiFieldError('etd') }}</span>
             </div>
             <div class="field">
               <label>ETA <span class="required">*</span></label>
-              <input type="date" [(ngModel)]="form.eta" [class.err]="showErr && !form.eta" />
+              <input type="date" [(ngModel)]="form.eta" [class.err]="showErr && (!form.eta || hasApiFieldError('eta'))" />
               <span class="err-msg" *ngIf="showErr && !form.eta">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('eta')">{{ firstApiFieldError('eta') }}</span>
             </div>
             <div class="field">
               <label>Aviso Previsão</label>
@@ -708,6 +715,7 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
   editing: EmbarqueAduana | null = null;
   editMode = false;
   showErr = false;
+  apiFieldErrors: Record<string, string[]> = {};
 
   // ── List filters ──────────────────────────────────────────────────────
   qGeral = '';
@@ -779,8 +787,7 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     private solicitacaoSvc: SolicitacaoOrcamentoService,
     private route: ActivatedRoute,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void {
     this.statusList   = this.statusSvc.getAll();
@@ -888,6 +895,7 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
   openForm(item?: EmbarqueAduana): void {
     this.editing = item ?? null;
     this.showErr = false;
+    this.apiFieldErrors = {};
     if (item) {
       this.form = {
         clienteId:             item.clienteId,
@@ -927,10 +935,12 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     if (this.detail) { this.mode = 'detail'; }
     else { this.mode = 'list'; }
     this.editing = null;
+    this.apiFieldErrors = {};
   }
 
   salvar(): void {
     this.showErr = true;
+    this.apiFieldErrors = {};
     const { clienteId, despachanteId, portoOrigemId, portoDestinoId, etd, eta } = this.form;
     if (!clienteId || !despachanteId || !portoOrigemId || !portoDestinoId || !etd || !eta) return;
 
@@ -962,21 +972,28 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
       observacao:           this.form.observacao || undefined,
     };
 
-    if (this.editing) {
-      this.svc.update({ ...this.editing, ...data });
-      this.detail = this.svc.getById(this.editing.id) ?? null;
-      this.mode = 'detail';
-      this.toast.success('Embarque atualizado com sucesso.');
-    } else {
-      const created = this.svc.create(data);
-      // Registrar status inicial no histórico
-      if (statusInicial) {
-        this.svc.alterarStatus(created.id, created.statusEmbarqueId,
-          this.auth.currentUser?.username ?? '', 'Embarque criado');
+    try {
+      if (this.editing) {
+        this.svc.update({ ...this.editing, ...data });
+        this.detail = this.svc.getById(this.editing.id) ?? null;
+        this.mode = 'detail';
+        this.toast.success('Embarque atualizado com sucesso.');
+      } else {
+        const created = this.svc.create(data);
+        if (statusInicial) {
+          this.svc.alterarStatus(created.id, created.statusEmbarqueId,
+            this.auth.currentUser?.username ?? '', 'Embarque criado');
+        }
+        this.detail = this.svc.getById(created.id) ?? null;
+        this.mode = 'detail';
+        this.toast.success('Embarque criado com sucesso.');
       }
-      this.detail = this.svc.getById(created.id) ?? null;
-      this.mode = 'detail';
-      this.toast.success('Embarque criado com sucesso.');
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar embarque.');
+      }
+      return;
     }
     this.editing = null;
     this.load();
@@ -1002,6 +1019,24 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     this.load();
     if (this.detail?.id === id) { this.detail = null; this.mode = 'list'; }
     this.toast.success('Embarque removido com sucesso.');
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 
   // ── Detail ────────────────────────────────────────────────────────────

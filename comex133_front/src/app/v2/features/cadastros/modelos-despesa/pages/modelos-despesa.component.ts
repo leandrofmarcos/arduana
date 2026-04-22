@@ -8,6 +8,7 @@ import { DespesaCadastro, CategoriaDespesa } from '../../despesas-cadastro/model
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 interface ModeloVM extends ModeloDespesa {
   expanded: boolean;
@@ -181,8 +182,9 @@ interface ModeloVM extends ModeloDespesa {
             <div class="field w2">
               <label>Nome do Modelo <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.nome" placeholder="Ex: Desembaraço Padrão FCL"
-                     [class.err]="showErrors && !form.nome.trim()" />
+                     [class.err]="showErrors && (!form.nome.trim() || hasApiFieldError('nome'))" />
               <span class="err-msg" *ngIf="showErrors && !form.nome.trim()">Nome é obrigatório</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('nome')">{{ firstApiFieldError('nome') }}</span>
             </div>
             <div class="field w2">
               <label>Descrição (opcional)</label>
@@ -247,6 +249,7 @@ export class ModelosDespesaComponent implements OnInit {
 
   showModal = false;
   showErrors = false;
+  apiFieldErrors: Record<string, string[]> = {};
   editingModelo: ModeloVM | null = null;
 
   form = { nome: '', descricao: '' };
@@ -363,6 +366,7 @@ export class ModelosDespesaComponent implements OnInit {
     this.allDespesas = this.despesaService.getAtivos(); // always refresh
     this.editingModelo = m ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.pickerQ = '';
     this.form = m
       ? { nome: m.nome, descricao: m.descricao ?? '' }
@@ -376,20 +380,31 @@ export class ModelosDespesaComponent implements OnInit {
   closeModal(): void {
     this.showModal = false;
     this.editingModelo = null;
+    this.apiFieldErrors = {};
   }
 
   saveModelo(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.form.nome.trim() || this.selectedIds.size === 0) return;
 
     if (this.editingModelo) {
-      this.service.update({
-        ...this.editingModelo,
-        nome:      this.form.nome.trim(),
-        descricao: this.form.descricao.trim() || undefined,
-      });
-      this.service.replaceItens(this.editingModelo.id, Array.from(this.selectedIds));
-      this.toast.success('Modelo de despesas atualizado com sucesso.');
+      try {
+        this.service.update({
+          ...this.editingModelo,
+          nome:      this.form.nome.trim(),
+          descricao: this.form.descricao.trim() || undefined,
+        });
+        this.service.replaceItens(this.editingModelo.id, Array.from(this.selectedIds));
+        this.toast.success('Modelo de despesas atualizado com sucesso.');
+        this.closeModal();
+        this.load();
+      } catch (err: any) {
+        this.apiFieldErrors = this.collectFieldErrors(err);
+        if (!Object.keys(this.apiFieldErrors).length) {
+          this.toast.error(err?.message ?? 'Erro ao atualizar modelo.');
+        }
+      }
     } else {
       this.service.create({
         nome:      this.form.nome.trim(),
@@ -401,13 +416,30 @@ export class ModelosDespesaComponent implements OnInit {
           this.closeModal();
           this.toast.success('Modelo de despesas criado com sucesso.');
           setTimeout(() => this.load(), 100);
+        },
+        error: (err: any) => {
+          this.apiFieldErrors = this.collectFieldErrors(err);
+          if (!Object.keys(this.apiFieldErrors).length) {
+            this.toast.error(err?.message ?? 'Erro ao criar modelo.');
+          }
         }
       });
-      return;
     }
+  }
 
-    this.closeModal();
-    this.load();
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map(k => k?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some(k => !!this.apiFieldErrors[k]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map(k => k?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const k of normalized) { const f = this.apiFieldErrors[k]?.[0]; if (f) return f; }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 
   async removeModelo(id: string): Promise<void> {

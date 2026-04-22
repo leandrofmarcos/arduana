@@ -6,6 +6,7 @@ import { Role } from '../models/role.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-roles',
@@ -70,9 +71,10 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
                 type="text"
                 [(ngModel)]="form.nome"
                 placeholder="Ex: Admin"
-                [class.err]="showErrors && !form.nome.trim()"
+                [class.err]="showErrors && (!form.nome.trim() || hasApiFieldError('nome', 'name'))"
               />
               <span class="err-msg" *ngIf="showErrors && !form.nome.trim()">Nome é obrigatório</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('nome', 'name')">{{ firstApiFieldError('nome', 'name') }}</span>
             </div>
             <div class="field w3">
               <label>Descrição</label>
@@ -95,14 +97,14 @@ export class RolesComponent implements OnInit {
   showForm = false;
   showErrors = false;
   editing: Role | null = null;
+  apiFieldErrors: Record<string, string[]> = {};
 
   form = { nome: '', descricao: '' };
 
   constructor(
     private service: RoleService,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -120,6 +122,7 @@ export class RolesComponent implements OnInit {
   openForm(item?: Role): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.form = item
       ? { nome: item.nome, descricao: item.descricao ?? '' }
       : { nome: '', descricao: '' };
@@ -129,25 +132,35 @@ export class RolesComponent implements OnInit {
   cancel(): void {
     this.showForm = false;
     this.editing = null;
+    this.apiFieldErrors = {};
   }
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.form.nome.trim()) return;
 
-    if (this.editing) {
-      this.service.update({
-        ...this.editing,
-        nome: this.form.nome.trim(),
-        descricao: this.form.descricao.trim() || undefined
-      });
-      this.toast.success('Role atualizada com sucesso.');
-    } else {
-      this.service.create({
-        nome: this.form.nome.trim(),
-        descricao: this.form.descricao.trim() || undefined
-      });
-      this.toast.success('Role criada com sucesso.');
+    try {
+      if (this.editing) {
+        this.service.update({
+          ...this.editing,
+          nome: this.form.nome.trim(),
+          descricao: this.form.descricao.trim() || undefined
+        });
+        this.toast.success('Role atualizada com sucesso.');
+      } else {
+        this.service.create({
+          nome: this.form.nome.trim(),
+          descricao: this.form.descricao.trim() || undefined
+        });
+        this.toast.success('Role criada com sucesso.');
+      }
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar role.');
+      }
+      return;
     }
 
     this.cancel();
@@ -174,5 +187,23 @@ export class RolesComponent implements OnInit {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '—';
     return date.toLocaleDateString('pt-BR');
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 }

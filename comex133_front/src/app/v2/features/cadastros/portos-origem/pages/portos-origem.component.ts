@@ -8,6 +8,7 @@ import { PaginationComponent } from '../../../../../core/components/pagination/p
 import { PagedResult, PaginationParams } from '../../../../../core/api/models/api-response.model';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 @Component({
   selector: 'app-portos-origem',
@@ -92,20 +93,23 @@ import { ConfirmDialogService } from '../../../../../core/services/confirm-dialo
             <div class="field w2">
               <label>Nome do Porto <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.nome" placeholder="Ex: Porto de Shangai"
-                     [class.err]="showErrors && !form.nome.trim()" />
+                [class.err]="showErrors && (!form.nome.trim() || hasApiFieldError('nome', 'name'))" />
               <span class="err-msg" *ngIf="showErrors && !form.nome.trim()">Nome é obrigatório</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('nome', 'name')">{{ firstApiFieldError('nome', 'name') }}</span>
             </div>
             <div class="field">
               <label>Código <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.codigo" placeholder="Ex: SHA"
-                     [class.err]="showErrors && !form.codigo.trim()" />
+                [class.err]="showErrors && (!form.codigo.trim() || hasApiFieldError('codigo', 'code'))" />
               <span class="err-msg" *ngIf="showErrors && !form.codigo.trim()">Código é obrigatório</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('codigo', 'code')">{{ firstApiFieldError('codigo', 'code') }}</span>
             </div>
             <div class="field w2">
               <label>País <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.pais" placeholder="Ex: China"
-                     [class.err]="showErrors && !form.pais.trim()" />
+                [class.err]="showErrors && (!form.pais.trim() || hasApiFieldError('pais', 'country'))" />
               <span class="err-msg" *ngIf="showErrors && !form.pais.trim()">País é obrigatório</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('pais', 'country')">{{ firstApiFieldError('pais', 'country') }}</span>
             </div>
             <div class="field">
               <label>Status</label>
@@ -135,14 +139,14 @@ export class PortosOrigemComponent implements OnInit {
   showForm = false;
   showErrors = false;
   editing: PortoOrigem | null = null;
+  apiFieldErrors: Record<string, string[]> = {};
 
   form = { nome: '', codigo: '', pais: '', ativo: true };
 
   constructor(
     private service: PortoOrigemService,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
-  ) {}
+    private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -186,6 +190,7 @@ export class PortosOrigemComponent implements OnInit {
   openForm(item?: PortoOrigem): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.form = item
       ? { nome: item.nome, codigo: item.codigo, pais: item.pais, ativo: item.ativo }
       : { nome: '', codigo: '', pais: '', ativo: true };
@@ -195,10 +200,12 @@ export class PortosOrigemComponent implements OnInit {
   cancel(): void {
     this.showForm = false;
     this.editing = null;
+    this.apiFieldErrors = {};
   }
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.form.nome.trim() || !this.form.codigo.trim() || !this.form.pais.trim()) return;
 
     if (this.editing) {
@@ -208,7 +215,12 @@ export class PortosOrigemComponent implements OnInit {
           this.cancel();
           this.load(this.pagedResult?.page ?? 1, this.pagedResult?.pageSize ?? 20);
         },
-        error: err => this.toast.error(err?.message ?? 'Erro ao atualizar porto de origem.')
+        error: err => {
+          this.apiFieldErrors = this.collectFieldErrors(err);
+          if (!Object.keys(this.apiFieldErrors).length) {
+            this.toast.error(err?.message ?? 'Erro ao atualizar porto de origem.');
+          }
+        }
       });
     } else {
       this.service.create(this.form).subscribe({
@@ -217,7 +229,12 @@ export class PortosOrigemComponent implements OnInit {
           this.cancel();
           this.load(this.pagedResult?.page ?? 1, this.pagedResult?.pageSize ?? 20);
         },
-        error: err => this.toast.error(err?.message ?? 'Erro ao criar porto de origem.')
+        error: err => {
+          this.apiFieldErrors = this.collectFieldErrors(err);
+          if (!Object.keys(this.apiFieldErrors).length) {
+            this.toast.error(err?.message ?? 'Erro ao criar porto de origem.');
+          }
+        }
       });
     }
   }
@@ -239,5 +256,23 @@ export class PortosOrigemComponent implements OnInit {
       },
       error: err => this.toast.error(err?.message ?? 'Erro ao remover porto de origem.')
     });
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map((key) => key?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) return first;
+    }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 }

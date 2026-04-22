@@ -6,6 +6,7 @@ import { DespesaCadastro, CATEGORIAS_DESPESA, CategoriaDespesa } from '../models
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
+import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
 
 const CAT_BG: Record<string, string> = {
   'Agência Marítima': '#dbeafe',
@@ -120,16 +121,18 @@ const CAT_COLOR: Record<string, string> = {
             <div class="field w2">
               <label>Descrição <span class="required">*</span></label>
               <input type="text" [(ngModel)]="form.descricao" placeholder="Ex: THC"
-                     [class.err]="showErrors && !form.descricao.trim()" />
+                     [class.err]="showErrors && (!form.descricao.trim() || hasApiFieldError('descricao'))" />
               <span class="err-msg" *ngIf="showErrors && !form.descricao.trim()">Descrição é obrigatória</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('descricao')">{{ firstApiFieldError('descricao') }}</span>
             </div>
             <div class="field">
               <label>Categoria <span class="required">*</span></label>
-              <select [(ngModel)]="form.categoria" [class.err]="showErrors && !form.categoria">
+              <select [(ngModel)]="form.categoria" [class.err]="showErrors && (!form.categoria || hasApiFieldError('categoria'))">
                 <option value="">Selecione...</option>
                 <option *ngFor="let c of categorias" [value]="c">{{ c }}</option>
               </select>
               <span class="err-msg" *ngIf="showErrors && !form.categoria">Categoria é obrigatória</span>
+              <span class="err-msg" *ngIf="showErrors && hasApiFieldError('categoria')">{{ firstApiFieldError('categoria') }}</span>
             </div>
             <div class="field">
               <label>Valor de Referência (R$) <span class="required">*</span></label>
@@ -162,6 +165,7 @@ export class DespesasCadastroComponent implements OnInit {
   catFiltro = '';
   showForm = false;
   showErrors = false;
+  apiFieldErrors: Record<string, string[]> = {};
   editing: DespesaCadastro | null = null;
 
   form: { descricao: string; valor: number; categoria: string; ativo: boolean } = {
@@ -200,6 +204,7 @@ export class DespesasCadastroComponent implements OnInit {
   openForm(item?: DespesaCadastro): void {
     this.editing = item ?? null;
     this.showErrors = false;
+    this.apiFieldErrors = {};
     this.form = item
       ? { descricao: item.descricao, valor: item.valor, categoria: item.categoria, ativo: item.ativo }
       : { descricao: '', valor: 0, categoria: '', ativo: true };
@@ -209,10 +214,12 @@ export class DespesasCadastroComponent implements OnInit {
   cancel(): void {
     this.showForm = false;
     this.editing = null;
+    this.apiFieldErrors = {};
   }
 
   save(): void {
     this.showErrors = true;
+    this.apiFieldErrors = {};
     if (!this.form.descricao.trim() || !this.form.categoria || this.form.valor == null) return;
 
     const data: Omit<DespesaCadastro, 'id'> = {
@@ -222,15 +229,37 @@ export class DespesasCadastroComponent implements OnInit {
       ativo:     this.form.ativo,
     };
 
-    if (this.editing) {
-      this.service.update({ ...this.editing, ...data });
-      this.toast.success('Despesa atualizada com sucesso.');
-    } else {
-      this.service.create(data);
-      this.toast.success('Despesa criada com sucesso.');
+    try {
+      if (this.editing) {
+        this.service.update({ ...this.editing, ...data });
+        this.toast.success('Despesa atualizada com sucesso.');
+      } else {
+        this.service.create(data);
+        this.toast.success('Despesa criada com sucesso.');
+      }
+      this.cancel();
+      this.load();
+    } catch (err: any) {
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length) {
+        this.toast.error(err?.message ?? 'Erro ao salvar despesa.');
+      }
     }
-    this.cancel();
-    this.load();
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = keys.map(k => k?.toLowerCase?.()).filter(Boolean) as string[];
+    return normalized.some(k => !!this.apiFieldErrors[k]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = keys.map(k => k?.toLowerCase?.()).filter(Boolean) as string[];
+    for (const k of normalized) { const f = this.apiFieldErrors[k]?.[0]; if (f) return f; }
+    return '';
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    return ApiErrorMapper.mapError(err).fieldErrors;
   }
 
   async remove(id: string): Promise<void> {
