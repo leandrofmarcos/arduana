@@ -3,6 +3,8 @@ import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CRUD_STYLES } from '../../../shared/styles/crud-page.styles';
+import { PaginationComponent } from '../../../../core/components/pagination/pagination.component';
+import { PagedResult, PaginationParams } from '../../../../core/api/models/api-response.model';
 import { AuthService } from '../../../../features/auth/auth.providers';
 import { CustoDespachanteService } from '../../custo-despachante/services/custo-despachante.service';
 import { CustoDespachante } from '../../custo-despachante/models/custo-despachante.models';
@@ -98,7 +100,7 @@ const OV_STATUS_COLORS: Record<string, string> = {
 @Component({
   selector: 'app-solicitacao-orcamento',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, CurrencyPipe],
+  imports: [CommonModule, FormsModule, DatePipe, CurrencyPipe, PaginationComponent],
   styles: [
     ...CRUD_STYLES,
     `
@@ -135,8 +137,9 @@ const OV_STATUS_COLORS: Record<string, string> = {
         <div class="content-section">
           <div class="toolbar">
             <input class="search" type="text" [(ngModel)]="q"
+              (ngModelChange)="onFiltersChanged()"
               placeholder="🔎 Buscar por código, responsável ou porto" />
-            <select class="filter-select" [(ngModel)]="filtroStatus">
+            <select class="filter-select" [(ngModel)]="filtroStatus" (ngModelChange)="onFiltersChanged()">
               <option value="">Todos os status</option>
               <option value="Rascunho">Rascunho</option>
               <option value="Aberta">Aberta</option>
@@ -152,7 +155,17 @@ const OV_STATUS_COLORS: Record<string, string> = {
               <option value="EmbarqueFinalizado">Embarque Finalizado</option>
             </select>
           </div>
-          <table class="data-table">
+
+          <div class="empty-state" *ngIf="loading">Carregando solicitações...</div>
+
+          <div class="empty-state" *ngIf="!loading && hasLoadError" style="color:#b91c1c">
+            {{ loadErrorMessage }}
+            <div style="margin-top:8px">
+              <button class="btn btn-secondary" type="button" (click)="retryLoad()">Tentar novamente</button>
+            </div>
+          </div>
+
+          <table class="data-table" *ngIf="!loading && !hasLoadError">
             <thead>
               <tr>
                 <th>Código</th>
@@ -168,10 +181,10 @@ const OV_STATUS_COLORS: Record<string, string> = {
               </tr>
             </thead>
             <tbody>
-              <tr *ngIf="filtered.length === 0">
+              <tr *ngIf="filteredCount === 0">
                 <td colspan="10" class="empty-state">Nenhuma solicitação cadastrada</td>
               </tr>
-              <tr *ngFor="let s of filtered">
+              <tr *ngFor="let s of pagedItems">
                 <td><span class="sol-link">{{ s.codigoInterno }}</span></td>
                 <td>{{ nomePortoOrigem(s.portoOrigemId) }}</td>
                 <td>{{ nomePortoDestino(s.portoDestinoId) }}</td>
@@ -203,6 +216,12 @@ const OV_STATUS_COLORS: Record<string, string> = {
               </tr>
             </tbody>
           </table>
+
+          <app-pagination
+            *ngIf="pagedResult"
+            [pagedResult]="pagedResult"
+            (pageChanged)="onPageChange($event)"
+          />
         </div>
       </ng-container>
 
@@ -498,9 +517,15 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   showForm = false;
   editando = false;
   showErr = false;
+  loading = false;
+  hasLoadError = false;
+  loadErrorMessage = '';
 
   q = '';
   filtroStatus = '';
+  currentPage = 1;
+  pageSize = 20;
+  pagedResult: PagedResult<SolicitacaoOrcamento> | null = null;
 
   form!: SolicitacaoOrcamento;
 
@@ -541,13 +566,26 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   }
 
   private async carregar(): Promise<void> {
-    await this.svc.refresh();
-    this.solicitacoes = this.svc.getAll();
-    this.portosOrigem = this.portoOrigemSvc.getAll().filter(p => p.ativo);
-    this.portosDestino = this.portoDestinoSvc.getAll().filter(p => p.ativo);
-    this.clientes = this.clienteSvc.getAll().filter(c => c.ativo);
-    this.importadores = this.importadorSvc.getAll().filter(i => i.ativo);
-    this.despachantes = this.despachanteSvc.getAll().filter(d => d.ativo);
+    this.loading = true;
+    this.hasLoadError = false;
+    this.loadErrorMessage = '';
+
+    try {
+      await this.svc.refresh();
+      this.solicitacoes = this.svc.getAll();
+      this.portosOrigem = this.portoOrigemSvc.getAll().filter(p => p.ativo);
+      this.portosDestino = this.portoDestinoSvc.getAll().filter(p => p.ativo);
+      this.clientes = this.clienteSvc.getAll().filter(c => c.ativo);
+      this.importadores = this.importadorSvc.getAll().filter(i => i.ativo);
+      this.despachantes = this.despachanteSvc.getAll().filter(d => d.ativo);
+      this.updatePagedResult();
+    } catch (err: any) {
+      this.hasLoadError = true;
+      this.loadErrorMessage = err?.message ?? 'Erro ao carregar solicitações.';
+      this.toast.error(this.loadErrorMessage);
+    } finally {
+      this.loading = false;
+    }
   }
 
   get filtered(): SolicitacaoOrcamento[] {
@@ -561,6 +599,49 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
       const matchStatus = !this.filtroStatus || sol.status === this.filtroStatus;
       return matchQ && matchStatus;
     });
+  }
+
+  get filteredCount(): number {
+    return this.filtered.length;
+  }
+
+  get pagedItems(): SolicitacaoOrcamento[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filtered.slice(start, start + this.pageSize);
+  }
+
+  onPageChange(params: PaginationParams): void {
+    this.currentPage = params.page ?? 1;
+    this.pageSize = params.pageSize ?? this.pageSize;
+    this.updatePagedResult();
+  }
+
+  onFiltersChanged(): void {
+    this.currentPage = 1;
+    this.updatePagedResult();
+  }
+
+  retryLoad(): void {
+    void this.carregar();
+  }
+
+  private updatePagedResult(): void {
+    const totalCount = this.filtered.length;
+    const safePageSize = this.pageSize > 0 ? this.pageSize : 20;
+    const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize));
+    if (this.currentPage > totalPages) {
+      this.currentPage = totalPages;
+    }
+
+    this.pagedResult = {
+      items: this.pagedItems,
+      totalCount,
+      page: this.currentPage,
+      pageSize: safePageSize,
+      totalPages,
+      hasNextPage: this.currentPage < totalPages,
+      hasPreviousPage: this.currentPage > 1
+    };
   }
 
   async openForm(sol?: SolicitacaoOrcamento): Promise<void> {
@@ -682,6 +763,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     await this.carregar();
     this.showForm = false;
     this.showErr = false;
+    this.onFiltersChanged();
     this.toast.success(eraCriacao ? 'Solicitacao criada com sucesso.' : 'Solicitacao atualizada com sucesso.');
   }
 
@@ -697,6 +779,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
 
     await this.svc.remove(id);
     await this.carregar();
+    this.onFiltersChanged();
     this.toast.success('Solicitacao removida com sucesso.');
   }
 

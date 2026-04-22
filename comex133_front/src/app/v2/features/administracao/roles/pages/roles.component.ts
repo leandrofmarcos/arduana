@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RoleService } from '../services/role.service';
 import { Role } from '../models/role.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-roles',
@@ -96,7 +98,11 @@ export class RolesComponent implements OnInit {
 
   form = { nome: '', descricao: '' };
 
-  constructor(private service: RoleService) {}
+  constructor(
+    private service: RoleService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -135,22 +141,32 @@ export class RolesComponent implements OnInit {
         nome: this.form.nome.trim(),
         descricao: this.form.descricao.trim() || undefined
       });
+      this.toast.success('Role atualizada com sucesso.');
     } else {
       this.service.create({
         nome: this.form.nome.trim(),
         descricao: this.form.descricao.trim() || undefined
       });
+      this.toast.success('Role criada com sucesso.');
     }
 
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir esta role?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir role',
+      message: 'Deseja excluir esta role?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Role removida com sucesso.');
   }
 
   formatDate(value?: string): string {

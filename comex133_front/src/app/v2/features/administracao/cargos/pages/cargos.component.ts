@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { CargoService } from '../services/cargo.service';
 import { Cargo } from '../models/cargo.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-cargos',
@@ -105,7 +107,11 @@ export class CargosComponent implements OnInit {
 
   form = { nome: '', descricao: '', ativo: true };
 
-  constructor(private service: CargoService) {}
+  constructor(
+    private service: CargoService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -137,17 +143,27 @@ export class CargosComponent implements OnInit {
     const data: Omit<Cargo, 'id'> = { ...this.form, nome: this.form.nome.trim() };
     if (this.editing) {
       this.service.update({ ...this.editing, ...data });
+      this.toast.success('Cargo atualizado com sucesso.');
     } else {
       this.service.create(data);
+      this.toast.success('Cargo criado com sucesso.');
     }
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este cargo?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir cargo',
+      message: 'Deseja excluir este cargo?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Cargo removido com sucesso.');
   }
 }

@@ -5,6 +5,8 @@ import { DocumentoService } from '../services/documento.service';
 import { TipoDocumentoService } from '../services/tipo-documento.service';
 import { DocumentoComVinculo, TipoDocumento } from '../models/documento.models';
 import { AuthService } from '../../../../features/auth/auth.providers';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-documento-anexo',
@@ -239,7 +241,9 @@ export class DocumentoAnexoComponent implements OnInit, OnChanges {
   constructor(
     public svc: DocumentoService,
     private tipoSvc: TipoDocumentoService,
-    private auth: AuthService
+    private auth: AuthService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -291,18 +295,29 @@ export class DocumentoAnexoComponent implements OnInit, OnChanges {
       this.selectedFile = null;
       this.uploadTipoId = '';
       this.uploadObs = '';
+      this.toast.success('Documento anexado com sucesso.');
     } catch {
       this.uploadError = 'Erro ao processar o arquivo.';
+      this.toast.error('Erro ao anexar documento.');
     } finally {
       this.uploading = false;
     }
   }
 
-  remover(doc: DocumentoComVinculo): void {
-    if (!confirm(`Remover o documento "${doc.nomeOriginal}"?`)) return;
+  async remover(doc: DocumentoComVinculo): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Remover documento anexado',
+      message: `Remover o documento "${doc.nomeOriginal}"?`,
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
     this.svc.desvincular(doc.vinculoId);
     this.svc.removeDocumento(doc.id);
     this.loadDocs();
+    this.toast.success('Documento removido com sucesso.');
   }
 
   preview(doc: DocumentoComVinculo): void {

@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { NivelAcessoService } from '../services/nivel-acesso.service';
 import { NivelAcesso } from '../models/nivel-acesso.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-niveis-acesso',
@@ -115,7 +117,11 @@ export class NiveisAcessoComponent implements OnInit {
 
   form = { nome: '', ordem: 1, descricao: '', ativo: true };
 
-  constructor(private service: NivelAcessoService) {}
+  constructor(
+    private service: NivelAcessoService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -152,17 +158,27 @@ export class NiveisAcessoComponent implements OnInit {
     };
     if (this.editing) {
       this.service.update({ ...this.editing, ...data });
+      this.toast.success('Nivel de acesso atualizado com sucesso.');
     } else {
       this.service.create(data);
+      this.toast.success('Nivel de acesso criado com sucesso.');
     }
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este nível de acesso?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir nivel de acesso',
+      message: 'Deseja excluir este nivel de acesso?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Nivel de acesso removido com sucesso.');
   }
 }

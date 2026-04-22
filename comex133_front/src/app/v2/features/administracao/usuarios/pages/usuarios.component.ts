@@ -6,6 +6,8 @@ import { Role } from '../../roles/models/role.models';
 import { RoleService } from '../../roles/services/role.service';
 import { Usuario, CreateUsuarioInput } from '../models/usuario.models';
 import { UsuarioService } from '../services/usuario.service';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-usuarios',
@@ -280,7 +282,9 @@ export class UsuariosComponent implements OnInit {
 
   constructor(
     private usuarioService: UsuarioService,
-    private roleService: RoleService
+    private roleService: RoleService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -350,6 +354,7 @@ export class UsuariosComponent implements OnInit {
         nomeCompleto: this.form.nomeCompleto.trim()
       };
       this.usuarioService.update(updated);
+      this.toast.success('Usuario atualizado com sucesso.');
     } else {
       if (!this.senhaForte(this.form.senha)) return;
 
@@ -360,6 +365,7 @@ export class UsuariosComponent implements OnInit {
         roleIds: this.form.roleIds
       };
       this.usuarioService.create(payload);
+      this.toast.success('Usuario criado com sucesso.');
     }
 
     this.cancel();
@@ -390,6 +396,7 @@ export class UsuariosComponent implements OnInit {
     this.usuarioService.atribuirRoles(this.rolesTarget.id, roleIds);
     this.cancelRoles();
     this.load();
+    this.toast.success('Roles atualizadas com sucesso.');
   }
 
   openSenha(usuario: Usuario): void {
@@ -415,22 +422,38 @@ export class UsuariosComponent implements OnInit {
     this.usuarioService.alterarSenhaAdmin(this.senhaTarget.id, this.novaSenha);
     this.cancelSenha();
     this.load();
+    this.toast.success('Senha redefinida com sucesso.');
   }
 
-  toggleAtivo(usuario: Usuario): void {
+  async toggleAtivo(usuario: Usuario): Promise<void> {
     const proximo = !usuario.ativo;
-    const ok = confirm(`Deseja ${proximo ? 'ativar' : 'inativar'} o usuário ${usuario.nomeCompleto}?`);
+    const ok = await this.confirmDialog.confirm({
+      title: proximo ? 'Ativar usuario' : 'Inativar usuario',
+      message: `Deseja ${proximo ? 'ativar' : 'inativar'} o usuario ${usuario.nomeCompleto}?`,
+      confirmText: proximo ? 'Ativar' : 'Inativar',
+      cancelText: 'Cancelar',
+      danger: !proximo
+    });
     if (!ok) return;
 
     this.usuarioService.setAtivo(usuario.id, proximo);
     this.load();
+    this.toast.success(proximo ? 'Usuario ativado com sucesso.' : 'Usuario inativado com sucesso.');
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este usuário?')) {
-      this.usuarioService.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir usuario',
+      message: 'Deseja excluir este usuario?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.usuarioService.remove(id);
+    this.load();
+    this.toast.success('Usuario removido com sucesso.');
   }
 
   isEmailValido(email: string): boolean {

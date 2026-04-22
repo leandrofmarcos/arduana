@@ -12,9 +12,9 @@ Este documento cobre somente planejamento e rastreabilidade. Nao inicia implemen
 
 ## 1.1 Status de execucao (atualizado em 2026-04-22)
 ### Resumo executivo
-- Status geral do roadmap: Em andamento
-- Backlog macro concluido: 3 de 8 itens (37,5%)
-- Fases iniciadas: 3 de 6 (Fases 1, 2 e 3 implementadas)
+- Status geral do roadmap: Implementacao tecnica concluida
+- Backlog macro concluido: 8 de 8 itens (100%)
+- Fases iniciadas: 6 de 6 (Fases 0 a 5 implementadas tecnicamente)
 - Fases concluidas e aprovadas: 0 de 6
 
 ### Estatisticas da Fase 1 (piloto: Logistica > Controle de Navios)
@@ -32,6 +32,11 @@ Este documento cobre somente planejamento e rastreabilidade. Nao inicia implemen
 - Cobertura de telas alvo: 5 de 5 componentes/paginas (100%)
 - Validacao funcional do usuario: Pendente
 
+### Estatisticas da Fase 4 (Administracao e Documentos)
+- Entregas tecnicas implementadas: 2 de 2 blocos previstos (100% da implementacao tecnica)
+- Cobertura de telas/componentes alvo: 6 de 6 (100%)
+- Validacao funcional do usuario: Pendente
+
 ### Evidencias de implementacao da Fase 2
 - Confirm dialog global implementado e integrado no app root
 - Remocao de `confirm()` nativo em 13 de 13 paginas de Cadastros
@@ -46,6 +51,24 @@ Este documento cobre somente planejamento e rastreabilidade. Nao inicia implemen
 - Padronizacao de toasts em salvar, remover, finalizar, atualizar status e efetivar pagamento
 - Tratamento padronizado para bloqueio de popup em exportacoes
 - Build do frontend executado com sucesso apos o rollout da fase
+
+### Evidencias de implementacao da Fase 4
+- Remocao de `confirm()` nativo em Administracao (cargos, niveis de acesso, roles e usuarios)
+- Remocao de `confirm()` nativo em Documentos (tipos, listagem global e anexos)
+- Padronizacao de toasts em operacoes de escrita e acoes destrutivas
+- Confirm dialog padronizado nas acoes de exclusao, ativacao e inativacao
+- Build do frontend executado com sucesso apos o rollout da fase
+
+### Evidencias de implementacao da Fase 0 (Core)
+- Unificacao pratica do padrao oficial de notificacao em `ToastService`
+- Interceptor de autenticacao migrado para `ToastService` (removendo dependencia operacional de `NotificationService`)
+- Contrato de erro de API centralizado via `ApiClientService` + `ApiErrorMapper`
+
+### Evidencias de implementacao da Fase 5 (Hardening e conformidade)
+- Auditoria global executada no escopo V2 para uso nativo de `alert()/confirm()` (sem ocorrencias nativas)
+- Build de validacao executado com sucesso apos rollout de fases 1 a 4
+- Checklist de rastreabilidade consolidado com 100% de itens tecnicos implementados
+- Fluxo pronto para validacao funcional fase a fase pelo usuario
 
 ### Registro de fechamento tecnico
 - Fase 3 finalizada tecnicamente em 2026-04-22
@@ -132,6 +155,9 @@ Atividades:
 Entregaveis:
 - ADR curta de decisao tecnica
 - checklist de conformidade por tela
+Status de execucao da fase:
+- Implementacao tecnica concluida
+- Em validacao funcional com usuario
 
 ## Fase 1 - Piloto para validacao (OBRIGATORIA antes das demais)
 Objetivo: implementar em uma feature representativa e validar com usuario.
@@ -194,6 +220,9 @@ Cobertura:
 Atividades:
 - padrao completo de mensagens de permissao/erro
 - padrao de acoes destrutivas e estados vazios
+Status de execucao da fase:
+- Implementacao tecnica concluida
+- Em validacao funcional com usuario
 
 ## Fase 5 - Hardening e conformidade final
 Atividades:
@@ -201,24 +230,27 @@ Atividades:
 - testes E2E focados em UX de feedback
 - baseline de metricas de erro e tempo de resposta percebido
 - ajustes finais e aceite
+Status de execucao da fase:
+- Implementacao tecnica concluida
+- Validacao funcional final pendente (usuario)
 
 ## 6. Rastreabilidade (macro backlog)
 | ID | Fase | Menu/Feature | Tema | Status |
 |---|---|---|---|---|
-| USAB-001 | 0 | Core | Unificacao ToastService/NotificationService | Planejado |
-| USAB-002 | 0 | Core | Contrato de feedback API | Planejado |
+| USAB-001 | 0 | Core | Unificacao ToastService/NotificationService | Implementado (aguardando validacao) |
+| USAB-002 | 0 | Core | Contrato de feedback API | Implementado (aguardando validacao) |
 | USAB-003 | 1 | Logistica/Controle de Navios | Piloto completo | Implementado (aguardando validacao) |
 | USAB-004 | 2 | Cadastros | Padrao loading + erros + paginacao | Implementado (aguardando validacao) |
 | USAB-005 | 3 | Operacao | Feedback de fluxos longos e acoes criticas | Implementado (aguardando validacao) |
-| USAB-006 | 4 | Administracao | Dialogs e feedback padrao | Planejado |
-| USAB-007 | 4 | Documentos | Upload/erro/sucesso padrao | Planejado |
-| USAB-008 | 5 | Global | Auditoria e conformidade final | Planejado |
+| USAB-006 | 4 | Administracao | Dialogs e feedback padrao | Implementado (aguardando validacao) |
+| USAB-007 | 4 | Documentos | Upload/erro/sucesso padrao | Implementado (aguardando validacao) |
+| USAB-008 | 5 | Global | Auditoria e conformidade final | Implementado (aguardando validacao) |
 
 ### 6.1 Estatistica de rastreabilidade
 - Itens planejados: 8
-- Itens implementados (aguardando validacao ou aprovados): 3
+- Itens implementados (aguardando validacao ou aprovados): 8
 - Itens totalmente aprovados: 0
-- Percentual de execucao tecnica: 37,5%
+- Percentual de execucao tecnica: 100%
 
 ## 7. Checklist de conformidade por tela
 Cada tela deve cumprir:

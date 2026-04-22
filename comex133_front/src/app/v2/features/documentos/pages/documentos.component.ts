@@ -5,6 +5,8 @@ import { TipoDocumentoService } from '../services/tipo-documento.service';
 import { DocumentoService } from '../services/documento.service';
 import { TipoDocumento, CategoriaDocumento, Documento } from '../models/documento.models';
 import { CRUD_STYLES } from '../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 
 type TabType = 'tipos' | 'todos';
 type CategoriaFilter = '' | CategoriaDocumento;
@@ -361,7 +363,9 @@ export class DocumentosComponent implements OnInit {
 
   constructor(
     private tipoSvc: TipoDocumentoService,
-    public svc: DocumentoService
+    public svc: DocumentoService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -408,17 +412,28 @@ export class DocumentosComponent implements OnInit {
     };
     if (this.editId) {
       this.tipoSvc.update({ ...data, id: this.editId });
+      this.toast.success('Tipo de documento atualizado com sucesso.');
     } else {
       this.tipoSvc.create(data);
+      this.toast.success('Tipo de documento criado com sucesso.');
     }
     this.loadTipos();
     this.fecharModal();
   }
 
-  removerTipo(t: TipoDocumento): void {
-    if (!confirm(`Remover o tipo "${t.nome}"?`)) return;
+  async removerTipo(t: TipoDocumento): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Remover tipo de documento',
+      message: `Remover o tipo "${t.nome}"?`,
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
     this.tipoSvc.remove(t.id);
     this.loadTipos();
+    this.toast.success('Tipo de documento removido com sucesso.');
   }
 
   fecharModal(): void {
@@ -446,10 +461,19 @@ export class DocumentosComponent implements OnInit {
     return result;
   }
 
-  removerDocumento(d: Documento): void {
-    if (!confirm(`Remover o documento "${d.nomeOriginal}" e todos seus vínculos?`)) return;
+  async removerDocumento(d: Documento): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Remover documento',
+      message: `Remover o documento "${d.nomeOriginal}" e todos seus vinculos?`,
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
     this.svc.removeDocumento(d.id);
     this.loadTodos();
+    this.toast.success('Documento removido com sucesso.');
   }
 
   getTipo(d: Documento): TipoDocumento | undefined {
