@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { Observable, map } from 'rxjs';
 import { ApiClientService } from '../../../../../core/api/client/api-client.service';
 import { Role } from '../models/role.models';
 
@@ -71,15 +72,16 @@ export class RoleService {
   }
 
   private refresh(): void {
-    this.apiClient.getList<RoleApiDto>(this.endpoint, { page: 1, pageSize: 200 }).subscribe({
-      next: result => {
+    this.load$().subscribe();
+  }
+
+  load$(): Observable<void> {
+    return this.apiClient.getList<RoleApiDto>(this.endpoint, { page: 1, pageSize: 200 }).pipe(
+      map(result => {
         this.items.splice(0, this.items.length, ...result.items.map(dto => this.mapDto(dto)));
         this.loaded = true;
-      },
-      error: () => {
-        this.loaded = true;
-      }
-    });
+      })
+    );
   }
 
   private ensureLoaded(): void {

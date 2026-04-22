@@ -110,9 +110,11 @@ export class RolesComponent implements OnInit {
 
   load(): void {
     this.items = this.service.getAll();
-    setTimeout(() => {
-      this.items = this.service.getAll();
-    }, 300);
+    if (this.items.length === 0) {
+      this.service.load$().subscribe(() => {
+        this.items = this.service.getAll();
+      });
+    }
   }
 
   get filtered(): Role[] {
