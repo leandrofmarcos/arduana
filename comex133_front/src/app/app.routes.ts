@@ -85,6 +85,11 @@ export const routes: Routes = [
         canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/administracao/usuarios/pages/usuarios.component').then(m => m.UsuariosComponent)
       },
+      {
+        path: 'admin/push-test',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./v2/features/administracao/push-test/push-test.component').then(m => m.PushTestComponent)
+      },
       // Logística — Etapa 4
       {
         path: 'controle-navios',

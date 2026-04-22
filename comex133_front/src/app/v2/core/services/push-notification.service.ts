@@ -2,7 +2,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { SwPush } from '@angular/service-worker';
 import { firstValueFrom, Subscription } from 'rxjs';
-import { environment } from '../../../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class PushNotificationService implements OnDestroy {
@@ -49,9 +49,9 @@ export class PushNotificationService implements OnDestroy {
     );
   }
 
-  async sendTestNotification(): Promise<{ sent: number }> {
+  async sendTestNotification(): Promise<{ sent: number; errors: number }> {
     return firstValueFrom(
-      this.http.post<{ sent: number }>(
+      this.http.post<{ sent: number; errors: number }>(
         `${environment.apiUrl}/push/send-test`,
         {}
       )

@@ -122,6 +122,9 @@ import { filter, Subscription } from 'rxjs';
             <a *ngIf="auth.hasRole('admin')" routerLink="/admin/usuarios" routerLinkActive="active">
               <span class="icon">👤</span><span>Usuários</span>
             </a>
+            <a *ngIf="auth.hasRole('admin')" routerLink="/admin/push-test" routerLinkActive="active">
+              <span class="icon">🔔</span><span>Teste Push</span>
+            </a>
             <a routerLink="/documentos" routerLinkActive="active">
               <span class="icon">📁</span><span>Documentos</span>
             </a>
