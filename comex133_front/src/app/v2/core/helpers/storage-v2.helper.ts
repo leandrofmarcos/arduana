@@ -10,8 +10,6 @@ export const keysV2 = {
   ncms:              'v2_ncms',
   listaPrecoLcl:     'v2_lista_preco_lcl',
   despachantes:      'v2_despachantes',
-  cargos:            'v2_cargos',
-  niveisAcesso:      'v2_niveis_acesso',
   // Logística
   controleNavios:    'v2_controle_navios',
   navioTrajetos:     'v2_navio_trajetos',
