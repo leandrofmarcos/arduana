@@ -16,19 +16,19 @@ namespace Comex133Api.Migrations
 
                 IF NOT EXISTS (SELECT 1 FROM [Roles] WHERE [Id] = 1)
                     INSERT INTO [Roles] ([Id],[Nome],[Descricao],[CriadoEm],[AtualizadoEm])
-                    VALUES (1, N'Despachante', N'Acesso às telas operacionais de despacho aduaneiro', '2026-04-22', '2026-04-22');
+                    VALUES (1, N'Despachante', N'Operador de despacho aduaneiro', '2026-04-22', '2026-04-22');
 
                 IF NOT EXISTS (SELECT 1 FROM [Roles] WHERE [Id] = 2)
                     INSERT INTO [Roles] ([Id],[Nome],[Descricao],[CriadoEm],[AtualizadoEm])
-                    VALUES (2, N'Analista', N'Acesso à análise de solicitações e custos', '2026-04-22', '2026-04-22');
+                    VALUES (2, N'Analista', N'Analista operacional', '2026-04-22', '2026-04-22');
 
                 IF NOT EXISTS (SELECT 1 FROM [Roles] WHERE [Id] = 3)
                     INSERT INTO [Roles] ([Id],[Nome],[Descricao],[CriadoEm],[AtualizadoEm])
-                    VALUES (3, N'Gerente', N'Acesso gerencial com visualizações consolidadas', '2026-04-22', '2026-04-22');
+                    VALUES (3, N'Gerente', N'Gestão de operações', '2026-04-22', '2026-04-22');
 
                 IF NOT EXISTS (SELECT 1 FROM [Roles] WHERE [Id] = 4)
                     INSERT INTO [Roles] ([Id],[Nome],[Descricao],[CriadoEm],[AtualizadoEm])
-                    VALUES (4, N'Administrador', N'Acesso total ao sistema, incluindo administração', '2026-04-22', '2026-04-22');
+                    VALUES (4, N'Administrador', N'Admin do sistema', '2026-04-22', '2026-04-22');
 
                 SET IDENTITY_INSERT [Roles] OFF;
             ");
