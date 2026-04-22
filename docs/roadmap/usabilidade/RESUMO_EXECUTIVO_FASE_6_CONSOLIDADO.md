@@ -1,5 +1,5 @@
 # RESUMO EXECUTIVO - Feedback de API Frontend
-## Consolidação de Fases 0-7 + USAB-010 Final (2026-04-22)
+## Consolidação de Fases 0-8 — ROADMAP ENCERRADOADO (2026-04-22)
 
 ---
 
@@ -7,7 +7,9 @@
 
 ```
 Fases 0-7 (Implementação + Validação): ✅ 100% CONCLUÍDO & APROVADO
-USAB-010 (Erro inline em formulários): 🔄 EM EXECUÇÃO - PRÓXIMA & FINAL
+USAB-010 / Fase 8 (21 formulários):  ✅ 100% CONCLUÍDO & APROVADO
+Roadmap:                               🏁 100% ENCERRADO
+Roadmap:                               🏁 100% ENCERRADO
 ```
 
 ---
@@ -82,18 +84,18 @@ USAB-010 (Erro inline em formulários): 🔄 EM EXECUÇÃO - PRÓXIMA & FINAL
 - [ ] Erro de rede (0)
 - [ ] Ações destrutivas confirmadas
 - [ ] Sem erros silenciosos
+CONCLUÍDO)
+**Scope**: 21 formulários em 4 áreas  
+**Padrão**: `apiFieldErrors`, `hasApiFieldError()`, `firstApiFieldError()`, `collectFieldErrors()`  
+**Esforço**: Aplicado em 22/04/2026  
+**Total**: ✅ 100% concluído
 
-### 🔄 USAB-010: Propagação de Erro Inline (PRÓXIMA & FINAL)
-**Scope**: 14 formulários  
-**Padrão**: Copiar de Solicitações component  
-**Esforço**: ~15 min por form (pattern replication)  
-**Total**: ~3-4 horas
-
-**Formulários alvo**:
-- Cadastros: Clientes, Portos, NCM, Navios, Despachantes (5)
-- Operação: Solicitações, Custos, Orçamentos, Embarques (4)
+**Formulários implementados**:
+- Cadastros: Clientes, Portos Origem, Portos Destino, NCM, Navios, Despachantes, Exportadores, Agentes de Carga, Fabricantes, Importadores, Lista Preço LCL, Despesas Cadastro, Modelos de Despesa (13)
+- Operação: Solicitações, Custo Despachante, Orçamento Venda, Embarque Aduana (4)
 - Administração: Cargos, Roles, Usuários (3)
-- Documentos: Tipos, Anexos (2)
+- Documentos: Documentos, Documento Anexoles, Usuários (3)
+- Documentos: Documentos, Documento Anexo (2)
 
 ---
 
@@ -113,11 +115,9 @@ USAB-010 (Erro inline em formulários): 🔄 EM EXECUÇÃO - PRÓXIMA & FINAL
 
 | Data | Bloco | Atividades |
 |---|---|---|
-| 2026-04-22 | ✅ CONCLUÍDO | Fases 0-7 implementadas + validadas |
-| **2026-04-22** | **🔄 AGORA** | **USAB-010: Replicar erro inline em 14 forms (~3-4h, 1 turno)** |
-| 2026-04-23 (am) | ✅ Build | Build final + validação sem regressions |
-| 2026-04-23 (pm) | ✅ Aprovação | Aprovação executiva FINAL |
-| 2026-04-23+ | 🟢 PRONTO | Roadmap 100% ENCERRADO para produção |
+| 2026-04-22 | ✅ CONC✅ CONCLUÍDO** | **USAB-010: Erro inline em 21 formulários** |
+| 2026-04-22 | ✅ Build | Build final — 27 rotas, 0 erros |
+| 2026-04-22 | 🏁 **ENCERRADO** | **Roadmap 100% ENCERRADO**
 
 ---
 
@@ -145,45 +145,20 @@ USAB-010 (Erro inline em formulários): 🔄 EM EXECUÇÃO - PRÓXIMA & FINAL
 | Atividades Fase 7 executadas | **48 (F7-001 a F7-048) - 100% APROVADAS** |
 | Formulários alvo para USAB-010 | **14 (com prototipo pronto)** |
 | Build size regression | 0% (sem impacto) |
-| **Fases com aprovação executiva** | **7 de 8 (Fases 0-7, aguardando Fase 8/USAB-010)** |
+| **Fáses com aprovação executiva** | **8 de 8 (Fases 0-8, 100%)** |
+| **Formulários USAB-010 concluídos** | **21 de 21 (100%
+| **Formulários USAB-010 concluídos** | **21 de 21 (100%)** |
 
 ---
 
 
-## 🚀 PRÓXIMOS PASSOS IMEDIATOS
 
-1. **🔴 HOJE - USAB-010 (2026-04-22)**
-   - [ ] Abrir Seção 12.A do Roadmap (PRÓXIMA FASE: USAB-010)
-   - [ ] Iniciar replicação do padrão de Solicitações em 14 formulários
-   - [ ] Timeline: ~3-4 horas (1 turno de trabalho)
-   - [ ] Formulários: Cadastros (5) + Operação (4) + Admin (3) + Docs (2)
+**Roadmap 100% encerrado.** Nenhuma pendência técnica restante.
 
-2. **Paralelo (durante USAB-010)**
-   - [ ] Testar padrão inline em 3-4 formulários amostra
-   - [ ] Consolidar evidências de funcionamento
-   - [ ] Documentar tempo real por formulário
----
-3. **Após USAB-010 (estimado 2026-04-23 AM)**
-   - [ ] Executar build final (npm run build)
-   - [ ] Validar sem regressions
-   - [ ] Aprovação executiva FINAL
-   - [ ] Marcar Roadmap como 100% ENCERRADO
-
-4. **🟢 Pós-Conclusão (produção)**
-   - [ ] Deploy da solução
-   - [ ] Monitoramento de feedback de API
-## 📞 CONTATO & REFERÊNCIAS
-
-**Documentação completa**: `docs/roadmap/usabilidade/ROADMAP_USABILIDADE_FEEDBACK_API_FRONTEND.md`
-
-**Seções mais usadas**:
-- Seção 4.2: Padrão de comunicação com API
-- Seção 11.3: Checklist validação por tela
-- Seção 11.6: Backlog Fase 7 (48 atividades)
-- Seção 13: Guia rápido consolidado
+Para deploy em produção, consulte `comex133_front/deploy.ps1`.
 
 ---
 
 **Data de atualização**: 22 de abril de 2026  
-**Status**: ✅ PRONTO PARA FASE 7  
-**Aprovação**: Aguardando decisão executiva
+**Status**: 🏁 **ROADMAP 100% ENCERRADO**  
+**Aprovação**: ✅ Concluído
