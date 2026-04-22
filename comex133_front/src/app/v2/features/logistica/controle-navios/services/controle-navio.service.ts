@@ -89,6 +89,8 @@ export class ControleNavioService {
 
   readonly navios$ = new BehaviorSubject<ControleNavio[]>([]);
   readonly trajetos$ = new BehaviorSubject<ControleNavioTrajeto[]>([]);
+  readonly loading$ = new BehaviorSubject<boolean>(false);
+  readonly loadError$ = new BehaviorSubject<string | null>(null);
 
   constructor(private apiClient: ApiClientService) {
     this.refresh();
@@ -202,6 +204,9 @@ export class ControleNavioService {
   }
 
   private refresh(): void {
+    this.loading$.next(true);
+    this.loadError$.next(null);
+
     this.apiClient.getList<NavioApiDto>('/navios', { page: 1, pageSize: 200 }).subscribe({
       next: (result) => {
         this.items = result.items.map((item) => this.mapNavioDto(item));
@@ -209,7 +214,11 @@ export class ControleNavioService {
         this.navios$.next([...this.items]);
         this.refreshTrajetos();
       },
-      error: () => this.loaded = false
+      error: (err) => {
+        this.loaded = false;
+        this.loading$.next(false);
+        this.loadError$.next(err?.message ?? 'Não foi possível carregar os navios no momento.');
+      }
     });
   }
 
@@ -262,11 +271,15 @@ export class ControleNavioService {
         this.items = [...mergedBase, ...extrasOperacionais];
         this.navios$.next([...this.items]);
         this.trajetos$.next([...this.trajetos]);
+        this.loading$.next(false);
+        this.loadError$.next(null);
       },
-      error: () => {
+      error: (err) => {
         this.embarquesAtivosPorNavio = {};
         this.trajetos = [];
         this.trajetos$.next([]);
+        this.loading$.next(false);
+        this.loadError$.next(err?.message ?? 'Não foi possível carregar o painel operacional de navios.');
       }
     });
   }

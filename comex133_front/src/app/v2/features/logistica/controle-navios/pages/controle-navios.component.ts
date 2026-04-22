@@ -14,6 +14,7 @@ import { ClienteV2Service } from '../../../cadastros/clientes/services/cliente-v
 import { EmbarqueAduana, StatusEmbarque } from '../../../embarque-aduana/models/embarque-aduana.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { Router } from '@angular/router';
+import { ToastService } from '../../../../../core/services/toast.service';
 
 interface TrajetoForm {
   portoOrigemId: string;
@@ -218,6 +219,137 @@ interface ReplaceTrajetoRequest {
     .clickable-row { cursor: pointer; }
     .code-link { color: var(--color-text); text-decoration: none; }
     .code-link:hover { text-decoration: underline; }
+    .inline-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 200px;
+      color: var(--color-text-muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .inline-loading::before {
+      content: '';
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e1;
+      border-top-color: var(--color-primary, #3b82f6);
+      animation: spin .8s linear infinite;
+    }
+    .error-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+      border: 1px solid #fecaca;
+      background: #fff1f2;
+      border-radius: 10px;
+      padding: 18px;
+      color: #9f1239;
+      font-size: 13px;
+    }
+    .error-panel button {
+      border: none;
+      border-radius: 8px;
+      background: #be123c;
+      color: #fff;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .page-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      background: rgba(15, 23, 42, .45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .overlay-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, .25);
+      width: min(420px, 100%);
+      padding: 18px;
+      text-align: left;
+    }
+    .overlay-card h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+      color: #0f172a;
+    }
+    .overlay-card p {
+      margin: 0;
+      font-size: 14px;
+      color: #334155;
+      white-space: pre-line;
+      line-height: 1.45;
+    }
+    .dialog-actions {
+      margin-top: 14px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .dialog-btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .dialog-btn-secondary {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    .dialog-btn-primary {
+      background: #1d4ed8;
+      color: #fff;
+    }
+    .dialog-btn-danger {
+      background: #b91c1c;
+      color: #fff;
+    }
+    .blocking-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1400;
+      background: rgba(2, 6, 23, .52);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .blocking-card {
+      width: min(360px, 100%);
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: 0 18px 42px rgba(2, 6, 23, .28);
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .blocking-spinner {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid #dbeafe;
+      border-top-color: #2563eb;
+      animation: spin .85s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
     @media (max-width: 900px) {
       .trajeto-operacional-title { font-size: 18px; }
       .btn-new-viagem { padding: 8px 14px; }
@@ -244,7 +376,15 @@ interface ReplaceTrajetoRequest {
             <input class="search" type="text" [(ngModel)]="q"
               placeholder="🔎 Buscar por nº viagem ou nome do navio" />
           </div>
-          <table class="data-table">
+          <div class="inline-loading" *ngIf="showInlineLoading">Carregando controle de navios...</div>
+
+          <div class="error-panel" *ngIf="!showInlineLoading && hasLoadError">
+            <strong>Falha ao carregar dados do controle de navios</strong>
+            <span>{{ loadErrorMessage }}</span>
+            <button type="button" (click)="retryLoad()">Tentar novamente</button>
+          </div>
+
+          <table class="data-table" *ngIf="!showInlineLoading && !hasLoadError">
             <thead>
               <tr>
                 <th>Nº Viagem</th>
@@ -430,6 +570,44 @@ interface ReplaceTrajetoRequest {
         </div>
       </ng-container>
 
+      <div class="page-overlay" *ngIf="confirmState.open" (click)="closeConfirm(false)">
+        <div class="overlay-card" (click)="$event.stopPropagation()">
+          <h3>{{ confirmState.title }}</h3>
+          <p>{{ confirmState.message }}</p>
+          <div class="dialog-actions">
+            <button type="button" class="dialog-btn dialog-btn-secondary" (click)="closeConfirm(false)">
+              {{ confirmState.cancelText }}
+            </button>
+            <button
+              type="button"
+              class="dialog-btn"
+              [ngClass]="confirmState.danger ? 'dialog-btn-danger' : 'dialog-btn-primary'"
+              (click)="closeConfirm(true)">
+              {{ confirmState.confirmText }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="page-overlay" *ngIf="alertState.open" (click)="closeAlert()">
+        <div class="overlay-card" (click)="$event.stopPropagation()">
+          <h3>{{ alertState.title }}</h3>
+          <p>{{ alertState.message }}</p>
+          <div class="dialog-actions">
+            <button type="button" class="dialog-btn dialog-btn-primary" (click)="closeAlert()">
+              {{ alertState.buttonText }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="blocking-overlay" *ngIf="actionLoading">
+        <div class="blocking-card">
+          <span class="blocking-spinner" aria-hidden="true"></span>
+          <span>{{ actionLoadingMessage }}</span>
+        </div>
+      </div>
+
     </div>
   `
 })
@@ -454,6 +632,30 @@ export class ControleNaviosComponent implements OnInit, OnDestroy {
   trajetosForm: TrajetoForm[] = [];
   trajetoForm: TrajetoForm = { portoOrigemId: '', portoDestinoId: '', etd: '', eta: '', trajetoDescricao: '' };
   trajetoErro = '';
+  loadingMain = true;
+  hasLoadedOnce = false;
+  hasLoadError = false;
+  loadErrorMessage = '';
+  actionLoading = false;
+  actionLoadingMessage = '';
+
+  confirmState = {
+    open: false,
+    title: '',
+    message: '',
+    confirmText: 'Confirmar',
+    cancelText: 'Cancelar',
+    danger: false
+  };
+
+  alertState = {
+    open: false,
+    title: 'Atenção',
+    message: '',
+    buttonText: 'Entendi'
+  };
+
+  private confirmResolver: ((confirmed: boolean) => void) | null = null;
 
   constructor(
     private service: ControleNavioService,
@@ -463,6 +665,7 @@ export class ControleNaviosComponent implements OnInit, OnDestroy {
     private statusSvc: StatusEmbarqueService,
     private clienteSvc: ClienteV2Service,
     private router: Router,
+    private toast: ToastService,
   ) {}
 
   ngOnInit(): void {
@@ -495,6 +698,22 @@ export class ControleNaviosComponent implements OnInit, OnDestroy {
       })
     );
 
+    this._subs.add(
+      this.service.loading$.subscribe((loading) => {
+        this.loadingMain = loading;
+        if (!loading) {
+          this.hasLoadedOnce = true;
+        }
+      })
+    );
+
+    this._subs.add(
+      this.service.loadError$.subscribe((message) => {
+        this.hasLoadError = !!message;
+        this.loadErrorMessage = message ?? '';
+      })
+    );
+
     this.service.reload();
   }
 
@@ -517,6 +736,10 @@ export class ControleNaviosComponent implements OnInit, OnDestroy {
         return true;
       });
     }
+  }
+
+  get showInlineLoading(): boolean {
+    return !this.hasLoadedOnce && this.loadingMain;
   }
 
   // ── Filtro: APENAS navios com ao menos 1 embarque não finalizado/entregue ──
@@ -591,19 +814,33 @@ export class ControleNaviosComponent implements OnInit, OnDestroy {
 
   // ── Ação: Marcar Atracado ─────────────────────────────────────────────
 
-  marcarAtracado(navio: ControleNavio): void {
-    if (!this._atracadoId) { alert('Status "Atracado" não encontrado. Execute seed primeiro.'); return; }
+  async marcarAtracado(navio: ControleNavio): Promise<void> {
+    if (!this._atracadoId) {
+      this.openAlert('Status "Atracado" não encontrado. Execute a seed de status e tente novamente.');
+      return;
+    }
+
     const resumos = this.embarquesPorNavio[navio.id] ?? [];
     const statusNaoFinais = ['entregue', 'finalizado', 'cancelado', 'atracado'];
     const pendentes = resumos.filter(e => !statusNaoFinais.includes(e.status.toLowerCase()));
-    if (!pendentes.length) return;
+    if (!pendentes.length) {
+      this.toast.info('Não há embarques pendentes para marcar como atracado.');
+      return;
+    }
 
-    const ok = confirm(
-      `Marcar navio "${navio.nomeNavio}" como ATRACADO?\n\n` +
-      `Isso atualizará ${pendentes.length} embarque(s) para status "Atracado" ` +
-      `e registrará o evento no histórico de cada um.`
-    );
+    const ok = await this.askConfirm({
+      title: 'Confirmar atracação',
+      danger: false,
+      confirmText: 'Marcar como atracado',
+      cancelText: 'Cancelar',
+      message:
+        `Marcar navio "${navio.nomeNavio}" como ATRACADO?\n\n` +
+        `Isso atualizará ${pendentes.length} embarque(s) para status "Atracado" ` +
+        `e registrará o evento no histórico de cada um.`
+    });
     if (!ok) return;
+
+    this.startActionLoading('Aplicando status de atracação...');
 
     pendentes.forEach(resumo => {
       const emb = this.embarqueSvc.getById(resumo.id);
@@ -616,6 +853,8 @@ export class ControleNaviosComponent implements OnInit, OnDestroy {
       );
     });
 
+    this.toast.success(`${pendentes.length} embarque(s) atualizado(s) para Atracado.`);
+    this.stopActionLoading();
     this.service.reload();
   }
 
@@ -713,6 +952,8 @@ export class ControleNaviosComponent implements OnInit, OnDestroy {
     if (!this.editingNavio) return;
     const navioId = this.editingNavio.id;
     const hasTrajetos = this.trajetosForm.length > 0;
+
+    this.startActionLoading('Salvando trajetórias da viagem...');
     
     this.service.replaceTrajetos(
       navioId, 
@@ -720,26 +961,48 @@ export class ControleNaviosComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: () => {
         // Após salvar com sucesso, mantém o navio em foco e abre os blocos.
+        this.toast.success('Trajetórias salvas com sucesso.');
         this.focusSavedNavio(navioId, hasTrajetos);
         this.cancel();
+        this.stopActionLoading();
       },
       error: (err) => {
         this.trajetoErro = err?.message ?? 'Falha ao salvar trajetórias.';
+        this.toast.error(this.trajetoErro);
+        this.stopActionLoading();
       }
     });
   }
 
-  limparTrajetos(navio: ControleNavio): void {
+  async limparTrajetos(navio: ControleNavio): Promise<void> {
     if (!this.trajetosPorNavio[navio.id]?.length) return;
 
-    const ok = confirm(`Remover todas as trajetórias da viagem ${navio.numeroViagem || navio.nomeNavio}?`);
+    const ok = await this.askConfirm({
+      title: 'Remover trajetórias',
+      message: `Remover todas as trajetórias da viagem ${navio.numeroViagem || navio.nomeNavio}?`,
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      danger: true
+    });
     if (!ok) return;
+
+    this.startActionLoading('Removendo trajetórias da viagem...');
 
     this.service.replaceTrajetos(navio.id, []).subscribe({
       next: () => {
         this.expandedTrajeto[navio.id] = false;
+        this.toast.success('Trajetórias removidas com sucesso.');
+        this.stopActionLoading();
+      },
+      error: (err) => {
+        this.toast.error(err?.message ?? 'Falha ao remover trajetórias.');
+        this.stopActionLoading();
       }
     });
+  }
+
+  retryLoad(): void {
+    this.service.reload();
   }
 
   goToNovaViagem(): void {
@@ -770,5 +1033,64 @@ export class ControleNaviosComponent implements OnInit, OnDestroy {
   private focusSavedNavio(navioId: string, abrirTrajetos: boolean): void {
     this.expanded = { [navioId]: true };
     this.expandedTrajeto = abrirTrajetos ? { [navioId]: true } : {};
+  }
+
+  private startActionLoading(message: string): void {
+    this.actionLoading = true;
+    this.actionLoadingMessage = message;
+  }
+
+  private stopActionLoading(): void {
+    this.actionLoading = false;
+    this.actionLoadingMessage = '';
+  }
+
+  private openAlert(message: string, title = 'Atenção'): void {
+    this.alertState = {
+      open: true,
+      title,
+      message,
+      buttonText: 'Entendi'
+    };
+  }
+
+  closeAlert(): void {
+    this.alertState = {
+      ...this.alertState,
+      open: false
+    };
+  }
+
+  private askConfirm(config: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    danger?: boolean;
+  }): Promise<boolean> {
+    this.confirmState = {
+      open: true,
+      title: config.title,
+      message: config.message,
+      confirmText: config.confirmText ?? 'Confirmar',
+      cancelText: config.cancelText ?? 'Cancelar',
+      danger: !!config.danger
+    };
+
+    return new Promise((resolve) => {
+      this.confirmResolver = resolve;
+    });
+  }
+
+  closeConfirm(confirmed: boolean): void {
+    this.confirmState = {
+      ...this.confirmState,
+      open: false
+    };
+
+    if (this.confirmResolver) {
+      this.confirmResolver(confirmed);
+      this.confirmResolver = null;
+    }
   }
 }
