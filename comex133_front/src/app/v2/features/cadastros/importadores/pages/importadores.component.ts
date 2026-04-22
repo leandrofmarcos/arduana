@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ImportadorService } from '../services/importador.service';
 import { Importador } from '../models/importador.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-importadores',
@@ -118,7 +120,11 @@ export class ImportadoresComponent implements OnInit {
 
   form = { razaoSocial: '', cnpj: '', email: '', telefone: '', ativo: true };
 
-  constructor(private service: ImportadorService) {}
+  constructor(
+    private service: ImportadorService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -162,17 +168,27 @@ export class ImportadoresComponent implements OnInit {
 
     if (this.editing) {
       this.service.update({ ...this.editing, ...data });
+      this.toast.success('Importador atualizado com sucesso.');
     } else {
       this.service.create(data);
+      this.toast.success('Importador criado com sucesso.');
     }
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este importador?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir importador',
+      message: 'Deseja excluir este importador?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Importador removido com sucesso.');
   }
 }

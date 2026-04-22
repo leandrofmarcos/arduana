@@ -6,6 +6,8 @@ import { DespesaCadastroService } from '../../despesas-cadastro/services/despesa
 import { ModeloDespesa, ModeloDespesaItem } from '../models/modelo-despesa.models';
 import { DespesaCadastro, CategoriaDespesa } from '../../despesas-cadastro/models/despesa-cadastro.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 interface ModeloVM extends ModeloDespesa {
   expanded: boolean;
@@ -268,7 +270,9 @@ export class ModelosDespesaComponent implements OnInit {
 
   constructor(
     private service: ModeloDespesaService,
-    private despesaService: DespesaCadastroService
+    private despesaService: DespesaCadastroService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void {
@@ -385,6 +389,7 @@ export class ModelosDespesaComponent implements OnInit {
         descricao: this.form.descricao.trim() || undefined,
       });
       this.service.replaceItens(this.editingModelo.id, Array.from(this.selectedIds));
+      this.toast.success('Modelo de despesas atualizado com sucesso.');
     } else {
       this.service.create({
         nome:      this.form.nome.trim(),
@@ -394,6 +399,7 @@ export class ModelosDespesaComponent implements OnInit {
         next: novo => {
           this.service.replaceItens(novo.id, Array.from(this.selectedIds));
           this.closeModal();
+          this.toast.success('Modelo de despesas criado com sucesso.');
           setTimeout(() => this.load(), 100);
         }
       });
@@ -404,10 +410,18 @@ export class ModelosDespesaComponent implements OnInit {
     this.load();
   }
 
-  removeModelo(id: string): void {
-    if (confirm('Deseja excluir este modelo e todos os seus itens?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async removeModelo(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir modelo de despesas',
+      message: 'Deseja excluir este modelo e todos os seus itens?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Modelo de despesas removido com sucesso.');
   }
 }

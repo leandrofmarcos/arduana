@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { NcmService } from '../services/ncm.service';
 import { Ncm } from '../models/ncm.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-ncm',
@@ -150,7 +152,11 @@ export class NcmComponent implements OnInit {
     ativo: true
   };
 
-  constructor(private service: NcmService) {}
+  constructor(
+    private service: NcmService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -197,17 +203,27 @@ export class NcmComponent implements OnInit {
 
     if (this.editing) {
       this.service.update({ ...this.editing, ...data });
+      this.toast.success('NCM atualizado com sucesso.');
     } else {
       this.service.create(data);
+      this.toast.success('NCM criado com sucesso.');
     }
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este NCM?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir NCM',
+      message: 'Deseja excluir este NCM?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('NCM removido com sucesso.');
   }
 }

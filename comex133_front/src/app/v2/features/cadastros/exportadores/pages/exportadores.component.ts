@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ExportadorService } from '../services/exportador.service';
 import { Exportador } from '../models/exportador.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-exportadores',
@@ -117,7 +119,11 @@ export class ExportadoresComponent implements OnInit {
 
   form = { nome: '', documento: '', pais: '', cidade: '', ativo: true };
 
-  constructor(private service: ExportadorService) {}
+  constructor(
+    private service: ExportadorService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -150,17 +156,27 @@ export class ExportadoresComponent implements OnInit {
     const data: Omit<Exportador, 'id'> = { ...this.form, nome: this.form.nome.trim() };
     if (this.editing) {
       this.service.update({ ...this.editing, ...data });
+      this.toast.success('Exportador atualizado com sucesso.');
     } else {
       this.service.create(data);
+      this.toast.success('Exportador criado com sucesso.');
     }
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este exportador?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir exportador',
+      message: 'Deseja excluir este exportador?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Exportador removido com sucesso.');
   }
 }

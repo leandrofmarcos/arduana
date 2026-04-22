@@ -5,6 +5,8 @@ import { Subscription } from 'rxjs';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { NavioCadastro } from '../models/navio.models';
 import { NaviosCadastroService } from '../services/navios-cadastro.service';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-navios-cadastro',
@@ -28,7 +30,16 @@ import { NaviosCadastroService } from '../services/navios-cadastro.service';
             <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome, IMO ou armador" />
           </div>
 
-          <table class="data-table">
+          <div class="empty-state" *ngIf="loading">Carregando navios...</div>
+
+          <div class="empty-state" *ngIf="!loading && hasLoadError" style="color:#b91c1c">
+            {{ loadErrorMessage }}
+            <div style="margin-top:8px">
+              <button class="btn btn-secondary" type="button" (click)="retryLoad()">Tentar novamente</button>
+            </div>
+          </div>
+
+          <table class="data-table" *ngIf="!loading && !hasLoadError">
             <thead>
               <tr>
                 <th>Nome</th>
@@ -110,6 +121,9 @@ import { NaviosCadastroService } from '../services/navios-cadastro.service';
 export class NaviosComponent implements OnInit, OnDestroy {
   items: NavioCadastro[] = [];
   q = '';
+  loading = true;
+  hasLoadError = false;
+  loadErrorMessage = '';
 
   showForm = false;
   showErrors = false;
@@ -125,10 +139,19 @@ export class NaviosComponent implements OnInit, OnDestroy {
     ativo: true
   };
 
-  constructor(private service: NaviosCadastroService) {}
+  constructor(
+    private service: NaviosCadastroService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void {
     this.subs.add(this.service.navios$.subscribe(items => this.items = [...items]));
+    this.subs.add(this.service.loading$.subscribe((loading) => this.loading = loading));
+    this.subs.add(this.service.loadError$.subscribe((message) => {
+      this.hasLoadError = !!message;
+      this.loadErrorMessage = message ?? '';
+    }));
     this.service.reload();
   }
 
@@ -185,17 +208,37 @@ export class NaviosComponent implements OnInit, OnDestroy {
     };
 
     if (this.editing) {
-      this.service.update({ ...this.editing, ...payload });
+      this.service.update({ ...this.editing, ...payload }).subscribe({
+        next: () => this.toast.success('Navio atualizado com sucesso.'),
+        error: (err) => this.toast.error(err?.message ?? 'Erro ao atualizar navio.')
+      });
     } else {
-      this.service.create(payload).subscribe();
+      this.service.create(payload).subscribe({
+        next: () => this.toast.success('Navio criado com sucesso.'),
+        error: (err) => this.toast.error(err?.message ?? 'Erro ao criar navio.')
+      });
     }
 
     this.cancel();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este navio?')) {
-      this.service.remove(id);
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir navio',
+      message: 'Deseja excluir este navio?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id).subscribe({
+      next: () => this.toast.success('Navio removido com sucesso.'),
+      error: (err) => this.toast.error(err?.message ?? 'Erro ao remover navio.')
+    });
+  }
+
+  retryLoad(): void {
+    this.service.reload();
   }
 }

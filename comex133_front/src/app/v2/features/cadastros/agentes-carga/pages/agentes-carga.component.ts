@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { AgenteCargaService } from '../services/agente-carga.service';
 import { AgenteCarga } from '../models/agente-carga.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-agentes-carga',
@@ -117,7 +119,11 @@ export class AgentesCargaComponent implements OnInit {
 
   form = { nome: '', documento: '', pais: '', contato: '', ativo: true };
 
-  constructor(private service: AgenteCargaService) {}
+  constructor(
+    private service: AgenteCargaService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -150,17 +156,27 @@ export class AgentesCargaComponent implements OnInit {
     const data: Omit<AgenteCarga, 'id'> = { ...this.form, nome: this.form.nome.trim() };
     if (this.editing) {
       this.service.update({ ...this.editing, ...data });
+      this.toast.success('Agente de carga atualizado com sucesso.');
     } else {
       this.service.create(data);
+      this.toast.success('Agente de carga criado com sucesso.');
     }
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este agente de carga?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir agente de carga',
+      message: 'Deseja excluir este agente de carga?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Agente de carga removido com sucesso.');
   }
 }

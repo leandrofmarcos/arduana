@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { DespachanteV2Service } from '../services/despachante-v2.service';
 import { DespachanteV2 } from '../models/despachante-v2.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-despachantes-v2',
@@ -118,7 +120,11 @@ export class DespachantesV2Component implements OnInit {
 
   form = { nome: '', crn: '', email: '', telefone: '', ativo: true };
 
-  constructor(private service: DespachanteV2Service) {}
+  constructor(
+    private service: DespachanteV2Service,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -162,17 +168,27 @@ export class DespachantesV2Component implements OnInit {
 
     if (this.editing) {
       this.service.update({ ...this.editing, ...data });
+      this.toast.success('Despachante atualizado com sucesso.');
     } else {
       this.service.create(data);
+      this.toast.success('Despachante criado com sucesso.');
     }
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este despachante?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir despachante',
+      message: 'Deseja excluir este despachante?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Despachante removido com sucesso.');
   }
 }

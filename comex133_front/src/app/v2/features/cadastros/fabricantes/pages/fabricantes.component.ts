@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { FabricanteService } from '../services/fabricante.service';
 import { Fabricante } from '../models/fabricante.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-fabricantes',
@@ -117,7 +119,11 @@ export class FabricantesComponent implements OnInit {
 
   form = { nome: '', pais: '', cidade: '', contato: '', ativo: true };
 
-  constructor(private service: FabricanteService) {}
+  constructor(
+    private service: FabricanteService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -150,17 +156,27 @@ export class FabricantesComponent implements OnInit {
     const data: Omit<Fabricante, 'id'> = { ...this.form, nome: this.form.nome.trim() };
     if (this.editing) {
       this.service.update({ ...this.editing, ...data });
+      this.toast.success('Fabricante atualizado com sucesso.');
     } else {
       this.service.create(data);
+      this.toast.success('Fabricante criado com sucesso.');
     }
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este fabricante?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir fabricante',
+      message: 'Deseja excluir este fabricante?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Fabricante removido com sucesso.');
   }
 }

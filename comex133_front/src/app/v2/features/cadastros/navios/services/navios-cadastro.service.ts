@@ -20,6 +20,8 @@ export class NaviosCadastroService {
   private loaded = false;
 
   readonly navios$ = new BehaviorSubject<NavioCadastro[]>([]);
+  readonly loading$ = new BehaviorSubject<boolean>(false);
+  readonly loadError$ = new BehaviorSubject<string | null>(null);
 
   constructor(private apiClient: ApiClientService) {
     this.refresh();
@@ -51,33 +53,41 @@ export class NaviosCadastroService {
     );
   }
 
-  update(item: NavioCadastro): void {
-    this.apiClient.put<NavioApiDto>(`${this.endpoint}/${item.id}`, {
+  update(item: NavioCadastro): Observable<void> {
+    return this.apiClient.put<NavioApiDto>(`${this.endpoint}/${item.id}`, {
       nomeNavio: item.nomeNavio.trim(),
       codigoImo: item.codigoImo?.trim() || undefined,
       armador: item.armador?.trim() || undefined,
       observacao: item.observacao?.trim() || undefined,
       ativo: item.ativo
-    }).subscribe({
-      next: () => this.refresh()
-    });
+    }).pipe(
+      tap(() => this.refresh()),
+      map(() => void 0)
+    );
   }
 
-  remove(id: string): void {
-    this.apiClient.delete<void>(`${this.endpoint}/${id}`).subscribe({
-      next: () => this.refresh()
-    });
+  remove(id: string): Observable<void> {
+    return this.apiClient.delete<void>(`${this.endpoint}/${id}`).pipe(
+      tap(() => this.refresh())
+    );
   }
 
   private refresh(): void {
+    this.loading$.next(true);
+    this.loadError$.next(null);
+
     this.apiClient.getList<NavioApiDto>(this.endpoint, { page: 1, pageSize: 200 }).subscribe({
       next: (result) => {
         this.items.splice(0, this.items.length, ...result.items.map((item) => this.mapDto(item)));
         this.loaded = true;
         this.navios$.next([...this.items]);
+        this.loading$.next(false);
+        this.loadError$.next(null);
       },
-      error: () => {
+      error: (err) => {
         this.loaded = false;
+        this.loading$.next(false);
+        this.loadError$.next(err?.message ?? 'Nao foi possivel carregar os navios.');
       }
     });
   }

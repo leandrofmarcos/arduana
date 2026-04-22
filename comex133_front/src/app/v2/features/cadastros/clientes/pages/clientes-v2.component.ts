@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ClienteV2Service } from '../services/cliente-v2.service';
 import { ClienteV2 } from '../models/cliente-v2.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-clientes-v2',
@@ -118,7 +120,11 @@ export class ClientesV2Component implements OnInit {
 
   form = { razaoSocial: '', cnpj: '', email: '', telefone: '', ativo: true };
 
-  constructor(private service: ClienteV2Service) {}
+  constructor(
+    private service: ClienteV2Service,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -162,17 +168,27 @@ export class ClientesV2Component implements OnInit {
 
     if (this.editing) {
       this.service.update({ ...this.editing, ...data });
+      this.toast.success('Cliente atualizado com sucesso.');
     } else {
       this.service.create(data);
+      this.toast.success('Cliente criado com sucesso.');
     }
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este cliente?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir cliente',
+      message: 'Deseja excluir este cliente?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Cliente removido com sucesso.');
   }
 }

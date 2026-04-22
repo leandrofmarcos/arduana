@@ -6,7 +6,8 @@ import { PortoOrigem } from '../models/porto-origem.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
 import { PaginationComponent } from '../../../../../core/components/pagination/pagination.component';
 import { PagedResult, PaginationParams } from '../../../../../core/api/models/api-response.model';
-import { NotificationService } from '../../../../../core/services/notification.service';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 @Component({
   selector: 'app-portos-origem',
@@ -31,7 +32,16 @@ import { NotificationService } from '../../../../../core/services/notification.s
           <div class="toolbar">
             <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome, código ou país" />
           </div>
-          <table class="data-table">
+          <div class="empty-state" *ngIf="loading">Carregando portos de origem...</div>
+
+          <div class="empty-state" *ngIf="!loading && hasLoadError" style="color:#b91c1c">
+            {{ loadErrorMessage }}
+            <div style="margin-top:8px">
+              <button class="btn btn-secondary" type="button" (click)="retryLoad()">Tentar novamente</button>
+            </div>
+          </div>
+
+          <table class="data-table" *ngIf="!loading && !hasLoadError">
             <thead>
               <tr>
                 <th>Nome</th>
@@ -120,6 +130,8 @@ export class PortosOrigemComponent implements OnInit {
   pagedResult: PagedResult<PortoOrigem> | null = null;
   q = '';
   loading = false;
+  hasLoadError = false;
+  loadErrorMessage = '';
   showForm = false;
   showErrors = false;
   editing: PortoOrigem | null = null;
@@ -128,7 +140,8 @@ export class PortosOrigemComponent implements OnInit {
 
   constructor(
     private service: PortoOrigemService,
-    private notification: NotificationService
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
   ) {}
 
   ngOnInit(): void { this.load(); }
@@ -140,12 +153,20 @@ export class PortosOrigemComponent implements OnInit {
         this.pagedResult = result;
         this.items = result.items;
         this.loading = false;
+        this.hasLoadError = false;
+        this.loadErrorMessage = '';
       },
       error: err => {
         this.loading = false;
-        this.notification.error(err?.message ?? 'Erro ao carregar portos de origem');
+        this.hasLoadError = true;
+        this.loadErrorMessage = err?.message ?? 'Erro ao carregar portos de origem.';
+        this.toast.error(this.loadErrorMessage);
       }
     });
+  }
+
+  retryLoad(): void {
+    this.load(this.pagedResult?.page ?? 1, this.pagedResult?.pageSize ?? 20);
   }
 
   onPageChange(params: PaginationParams): void {
@@ -183,33 +204,40 @@ export class PortosOrigemComponent implements OnInit {
     if (this.editing) {
       this.service.update({ ...this.editing, ...this.form }).subscribe({
         next: () => {
-          this.notification.success('Porto de origem atualizado com sucesso');
+          this.toast.success('Porto de origem atualizado com sucesso.');
           this.cancel();
           this.load(this.pagedResult?.page ?? 1, this.pagedResult?.pageSize ?? 20);
         },
-        error: err => this.notification.error(err?.message ?? 'Erro ao atualizar porto de origem')
+        error: err => this.toast.error(err?.message ?? 'Erro ao atualizar porto de origem.')
       });
     } else {
       this.service.create(this.form).subscribe({
         next: () => {
-          this.notification.success('Porto de origem criado com sucesso');
+          this.toast.success('Porto de origem criado com sucesso.');
           this.cancel();
           this.load(this.pagedResult?.page ?? 1, this.pagedResult?.pageSize ?? 20);
         },
-        error: err => this.notification.error(err?.message ?? 'Erro ao criar porto de origem')
+        error: err => this.toast.error(err?.message ?? 'Erro ao criar porto de origem.')
       });
     }
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir este porto de origem?')) {
-      this.service.remove(id).subscribe({
-        next: () => {
-          this.notification.success('Porto de origem removido com sucesso');
-          this.load(this.pagedResult?.page ?? 1, this.pagedResult?.pageSize ?? 20);
-        },
-        error: err => this.notification.error(err?.message ?? 'Erro ao remover porto de origem')
-      });
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir porto de origem',
+      message: 'Deseja excluir este porto de origem?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id).subscribe({
+      next: () => {
+        this.toast.success('Porto de origem removido com sucesso.');
+        this.load(this.pagedResult?.page ?? 1, this.pagedResult?.pageSize ?? 20);
+      },
+      error: err => this.toast.error(err?.message ?? 'Erro ao remover porto de origem.')
+    });
   }
 }

@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { DespesaCadastroService } from '../services/despesa-cadastro.service';
 import { DespesaCadastro, CATEGORIAS_DESPESA, CategoriaDespesa } from '../models/despesa-cadastro.models';
 import { CRUD_STYLES } from '../../../../shared/styles/crud-page.styles';
+import { ToastService } from '../../../../../core/services/toast.service';
+import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 
 const CAT_BG: Record<string, string> = {
   'Agência Marítima': '#dbeafe',
@@ -166,7 +168,11 @@ export class DespesasCadastroComponent implements OnInit {
     descricao: '', valor: 0, categoria: '', ativo: true
   };
 
-  constructor(private service: DespesaCadastroService) {}
+  constructor(
+    private service: DespesaCadastroService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService
+  ) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -218,17 +224,27 @@ export class DespesasCadastroComponent implements OnInit {
 
     if (this.editing) {
       this.service.update({ ...this.editing, ...data });
+      this.toast.success('Despesa atualizada com sucesso.');
     } else {
       this.service.create(data);
+      this.toast.success('Despesa criada com sucesso.');
     }
     this.cancel();
     this.load();
   }
 
-  remove(id: string): void {
-    if (confirm('Deseja excluir esta despesa do catálogo?')) {
-      this.service.remove(id);
-      this.load();
-    }
+  async remove(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Excluir despesa',
+      message: 'Deseja excluir esta despesa do catalogo?',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+
+    this.service.remove(id);
+    this.load();
+    this.toast.success('Despesa removida com sucesso.');
   }
 }

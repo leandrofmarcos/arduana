@@ -10,6 +10,39 @@ Padronizar toda a experiencia de comunicacao com API no frontend, com foco em:
 
 Este documento cobre somente planejamento e rastreabilidade. Nao inicia implementacao.
 
+## 1.1 Status de execucao (atualizado em 2026-04-22)
+### Resumo executivo
+- Status geral do roadmap: Em andamento
+- Backlog macro concluido: 2 de 8 itens (25%)
+- Fases iniciadas: 2 de 6 (Fases 1 e 2 implementadas)
+- Fases concluidas e aprovadas: 0 de 6
+
+### Estatisticas da Fase 1 (piloto: Logistica > Controle de Navios)
+- Entregas tecnicas implementadas: 5 de 5 atividades previstas (100% da implementacao tecnica)
+- Validacao funcional do usuario: Pendente
+- Gate para inicio da Fase 2: Liberado
+
+### Estatisticas da Fase 2 (Cadastros)
+- Entregas tecnicas implementadas: 3 de 3 atividades previstas (100% da implementacao tecnica)
+- Cobertura de telas do menu Cadastros: 13 de 13 paginas (100%)
+- Validacao funcional do usuario: Pendente
+
+### Evidencias de implementacao da Fase 2
+- Confirm dialog global implementado e integrado no app root
+- Remocao de `confirm()` nativo em 13 de 13 paginas de Cadastros
+- Padronizacao de toasts de sucesso/erro em operacoes de escrita
+- Substituicao de `NotificationService` por `ToastService` nas telas de Cadastros
+- Estado de erro com retry aplicado em telas com carga principal paginada (Portos e Navios)
+- Build do frontend executado com sucesso apos o rollout da fase
+
+### Evidencias de implementacao da Fase 1
+- Loading inline para carga principal da tela
+- Loading bloqueante para acoes criticas de escrita
+- Substituicao de `alert()`/`confirm()` por dialogs padronizados da feature
+- Padronizacao de toasts de sucesso/erro/informacao
+- Estado de erro principal com acao de retry
+- Build do frontend executado com sucesso apos as alteracoes
+
 ## 2. Escopo
 ### 2.1 Em escopo
 - Aplicacao Angular V2 (menu principal completo)
@@ -96,6 +129,9 @@ Atividades:
 - padronizar toasts de sucesso/erro
 - garantir feedback de erro de API com mensagem clara
 - revisar estados vazios e retries
+Status de execucao da fase:
+- Implementacao tecnica concluida
+- Em validacao funcional com usuario
 Criterios de validacao da fase piloto:
 - 100% sem `alert/confirm` nativos na feature
 - todas as acoes com feedback visual em <= 300ms
@@ -116,6 +152,9 @@ Atividades:
 - aplicar padrao de loading/erro/sucesso
 - padronizar paginacao e estado vazio
 - remover feedback nativo
+Status de execucao da fase:
+- Implementacao tecnica concluida
+- Em validacao funcional com usuario
 
 ## Fase 3 - Rollout Operacao (menu Operacao)
 Cobertura:
@@ -148,12 +187,18 @@ Atividades:
 |---|---|---|---|---|
 | USAB-001 | 0 | Core | Unificacao ToastService/NotificationService | Planejado |
 | USAB-002 | 0 | Core | Contrato de feedback API | Planejado |
-| USAB-003 | 1 | Logistica/Controle de Navios | Piloto completo | Planejado |
-| USAB-004 | 2 | Cadastros | Padrao loading + erros + paginacao | Planejado |
+| USAB-003 | 1 | Logistica/Controle de Navios | Piloto completo | Implementado (aguardando validacao) |
+| USAB-004 | 2 | Cadastros | Padrao loading + erros + paginacao | Implementado (aguardando validacao) |
 | USAB-005 | 3 | Operacao | Feedback de fluxos longos e acoes criticas | Planejado |
 | USAB-006 | 4 | Administracao | Dialogs e feedback padrao | Planejado |
 | USAB-007 | 4 | Documentos | Upload/erro/sucesso padrao | Planejado |
 | USAB-008 | 5 | Global | Auditoria e conformidade final | Planejado |
+
+### 6.1 Estatistica de rastreabilidade
+- Itens planejados: 8
+- Itens implementados (aguardando validacao ou aprovados): 2
+- Itens totalmente aprovados: 0
+- Percentual de execucao tecnica: 25%
 
 ## 7. Checklist de conformidade por tela
 Cada tela deve cumprir:
@@ -165,6 +210,21 @@ Cada tela deve cumprir:
 - [ ] Possui estado vazio padronizado
 - [ ] Usa paginacao padrao quando aplicavel
 - [ ] Possui acao de retry em falhas de carga principal
+
+### 7.1 Checklist do piloto (Controle de Navios)
+- [x] Nao usa `alert()`
+- [x] Nao usa `confirm()`
+- [x] Exibe loading durante chamadas HTTP
+- [x] Exibe toast de sucesso em operacoes de escrita
+- [x] Exibe erro amigavel em falhas
+- [x] Possui estado vazio padronizado
+- [ ] Usa paginacao padrao quando aplicavel (nao aplicavel ao piloto atual)
+- [x] Possui acao de retry em falhas de carga principal
+
+Estatistica do checklist piloto:
+- Itens aplicaveis ao piloto: 7
+- Itens conformes: 7
+- Conformidade do piloto (itens aplicaveis): 100%
 
 ## 8. Matriz de prioridade (ordem recomendada)
 1. Controle de Navios (piloto)
