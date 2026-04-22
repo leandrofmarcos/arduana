@@ -1,6 +1,0 @@
-@import_costs_api_HostAddress = http://localhost:5205
-
-GET {{import_costs_api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

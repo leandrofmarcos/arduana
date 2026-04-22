@@ -1,7 +1,7 @@
 # ============================================================
 # ROOT .gitignore — prototipos-html
-# Cobre: Angular (import-costs), .NET 8 (import-costs-api,
-#        comex133_api) e arquivos de infraestrutura local.
+# Cobre: Angular (comex133_front), .NET (comex133_api)
+# e arquivos de infraestrutura local.
 # ============================================================
 
 
@@ -81,10 +81,12 @@ ScaffoldingReadMe.txt
 # Angular / Node.js
 # ------------------------------------------------------------
 node_modules/
-npm-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 .yarn-integrity
-package-lock.json
+
+# Lockfiles DEVEM ser versionados para builds reproduziveis.
 
 # Saídas de build Angular
 dist/
@@ -121,6 +123,7 @@ appsettings.*.local.json
 *.env
 .env
 .env.*
+!**/.env.example
 
 
 # ------------------------------------------------------------

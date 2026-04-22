@@ -2,12 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug import-costs (Angular)",
+      "name": "Debug comex133_front (Angular)",
       "type": "pwa-chrome",
       "request": "launch",
       "url": "http://localhost:4200",
-      "webRoot": "${workspaceFolder}/import-costs",
-      "preLaunchTask": "start:import-costs"
+      "webRoot": "${workspaceFolder}/comex133_front",
+      "preLaunchTask": "start:comex133_front"
     },
     {
       "name": "Debug import-costs-api (.NET)",
@@ -28,9 +28,9 @@
   ],
   "compounds": [
     {
-      "name": "Debug import-costs + api",
+      "name": "Debug comex133_front + api",
       "configurations": [
-        "Debug import-costs (Angular)",
+        "Debug comex133_front (Angular)",
         "Debug import-costs-api (.NET)"
       ],
       "stopAll": true

@@ -1,0 +1,202 @@
+<div class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Configurar Template Packlist</h3>
+      <button class="btn-close" (click)="cancel()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <ng-container *ngIf="currentStep === 0 || !preview">
+        <div class="step-upload">
+          <h4>Passo 1: Selecionar Arquivo</h4>
+          
+          <div class="upload-area">
+            <input 
+              type="file" 
+              id="fileInput"
+              #fileInput
+              (change)="onFileSelect($event)"
+              accept=".csv,.xlsx,.xls"
+              class="file-input">
+            <label for="fileInput" class="upload-label" (click)="fileInput.click(); $event.preventDefault()">
+              <div class="upload-icon">📤</div>
+              <p>Clique para selecionar ou arraste um arquivo</p>
+              <p class="file-types">CSV, XLSX, XLS</p>
+            </label>
+          </div>
+
+          <div *ngIf="selectedFile" class="file-selected">
+            ✓ {{ selectedFile.name }}
+          </div>
+
+          <div *ngIf="loading" class="loading">
+            Carregando arquivo...
+          </div>
+
+          <div *ngIf="error" class="error-message">
+            {{ error }}
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="currentStep === 1 && preview">
+        <div class="step-header-line">
+          <h4>Passo 1: Linha de Cabeçalho</h4>
+          <p class="step-description">Selecione qual linha contém os nomes das colunas</p>
+
+          <div class="radio-group">
+            <label *ngFor="let i of [1, 2, 3, 4, 5]" class="radio-label">
+              <input 
+                type="radio" 
+                [(ngModel)]="linhaInicio" 
+                [value]="i"
+                class="radio-input">
+              <span class="radio-text">Linha {{ i }}</span>
+              <span class="radio-preview" *ngIf="previewLines[i - 1]">{{ previewLines[i - 1][0] || '—' }}</span>
+              <span class="radio-preview" *ngIf="!previewLines[i - 1]">—</span>
+            </label>
+          </div>
+
+          <div class="preview-section">
+            <h5>Preview:</h5>
+            <table class="preview-table">
+              <tbody>
+                <tr *ngFor="let line of previewLines.slice(0, 5); let idx = index" 
+                    [class.header-line]="idx + 1 === linhaInicio">
+                  <td class="line-number">{{ idx + 1 }}</td>
+                  <td *ngFor="let cell of line" class="line-data">{{ cell }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div *ngIf="error" class="error-message">
+            {{ error }}
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="currentStep === 2 && preview">
+        <div class="step-mapping">
+          <h4>Passo 2: Mapeamento de Colunas</h4>
+          <p class="step-description">Associe as colunas do arquivo aos campos</p>
+
+          <div class="mapping-fields">
+            <div class="mapping-field">
+              <label>Número Sequencial (#)</label>
+              <select [(ngModel)]="fieldMapping.numeroSequencial" class="form-control">
+                <option value="">Não mapeado</option>
+                <option *ngFor="let col of columns" [value]="col">{{ col }}</option>
+              </select>
+            </div>
+
+            <div class="mapping-field">
+              <label>Volumes (peças/unidades)</label>
+              <select [(ngModel)]="fieldMapping.volumes" class="form-control">
+                <option value="">Não mapeado</option>
+                <option *ngFor="let col of columns" [value]="col">{{ col }}</option>
+              </select>
+            </div>
+
+            <div class="mapping-field">
+              <label>Peso (kg)</label>
+              <select [(ngModel)]="fieldMapping.peso" class="form-control">
+                <option value="">Não mapeado</option>
+                <option *ngFor="let col of columns" [value]="col">{{ col }}</option>
+              </select>
+            </div>
+
+            <div class="mapping-field">
+              <label>CBM (m³)</label>
+              <select [(ngModel)]="fieldMapping.cbm" class="form-control">
+                <option value="">Não mapeado</option>
+                <option *ngFor="let col of columns" [value]="col">{{ col }}</option>
+              </select>
+            </div>
+
+            <div class="mapping-field">
+              <label>Descrição Comercial</label>
+              <select [(ngModel)]="fieldMapping.descricaoComercial" class="form-control">
+                <option value="">Não mapeado</option>
+                <option *ngFor="let col of columns" [value]="col">{{ col }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="preview-section">
+            <h5>Preview dos Dados Mapeados:</h5>
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th class="header-cell">Linha</th>
+                  <th class="header-cell" *ngIf="fieldMapping.numeroSequencial">#</th>
+                  <th class="header-cell" *ngIf="fieldMapping.volumes">Volumes</th>
+                  <th class="header-cell" *ngIf="fieldMapping.peso">Peso</th>
+                  <th class="header-cell" *ngIf="fieldMapping.cbm">CBM</th>
+                  <th class="header-cell" *ngIf="fieldMapping.descricaoComercial">Descrição</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let line of dataPreview.slice(0, 5); let idx = index">
+                  <td class="line-number">{{ linhaInicio + idx + 1 }}</td>
+                  <td *ngIf="fieldMapping.numeroSequencial">{{ line[fieldMapping.numeroSequencial.charCodeAt(0) - 65] }}</td>
+                  <td *ngIf="fieldMapping.volumes">{{ line[fieldMapping.volumes.charCodeAt(0) - 65] }}</td>
+                  <td *ngIf="fieldMapping.peso">{{ line[fieldMapping.peso.charCodeAt(0) - 65] }}</td>
+                  <td *ngIf="fieldMapping.cbm">{{ line[fieldMapping.cbm.charCodeAt(0) - 65] }}</td>
+                  <td *ngIf="fieldMapping.descricaoComercial">{{ line[fieldMapping.descricaoComercial.charCodeAt(0) - 65] }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div *ngIf="error" class="error-message">
+            {{ error }}
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-container *ngIf="currentStep === 3">
+        <div class="step-confirmation">
+          <h4>Passo 3: Confirmação</h4>
+          
+          <div class="summary-box">
+            <div class="summary-item">
+              <span class="label">Arquivo:</span>
+              <span class="value">{{ selectedFile?.name }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Linha de Cabeçalho:</span>
+              <span class="value">Linha {{ linhaInicio }}</span>
+            </div>
+            <div class="summary-item">
+              <span class="label">Mapeamento:</span>
+            </div>
+            <div class="mapping-summary">
+              <div class="summary-mapping">Número Sequencial: {{ fieldMapping.numeroSequencial || '—' }}</div>
+              <div class="summary-mapping">Volumes: {{ fieldMapping.volumes || '—' }}</div>
+              <div class="summary-mapping">Peso: {{ fieldMapping.peso || '—' }}</div>
+              <div class="summary-mapping">CBM: {{ fieldMapping.cbm || '—' }}</div>
+              <div class="summary-mapping">Descrição: {{ fieldMapping.descricaoComercial || '—' }}</div>
+            </div>
+          </div>
+
+          <p class="confirmation-text">Clique em "Confirmar" para salvar este template com as configurações acima.</p>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="cancel()">Cancelar</button>
+      
+      <ng-container *ngIf="currentStep > 0 && currentStep < 3">
+        <button class="btn-secondary" (click)="previousStep()" *ngIf="currentStep > 1">Voltar</button>
+        <button class="btn-primary" (click)="nextStep()">Próximo</button>
+      </ng-container>
+
+      <ng-container *ngIf="currentStep === 3">
+        <button class="btn-secondary" (click)="previousStep()">Voltar</button>
+        <button class="btn-success" (click)="confirm()">Confirmar</button>
+      </ng-container>
+    </div>
+  </div>
+</div>

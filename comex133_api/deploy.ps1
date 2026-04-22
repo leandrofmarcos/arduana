@@ -205,5 +205,6 @@ Write-Host "   Enviados : $uploadedCount" -ForegroundColor Green
 Write-Host "   Ignorados: $skippedCount" -ForegroundColor Gray
 Write-Host "   Erros    : $errorCount" -ForegroundColor $(if ($errorCount -gt 0) { "Red" } else { "Green" })
 Write-Host ""
-Write-Host "URL: http://www.viaveritascomex.com.br/swagger" -ForegroundColor Cyan
+Write-Host "Swagger: https://www.viaveritascomex.com.br/swagger" -ForegroundColor Cyan
+Write-Host "API Auth: https://www.viaveritascomex.com.br/api/auth/login" -ForegroundColor Cyan
 Write-Host ""

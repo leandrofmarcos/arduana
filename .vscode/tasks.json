@@ -2,11 +2,11 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "start:import-costs",
+      "label": "start:comex133_front",
       "type": "shell",
       "command": "npm run start",
       "options": {
-        "cwd": "${workspaceFolder}/import-costs"
+        "cwd": "${workspaceFolder}/comex133_front"
       },
       "isBackground": true,
       "presentation": {
@@ -30,7 +30,7 @@
     {
       "label": "start:all",
       "dependsOn": [
-        "start:import-costs",
+        "start:comex133_front",
         "start:import-costs-api"
       ],
       "dependsOrder": "parallel"

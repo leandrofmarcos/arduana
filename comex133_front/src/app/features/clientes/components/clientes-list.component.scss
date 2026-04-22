@@ -1,0 +1,73 @@
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.search {
+  flex: 1;
+  min-width: 200px;
+  padding: 13px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 15px;
+  transition: 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  }
+}
+
+.data-table th:last-child,
+.data-table td:last-child {
+  text-align: right;
+  width: 120px;
+}
+
+.data-table .empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.cliente-name {
+  font-weight: 600;
+}
+
+.badge-template {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.no-template {
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0;
+  align-items: center;
+}
+
+.row-actions .btn-icon {
+  padding: 6px 8px;
+}
+
+.btn-icon.danger {
+  color: var(--color-danger);
+}
