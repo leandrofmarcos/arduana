@@ -108,7 +108,12 @@ export class RolesComponent implements OnInit {
 
   ngOnInit(): void { this.load(); }
 
-  load(): void { this.items = this.service.getAll(); }
+  load(): void {
+    this.items = this.service.getAll();
+    setTimeout(() => {
+      this.items = this.service.getAll();
+    }, 300);
+  }
 
   get filtered(): Role[] {
     if (!this.q) return this.items;
