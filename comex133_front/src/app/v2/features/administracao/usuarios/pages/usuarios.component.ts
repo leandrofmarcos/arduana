@@ -49,6 +49,11 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
         font-size: 13px;
         font-weight: 500;
       }
+      .role-desc-hint {
+        font-weight: 400;
+        color: #6b7280;
+        font-size: 11px;
+      }
       .inline-actions {
         display: flex;
         gap: 8px;
@@ -187,7 +192,7 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
                 [class.err]="showErrors && !form.roleId"
               >
                 <option value="">— Selecione uma role —</option>
-                <option *ngFor="let r of roles" [value]="r.id">{{ r.nome }}</option>
+                <option *ngFor="let r of roles" [value]="r.id">{{ r.nome }}{{ r.descricao ? ' — ' + r.descricao : '' }}</option>
               </select>
               <span class="err-msg" *ngIf="showErrors && !form.roleId">Role é obrigatória</span>
               <span class="err-msg" *ngIf="showErrors && hasApiFieldError('roleId', 'role')">{{ firstApiFieldError('roleId', 'role') }}</span>
@@ -214,7 +219,7 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
                   [checked]="isRoleSelecionadaEdicao(r.nome)"
                   (change)="toggleRoleEdicao(r.nome, $event)"
                 />
-                <span>{{ r.nome }}</span>
+                <span>{{ r.nome }}<ng-container *ngIf="r.descricao"> <small class="role-desc-hint">— {{ r.descricao }}</small></ng-container></span>
               </label>
             </div>
           </div>

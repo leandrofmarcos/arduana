@@ -17,10 +17,10 @@ controle de autorização futuro.
 
 | Nome | Descrição | Tipo |
 |---|---|---|
-| **Despachante** | Acesso às telas operacionais de despacho aduaneiro | Padrão |
-| **Analista** | Acesso à análise de solicitações e custos | Padrão |
-| **Gerente** | Acesso gerencial com visualizações consolidadas | Padrão |
-| **Administrador** | Acesso total ao sistema, incluindo administração | Padrão |
+| **Despachante** | Operador de despacho aduaneiro | Padrão |
+| **Analista** | Analista operacional | Padrão |
+| **Gerente** | Gestão de operações | Padrão |
+| **Administrador** | Admin do sistema | Padrão |
 
 ### Regra de negócio central
 > Um usuário **deve ter exatamente 1 role** no momento do cadastro.  
@@ -31,16 +31,22 @@ controle de autorização futuro.
 ## 📊 STATUS CONSOLIDADO
 
 ```
-ROL-001  DB: Seed das 4 roles padrão (migration):       ✅ CONCLUÍDO
-ROL-002  API: RoleId obrigatório em CreateUsuario:       ✅ CONCLUÍDO
-ROL-003  API: Validator exige RoleId único:              ✅ CONCLUÍDO
-ROL-004  API: UsuarioService usa RoleId singular:        ✅ CONCLUÍDO
-ROL-005  Front: Model/Service – roleId obrigatório:      ✅ CONCLUÍDO
-ROL-006  Front: UI – seletor único de role no cadastro:  ✅ CONCLUÍDO
-ROL-007  Front: Validação inline de role obrigatória:    ✅ CONCLUÍDO
-ROL-008  Build + testes manuais:                        ✅ CONCLUÍDO
+ROL-001  DB: Seed das 4 roles padrão (migration):              ✅ CONCLUÍDO
+ROL-002  API: RoleId obrigatório em CreateUsuario:              ✅ CONCLUÍDO
+ROL-003  API: Validator exige RoleId único:                     ✅ CONCLUÍDO
+ROL-004  API: UsuarioService usa RoleId singular:               ✅ CONCLUÍDO
+ROL-005  Front: Model/Service – roleId obrigatório:             ✅ CONCLUÍDO
+ROL-006  Front: UI – seletor único de role no cadastro:         ✅ CONCLUÍDO
+ROL-007  Front: Validação inline de role obrigatória:           ✅ CONCLUÍDO
+ROL-008  Build + testes manuais (fase 1):                      ✅ CONCLUÍDO
 
-Progresso total: 8 / 8 atividades (100%)
+── Fase 2: Campo Descrição nas Roles ────────────────────────────────────
+ROL-009  DB: Migration para atualizar descrições padrão:        ✅ CONCLUÍDO
+ROL-010  Front: Descrição visível no select de criação de usuário: ✅ CONCLUÍDO
+ROL-011  Front: Descrição visível nos checkboxes Gerenciar Roles: ✅ CONCLUÍDO
+ROL-012  Build de validação final (fase 2):                    ✅ CONCLUÍDO
+
+Progresso total: 12 / 12 atividades (100%)
 ```
 
 ---
@@ -49,35 +55,37 @@ Progresso total: 8 / 8 atividades (100%)
 
 ### 1.1 Banco de Dados
 
-| Item | Estado atual | Necessário |
-|---|---|---|
-| Tabela `Roles` | ✅ Existe | — |
-| Tabela `UsuarioRoles` (N-N) | ✅ Existe | — |
-| Seed das 4 roles padrão | ❌ Ausente | Migration de seed |
-| Restrição de role única por usuário | ❌ Ausente | Regra de negócio (sem constraint DB) |
+| Item | Estado atual |
+|---|---|
+| Tabela `Roles` | ✅ Existe |
+| Tabela `UsuarioRoles` (N-N) | ✅ Existe |
+| Seed das 4 roles padrão | ✅ Aplicado (migration `SeedDefaultRoles`) |
+| Descrições das roles padrão | ✅ Atualizadas (migration `UpdateDefaultRoleDescriptions`) |
+| Restrição de role única por usuário | ✅ Regra de negócio no validator e service |
 
 ### 1.2 API (`comex133_api`)
 
-| Arquivo | Estado atual | Necessário |
-|---|---|---|
-| `CreateUsuarioRequest` | `IEnumerable<int>? RoleIds` (opcional, múltiplas) | `int RoleId` (obrigatório, única) |
-| `CreateUsuarioRequestValidator` | Não valida RoleIds | Validar `RoleId > 0` obrigatório |
-| `UsuarioService.CreateAsync` | Aceita 0..N roles | Exige exatamente 1 |
-| `AtribuirRolesRequest` | `IEnumerable<int> RoleIds` | Mantido (flexibilidade admin) |
-
-> **Decisão de design**: a validação de role única é aplicada na criação (`CreateUsuarioRequest`).  
-> O endpoint `PUT /usuarios/{id}/roles` mantém `IEnumerable` para flexibilidade futura,  
-> mas o frontend aplica seleção única também nesse fluxo.
+| Arquivo | Estado atual |
+|---|---|
+| `RoleDtos` — `RoleDto`, `CreateRoleRequest`, `UpdateRoleRequest` | ✅ Campo `Descricao` presente |
+| `RoleService` — `CreateAsync`, `UpdateAsync` | ✅ Persiste e atualiza `Descricao` |
+| `RoleValidators` — max 200 chars | ✅ Validação de `Descricao` presente |
+| `CreateUsuarioRequest` | ✅ `int RoleId` (obrigatório, singular) |
+| `CreateUsuarioRequestValidator` | ✅ Exige `RoleId > 0` |
+| `UsuarioService.CreateAsync` | ✅ Atribui role única com validação de existência |
+| `AtribuirRolesRequest` | ✅ Mantido com `IEnumerable<int>` (flexibilidade admin) |
 
 ### 1.3 Frontend (`comex133_front`)
 
-| Arquivo | Estado atual | Necessário |
-|---|---|---|
-| `usuario.models.ts` – `CreateUsuarioInput` | `roleIds?: string[]` (opcional, array) | `roleId: string` (obrigatório, singular) |
-| `usuario.service.ts` – `create()` | Envia `roleIds: number[]` | Enviar `roleId: number` (wrapped em array pela API) |
-| `usuarios.component.ts` – form de criação | Checkboxes múltiplos, não obrigatório | Radio buttons (ou `<select>`) único, obrigatório |
-| Validação de role no save | Ausente | Erro inline: "Selecione uma role" |
-| Coluna de roles na listagem | `role-chip` para cada role | Mantido (já funciona) |
+| Arquivo | Estado atual |
+|---|---|
+| `roles/models/role.models.ts` | ✅ `descricao?: string` presente |
+| `roles/services/role.service.ts` | ✅ Envia/recebe `descricao` |
+| `roles/pages/roles.component.ts` | ✅ Tabela exibe descrição; formulário tem campo descrição |
+| `usuarios/models/usuario.models.ts` | ✅ `roleId: string` (obrigatório) |
+| `usuarios/services/usuario.service.ts` | ✅ Envia `roleId: number` |
+| `usuarios.component.ts` — select criação | ✅ Exibe `nome — descrição` nas opções |
+| `usuarios.component.ts` — Gerenciar Roles | ✅ Checkboxes exibem descrição ao lado do nome |
 
 ---
 
@@ -347,9 +355,66 @@ if (!this.form.roleId) {
 - [ ] `npm run build` (production) — 0 erros
 - [ ] Build output: rotas prerendered sem erro
 
+### ROL-009 — DB: Atualizar descrições das roles padrão
+**Camada**: Banco de dados (EF Core migration)  
+**Arquivo**: `comex133_api/Migrations/20260422182952_UpdateDefaultRoleDescriptions.cs`  
+**Status**: ✅ CONCLUÍDO
+
+#### O que foi feito
+Nova migration com `UPDATE` para corrigir as descrições conforme regra de negócio definida.
+A migration `SeedDefaultRoles` também foi atualizada para instalações futuras.
+
+| Role | Descrição final |
+|---|---|
+| Despachante | Operador de despacho aduaneiro |
+| Analista | Analista operacional |
+| Gerente | Gestão de operações |
+| Administrador | Admin do sistema |
+
 ---
 
-## 3. SEQUÊNCIA DE EXECUÇÃO RECOMENDADA
+### ROL-010 — Front: Descrição no select de criação de usuário
+**Camada**: Frontend — component  
+**Arquivo**: `usuarios.component.ts`  
+**Status**: ✅ CONCLUÍDO
+
+#### O que foi feito
+Cada `<option>` do select de role agora exibe `Nome — Descrição`:
+```html
+<option *ngFor="let r of roles" [value]="r.id">
+  {{ r.nome }}{{ r.descricao ? ' — ' + r.descricao : '' }}
+</option>
+```
+
+---
+
+### ROL-011 — Front: Descrição nos checkboxes de Gerenciar Roles
+**Camada**: Frontend — component  
+**Arquivo**: `usuarios.component.ts`  
+**Status**: ✅ CONCLUÍDO
+
+#### O que foi feito
+Cada checkbox de seleção de role agora exibe a descrição em tom muted ao lado do nome:
+```html
+<span>{{ r.nome }}
+  <small class="role-desc-hint">— {{ r.descricao }}</small>
+</span>
+```
+
+---
+
+### ROL-012 — Build de validação final (Fase 2)
+**Camada**: Transversal  
+**Status**: ⬜ PENDENTE
+
+#### Checklist
+- [x] `npx ng build --configuration=production` — 0 erros
+- [ ] `GET /api/roles` retorna descrições corretas para as 4 roles
+- [ ] Select de role em Usuários exibe `Nome — Descrição`
+- [ ] Tela de Roles exibe coluna Descrição e campo no formulário
+- [ ] Checkboxes de Gerenciar Roles exibem descrição em texto muted
+
+---
 
 ```
 ROL-001 (DB migration)
@@ -391,6 +456,8 @@ ROL-008 (Build + testes manuais)
 | D3 | Role única enforçada na criação via validator, não por constraint DB | Regra de negócio gerenciável sem alterar schema |
 | D4 | Frontend usa `<select>` em vez de radio buttons | Melhor UX quando a lista de roles pode crescer |
 | D5 | Roles padrão NÃO são protegidas contra exclusão por código | Responsabilidade do operador; deletar role em uso já retorna 400 |
+| D6 | Descrição exibida nas opções do select de usuário | Melhora UX ao identificar a role sem abrir a tela de Roles |
+| D7 | Descrição nos checkboxes de Gerenciar Roles em texto muted | Informa sem poluir visualmente o campo de seleção |
 
 ---
 
@@ -405,9 +472,13 @@ ROL-008 (Build + testes manuais)
 | ROL-005 | Front: Model + Service atualizados | ✅ CONCLUÍDO | 2026-04-22 |
 | ROL-006 | Front: Seletor único de role no formulário | ✅ CONCLUÍDO | 2026-04-22 |
 | ROL-007 | Front: Validação inline de role obrigatória | ✅ CONCLUÍDO | 2026-04-22 |
-| ROL-008 | Build + testes manuais | ✅ CONCLUÍDO | 2026-04-22 |
+| ROL-008 | Build + testes manuais (fase 1) | ✅ CONCLUÍDO | 2026-04-22 |
+| ROL-009 | DB: Atualizar descrições das roles padrão | ✅ CONCLUÍDO | 2026-04-22 |
+| ROL-010 | Front: Descrição no select de criação de usuário | ✅ CONCLUÍDO | 2026-04-22 |
+| ROL-011 | Front: Descrição nos checkboxes Gerenciar Roles | ✅ CONCLUÍDO | 2026-04-22 |
+| ROL-012 | Build de validação final (fase 2) | ✅ CONCLUÍDO | 2026-04-22 |
 
-**Progresso: 8 / 8 (100%)**
+**Progresso: 12 / 12 (100%)**
 
 ---
 
