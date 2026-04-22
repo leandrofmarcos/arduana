@@ -1,8 +1,8 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../../features/auth/auth.providers';
-import { Router } from '@angular/router';
+import { filter, Subscription } from 'rxjs';
 
 
 @Component({
@@ -10,14 +10,15 @@ import { Router } from '@angular/router';
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <div class="wrapper" [class.sidebar-collapsed]="collapsed()">
+    <div class="wrapper" [class.sidebar-collapsed]="collapsed()" [class.sidebar-open]="isMobile() && drawerOpen()">
+      <div class="sidebar-overlay" (click)="closeMobileDrawer()"></div>
       <header class="main-header">
         <div class="brand-area">
           <button class="sidebar-toggle" (click)="toggleSidebar()">☰</button>
           <span class="brand">Aduana <span class="brand-v2">V2</span></span>
         </div>
         <div class="nav-actions">
-          <a routerLink="/profile" class="profile-link" title="Meu Perfil">{{ auth.currentUser?.username }}</a>
+          <a routerLink="/profile" class="profile-link hide-mobile" title="Meu Perfil">{{ auth.currentUser?.username }}</a>
           <button class="logout" (click)="logout()">Sair</button>
         </div>
       </header>
@@ -260,11 +261,66 @@ import { Router } from '@angular/router';
     .sidebar-collapsed .menu a span:last-child { display: none; }
     .sidebar-collapsed .menu-title { display: none; }
     .sidebar-collapsed .user-panel .info { display: none; }
+
+    /* ===== OVERLAY (mobile) ===== */
+    .sidebar-overlay {
+      display: none;
+    }
+
+    /* ===== RESPONSIVE: TABLET E MOBILE (≤768px) ===== */
+    @media (max-width: 768px) {
+      .wrapper {
+        grid-template-columns: 1fr;
+        grid-template-rows: 56px 1fr 40px;
+      }
+      .main-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        height: 100dvh;
+        width: 280px;
+        z-index: 1000;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        grid-row: unset;
+        border-right: none;
+      }
+      .wrapper.sidebar-open .main-sidebar {
+        transform: translateX(0);
+        box-shadow: 4px 0 20px rgba(0,0,0,0.3);
+      }
+      .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+      }
+      .wrapper.sidebar-open .sidebar-overlay {
+        display: block;
+      }
+      /* Colapso não deve reduzir o grid em mobile */
+      .sidebar-collapsed { grid-template-columns: 1fr; }
+      .content { padding: 16px; }
+      .main-footer { grid-column: 1; }
+    }
+
+    /* ===== RESPONSIVE: MOBILE PEQUENO (≤480px) ===== */
+    @media (max-width: 480px) {
+      .content { padding: 12px; }
+      .brand { font-size: 14px; }
+      .main-footer { font-size: 11px; padding: 0 12px; }
+    }
   `]
 })
-export class ShellV2Component implements OnInit {
+export class ShellV2Component implements OnInit, OnDestroy {
   collapsed = signal(false);
+  isMobile = signal(false);
+  drawerOpen = signal(false);
   readonly year = new Date().getFullYear();
+
+  private routerSub?: Subscription;
 
   constructor(
     public auth: AuthService,
@@ -272,11 +328,39 @@ export class ShellV2Component implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Sem seed local: dados vêm da API por serviço de feature.
+    this.checkMobile();
+    // Fecha o drawer ao navegar em mobile
+    this.routerSub = this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe(() => {
+        if (this.isMobile()) this.drawerOpen.set(false);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.routerSub?.unsubscribe();
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.checkMobile();
+    if (!this.isMobile()) this.drawerOpen.set(false);
+  }
+
+  private checkMobile(): void {
+    this.isMobile.set(window.innerWidth <= 768);
   }
 
   toggleSidebar(): void {
-    this.collapsed.update(v => !v);
+    if (this.isMobile()) {
+      this.drawerOpen.update(v => !v);
+    } else {
+      this.collapsed.update(v => !v);
+    }
+  }
+
+  closeMobileDrawer(): void {
+    this.drawerOpen.set(false);
   }
 
   logout(): void {

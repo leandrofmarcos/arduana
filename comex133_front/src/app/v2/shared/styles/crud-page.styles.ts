@@ -104,4 +104,45 @@ export const CRUD_STYLES = [`
     padding-top: 16px;
     border-top: 1px solid var(--color-border);
   }
+
+  /* ===== RESPONSIVE: TABLET (≤768px) ===== */
+  @media (max-width: 768px) {
+    .toolbar {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .search {
+      width: 100%;
+      flex: unset;
+      order: 2;
+    }
+    .toolbar-actions {
+      order: 1;
+      margin-left: auto;
+    }
+    .form-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .field.w3 { grid-column: span 2; }
+    .card { padding: 16px; }
+    .actions { flex-wrap: wrap; }
+  }
+
+  /* ===== RESPONSIVE: MOBILE (≤480px) ===== */
+  @media (max-width: 480px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+    }
+    .field.w2 { grid-column: 1; }
+    .field.w3 { grid-column: 1; }
+    .card { padding: 12px; }
+    .detail-header h2 { font-size: 17px; }
+    .row-actions button,
+    .row-actions a {
+      min-height: 36px;
+      min-width: 36px;
+    }
+    .actions { gap: 8px; }
+    .actions button { flex: 1; }
+  }
 `];

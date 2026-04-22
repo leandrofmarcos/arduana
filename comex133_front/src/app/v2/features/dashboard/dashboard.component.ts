@@ -88,6 +88,17 @@ interface StatusCount {
     .status-bar-track { flex: 1; height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden; }
     .status-bar-fill { height: 100%; }
     .status-bar-count { min-width: 24px; text-align: right; font-size: 12px; font-weight: 700; }
+    @media (max-width: 768px) {
+      .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+    }
+    @media (max-width: 480px) {
+      .page-title { font-size: 18px; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .kpi-value { font-size: 22px; }
+      .status-bar-row { flex-wrap: wrap; gap: 4px; }
+      .status-bar-label { min-width: unset; width: 100%; font-weight: 600; }
+      .status-bar-count { margin-left: auto; }
+    }
   `]
 })
 export class DashboardV2Component implements OnInit {

@@ -568,7 +568,28 @@ body {
   }
 }
 
+/* ===== TABLE WRAPPER (scroll horizontal em mobile) ===== */
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* ===== UTILITY CLASSES ===== */
+.hide-mobile  { display: block; }
+.show-mobile  { display: none; }
+.hide-tablet  { display: block; }
+
+@media (max-width: 768px) {
+  .hide-tablet { display: none !important; }
+}
+
+@media (max-width: 480px) {
+  .hide-mobile  { display: none !important; }
+  .show-mobile  { display: block !important; }
+  .stack-mobile { flex-direction: column !important; }
+}
+
 .empty-state {
   text-align: center;
   color: var(--color-text-muted);
