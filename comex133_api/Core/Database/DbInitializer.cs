@@ -24,25 +24,15 @@ public static class DbInitializer
 
     private static async Task SeedAsync(AppDbContext context, ILogger logger)
     {
-        // Seed Role Admin
-        if (!await context.Roles.AnyAsync(r => r.Nome == "Admin"))
-        {
-            var adminRole = new Role
-            {
-                Nome = "Admin",
-                Descricao = "Administrador do sistema",
-                CriadoEm = DateTime.UtcNow,
-                AtualizadoEm = DateTime.UtcNow
-            };
-            context.Roles.Add(adminRole);
-            await context.SaveChangesAsync();
-            logger.LogInformation("Seed: Role 'Admin' criada.");
-        }
-
-        // Seed Usuário Admin
+        // Seed Usuário Admin — usa a role "Administrador" gerenciada por migrations
         if (!await context.Usuarios.AnyAsync(u => u.Email == "admin@comex133.com.br"))
         {
-            var adminRole = await context.Roles.FirstAsync(r => r.Nome == "Admin");
+            var adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Nome == "Administrador");
+            if (adminRole == null)
+            {
+                logger.LogWarning("Seed: Role 'Administrador' não encontrada. Execute as migrations antes do seed.");
+                return;
+            }
 
             var adminUser = new Usuario
             {
@@ -63,7 +53,7 @@ public static class DbInitializer
                 AtribuidoEm = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
-            logger.LogInformation("Seed: Usuário 'admin@comex133.com.br' criado.");
+            logger.LogInformation("Seed: Usuário 'admin@comex133.com.br' criado com role 'Administrador'.");
         }
     }
 }
