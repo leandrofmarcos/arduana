@@ -360,12 +360,12 @@ Não há persistência, roles, multi-usuário nem integração com eventos reais
 
 | Fase | Nome | % Completo | Início | Término | Decisão |
 |---|---|---|---|---|---|
-| 1 | Service Worker + Manifest | 0% | — | — | — |
-| 2 | Push Service (Frontend) | 0% | — | — | — |
-| 3 | Push Controller (Backend) | 0% | — | — | — |
-| 4 | Tela de Teste | 0% | — | — | — |
-| 5 | Validação Cross-browser | 0% | — | — | — |
-| **TOTAL** | | **0%** | 22/04/2026 | — | — |
+| 1 | Service Worker + Manifest | 100% | 22/04/2026 | 22/04/2026 | commit `9751df2` |
+| 2 | Push Service (Frontend) | 100% | 22/04/2026 | 22/04/2026 | commit `ec4bf3f` |
+| 3 | Push Controller (Backend) | 100% | 22/04/2026 | 22/04/2026 | commit `2baadc8` |
+| 4 | Tela de Teste | 100% | 22/04/2026 | 22/04/2026 | commit `7acb52f` |
+| 5 | Validação Cross-browser | 0% | — | — | aguardando deploy |
+| **TOTAL** | | **80%** | 22/04/2026 | — | — |
 
 ---
 
@@ -373,7 +373,10 @@ Não há persistência, roles, multi-usuário nem integração com eventos reais
 
 | Data | Fase | Commit Hash | Mensagem | Decisão |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 22/04/2026 | 1 | `9751df2` | feat(pwa): instalar service worker e manifest | ✅ |
+| 22/04/2026 | 2 | `ec4bf3f` | feat(pwa): push notification service e subscribe flow | ✅ |
+| 22/04/2026 | 3 | `2baadc8` | feat(api): push notification controller para teste | ✅ |
+| 22/04/2026 | 4 | `7acb52f` | feat(pwa): tela de teste push notification em administracao | ✅ |
 
 ---
 
