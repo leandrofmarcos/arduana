@@ -240,7 +240,9 @@ export class AuthRepositoryHttp extends AuthRepository {
   }
 
   private mapUser(usuario: LoginApiResponse['usuario'] | MeApiResponse): User {
-    const isAdmin = (usuario.roles ?? []).some(role => role.toLowerCase() === 'admin');
+    const isAdmin = (usuario.roles ?? []).some(role =>
+      role.toLowerCase() === 'admin' || role.toLowerCase() === 'administrador'
+    );
 
     return {
       id: String(usuario.id),
