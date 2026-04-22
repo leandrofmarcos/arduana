@@ -241,6 +241,7 @@ const OV_STATUS_COLORS: Record<string, string> = {
             <li *ngIf="!form.portoDestinoId">Porto Destino é obrigatório</li>
             <li *ngIf="!form.data">Data é obrigatória</li>
             <li *ngIf="!editando && depachantesForm.length === 0">Adicione ao menos um Despachante</li>
+            <li *ngFor="let apiMsg of getApiValidationSummary()">{{ apiMsg }}</li>
           </ul>
         </div>
 
@@ -248,19 +249,21 @@ const OV_STATUS_COLORS: Record<string, string> = {
           <div class="form-grid">
             <div class="field">
               <label>Porto Origem <span class="required">*</span></label>
-              <select [(ngModel)]="form.portoOrigemId" [class.err]="showErr && !form.portoOrigemId">
+              <select [(ngModel)]="form.portoOrigemId" [class.err]="showErr && (!form.portoOrigemId || hasApiFieldError('portoOrigemId', 'portoOrigem', 'portoorigemid'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let p of portosOrigem" [value]="p.id">{{ p.nome }} ({{ p.codigo }})</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !form.portoOrigemId">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('portoOrigemId', 'portoOrigem', 'portoorigemid')">{{ firstApiFieldError('portoOrigemId', 'portoOrigem', 'portoorigemid') }}</span>
             </div>
             <div class="field">
               <label>Porto Destino <span class="required">*</span></label>
-              <select [(ngModel)]="form.portoDestinoId" [class.err]="showErr && !form.portoDestinoId">
+              <select [(ngModel)]="form.portoDestinoId" [class.err]="showErr && (!form.portoDestinoId || hasApiFieldError('portoDestinoId', 'portoDestino', 'portodestinoid'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let p of portosDestino" [value]="p.id">{{ p.nome }} ({{ p.codigo }})</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !form.portoDestinoId">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('portoDestinoId', 'portoDestino', 'portodestinoid')">{{ firstApiFieldError('portoDestinoId', 'portoDestino', 'portodestinoid') }}</span>
             </div>
             <div class="field">
               <label>Cliente (opcional)</label>
@@ -283,8 +286,9 @@ const OV_STATUS_COLORS: Record<string, string> = {
             </div>
             <div class="field">
               <label>Data <span class="required">*</span></label>
-              <input type="date" [(ngModel)]="form.data" [class.err]="showErr && !form.data" />
+              <input type="date" [(ngModel)]="form.data" [class.err]="showErr && (!form.data || hasApiFieldError('data'))" />
               <span class="err-msg" *ngIf="showErr && !form.data">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('data')">{{ firstApiFieldError('data') }}</span>
             </div>
             <div class="field">
               <label>Container</label>
@@ -517,6 +521,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   showForm = false;
   editando = false;
   showErr = false;
+  apiFieldErrors: Record<string, string[]> = {};
   loading = false;
   hasLoadError = false;
   loadErrorMessage = '';
@@ -646,6 +651,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
 
   async openForm(sol?: SolicitacaoOrcamento): Promise<void> {
     this.showErr = false;
+    this.apiFieldErrors = {};
     if (sol) {
       this.editando = true;
       this.form = { ...sol };
@@ -677,9 +683,12 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   cancelar(): void {
     this.showForm = false;
     this.showErr = false;
+    this.apiFieldErrors = {};
   }
 
   async salvar(): Promise<void> {
+    this.apiFieldErrors = {};
+
     if (!this.form.portoOrigemId || !this.form.portoDestinoId || !this.form.data) {
       this.showErr = true;
       return;
@@ -693,78 +702,87 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
       return;
     }
 
-    if (this.editando) {
-      const statusAnterior = this.svc.getById(this.form.id)?.status;
-      await this.svc.update(this.form);
-      // Quando status transiciona de AguardandoAprovacaoCliente → Aprovada, gerar EmbarqueAduana
-      if (statusAnterior === 'AguardandoAprovacaoCliente' && this.form.status === 'Aprovada') {
-        try { this._criarEmbarqueParaSolicitacao(); } catch (err) { console.error('Erro ao criar embarque:', err); }
+    try {
+      if (this.editando) {
+        const statusAnterior = this.svc.getById(this.form.id)?.status;
+        await this.svc.update(this.form);
+        // Quando status transiciona de AguardandoAprovacaoCliente -> Aprovada, gerar EmbarqueAduana
+        if (statusAnterior === 'AguardandoAprovacaoCliente' && this.form.status === 'Aprovada') {
+          try { this._criarEmbarqueParaSolicitacao(); } catch (err) { console.error('Erro ao criar embarque:', err); }
+        }
+      } else {
+        const criada = await this.svc.create({
+          clienteId:       this.form.clienteId,
+          importadorId:    this.form.importadorId,
+          portoOrigemId:   this.form.portoOrigemId,
+          portoDestinoId:  this.form.portoDestinoId,
+          responsavel:     this.auth.currentUser?.username ?? '',
+          tamContainer:    this.form.tamContainer,
+          peso:            this.form.peso,
+          observacao:      this.form.observacao,
+          status:          'AguardandoCusto',
+          data:            this.form.data
+        });
+        this.form.id = criada.id;
+        this.form.codigoInterno = criada.codigoInterno;
+        this.editando = true;
       }
-    } else {
-      const criada = await this.svc.create({
-        clienteId:       this.form.clienteId,
-        importadorId:    this.form.importadorId,
-        portoOrigemId:   this.form.portoOrigemId,
-        portoDestinoId:  this.form.portoDestinoId,
-        responsavel:     this.auth.currentUser?.username ?? '',
-        tamContainer:    this.form.tamContainer,
-        peso:            this.form.peso,
-        observacao:      this.form.observacao,
-        status:          'AguardandoCusto',
-        data:            this.form.data
-      });
-      this.form.id = criada.id;
-      this.form.codigoInterno = criada.codigoInterno;
-      this.editando = true;
-    }
 
-    // Sincronizar despachantes: preserva status atual para não perder atualizações do custo
-    const liveStatuses = new Map<string, StatusSolicitacaoDespachante>();
-    await this.svc.loadDespachantes(this.form.id);
-    const despachantesAtuais = this.svc.getDespachantes(this.form.id);
-    for (const d of despachantesAtuais) {
-      liveStatuses.set(d.despachanteId, d.status);
-      await this.svc.removeDespachante(d.id, d.solicitacaoOrcamentoId);
-    }
-    for (const d of this.depachantesForm) {
-      await this.svc.addDespachante({
-        solicitacaoOrcamentoId: this.form.id,
-        despachanteId: d.despachanteId,
-        status: liveStatuses.get(d.despachanteId) ?? d.status,
-        dataEnvio: d.dataEnvio
-      });
-    }
+      // Sincronizar despachantes: preserva status atual para nao perder atualizacoes do custo
+      const liveStatuses = new Map<string, StatusSolicitacaoDespachante>();
+      await this.svc.loadDespachantes(this.form.id);
+      const despachantesAtuais = this.svc.getDespachantes(this.form.id);
+      for (const d of despachantesAtuais) {
+        liveStatuses.set(d.despachanteId, d.status);
+        await this.svc.removeDespachante(d.id, d.solicitacaoOrcamentoId);
+      }
+      for (const d of this.depachantesForm) {
+        await this.svc.addDespachante({
+          solicitacaoOrcamentoId: this.form.id,
+          despachanteId: d.despachanteId,
+          status: liveStatuses.get(d.despachanteId) ?? d.status,
+          dataEnvio: d.dataEnvio
+        });
+      }
 
-    // Sincronizar documentos: remover tudo e recriar
-    await this.svc.loadDocumentos(this.form.id);
-    for (const d of this.svc.getDocumentos(this.form.id)) {
-      await this.svc.removeDocumento(d.id, d.solicitacaoOrcamentoId);
-    }
-    for (const d of this.documentosForm) {
-      await this.svc.addDocumento({
-        solicitacaoOrcamentoId: this.form.id,
-        nomeArquivo: d.nomeArquivo,
-        linkDocumento: d.linkDocumento,
-        dataUpload: d.dataUpload,
-        observacao: d.observacao || undefined
-      });
-    }
+      // Sincronizar documentos: remover tudo e recriar
+      await this.svc.loadDocumentos(this.form.id);
+      for (const d of this.svc.getDocumentos(this.form.id)) {
+        await this.svc.removeDocumento(d.id, d.solicitacaoOrcamentoId);
+      }
+      for (const d of this.documentosForm) {
+        await this.svc.addDocumento({
+          solicitacaoOrcamentoId: this.form.id,
+          nomeArquivo: d.nomeArquivo,
+          linkDocumento: d.linkDocumento,
+          dataUpload: d.dataUpload,
+          observacao: d.observacao || undefined
+        });
+      }
 
-    // Na criação, gerar automaticamente custos e orçamento de venda
-    if (eraCriacao) {
-      try {
-        this._gerarCustosEOrcamento();
-      } catch (err) {
-        console.error('Erro ao gerar custos/orçamento:', err);
-        // Continua mesmo com erro na geração — solicitação já foi salva
+      // Na criacao, gerar automaticamente custos e orcamento de venda
+      if (eraCriacao) {
+        try {
+          this._gerarCustosEOrcamento();
+        } catch (err) {
+          console.error('Erro ao gerar custos/orcamento:', err);
+          // Continua mesmo com erro na geracao - solicitacao ja foi salva
+        }
+      }
+
+      await this.carregar();
+      this.showForm = false;
+      this.showErr = false;
+      this.apiFieldErrors = {};
+      this.onFiltersChanged();
+      this.toast.success(eraCriacao ? 'Solicitacao criada com sucesso.' : 'Solicitacao atualizada com sucesso.');
+    } catch (err: any) {
+      this.showErr = true;
+      this.apiFieldErrors = this.collectFieldErrors(err);
+      if (!Object.keys(this.apiFieldErrors).length && err?.message) {
+        this.toast.error(err.message);
       }
     }
-
-    await this.carregar();
-    this.showForm = false;
-    this.showErr = false;
-    this.onFiltersChanged();
-    this.toast.success(eraCriacao ? 'Solicitacao criada com sucesso.' : 'Solicitacao atualizada com sucesso.');
   }
 
   async remover(id: string): Promise<void> {
@@ -777,10 +795,14 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     });
     if (!ok) return;
 
-    await this.svc.remove(id);
-    await this.carregar();
-    this.onFiltersChanged();
-    this.toast.success('Solicitacao removida com sucesso.');
+    try {
+      await this.svc.remove(id);
+      await this.carregar();
+      this.onFiltersChanged();
+      this.toast.success('Solicitacao removida com sucesso.');
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao remover solicitacao.');
+    }
   }
 
   // ── Despachantes inline ──────────────────────────────────────────────
@@ -1055,5 +1077,68 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
       dataUpload: new Date().toISOString().slice(0, 10),
       observacao: ''
     };
+  }
+
+  hasApiFieldError(...keys: string[]): boolean {
+    const normalized = this.normalizeKeys(keys);
+    return normalized.some((key) => !!this.apiFieldErrors[key]?.length);
+  }
+
+  firstApiFieldError(...keys: string[]): string {
+    const normalized = this.normalizeKeys(keys);
+    for (const key of normalized) {
+      const first = this.apiFieldErrors[key]?.[0];
+      if (first) {
+        return first;
+      }
+    }
+    return '';
+  }
+
+  getApiValidationSummary(): string[] {
+    const messages = new Set<string>();
+    Object.values(this.apiFieldErrors).forEach((list) => {
+      list.forEach((message) => {
+        if (message) {
+          messages.add(message);
+        }
+      });
+    });
+    return Array.from(messages).slice(0, 6);
+  }
+
+  private normalizeKeys(keys: string[]): string[] {
+    return keys.map((key) => key.toLowerCase().replace(/[^a-z0-9]/g, ''));
+  }
+
+  private collectFieldErrors(err: any): Record<string, string[]> {
+    const result: Record<string, string[]> = {};
+    const incoming = err?.fieldErrors;
+
+    if (incoming && typeof incoming === 'object') {
+      Object.entries(incoming).forEach(([field, messages]) => {
+        const safeField = this.normalizeKeys([field])[0];
+        const safeMessages = Array.isArray(messages) ? messages : [messages];
+        result[safeField] = safeMessages
+          .map((item) => String(item || '').trim())
+          .filter((item) => !!item);
+      });
+      return result;
+    }
+
+    const details = Array.isArray(err?.details) ? err.details : [];
+    details.forEach((detail: any) => {
+      const field = this.normalizeKeys([detail?.field || 'geral'])[0];
+      const message = String(detail?.message || '').trim();
+      if (!message) return;
+      if (!result[field]) {
+        result[field] = [];
+      }
+      if (!result[field].includes(message)) {
+        result[field].push(message);
+      }
+    });
+
+    return result;
   }
 }

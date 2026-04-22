@@ -9,7 +9,6 @@ import {
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
 import { catchError, filter, take, switchMap } from 'rxjs/operators';
 import { AuthService } from '../auth/auth.service';
-import { ToastService } from '../services/toast.service';
 
 /**
  * Interceptor HTTP que:
@@ -23,8 +22,7 @@ export class AuthInterceptor implements HttpInterceptor {
   private refreshTokenSubject = new BehaviorSubject<string | null>(null);
 
   constructor(
-    private authService: AuthService,
-    private toastService: ToastService
+    private authService: AuthService
   ) {}
 
   intercept(
@@ -69,8 +67,7 @@ export class AuthInterceptor implements HttpInterceptor {
         }),
         catchError(error => {
           this.isRefreshing = false;
-          this.authService.logout();
-          this.toastService.error('Sessao expirada. Por favor, faca login novamente.');
+          this.authService.logout().subscribe();
           return throwError(() => error);
         })
       );

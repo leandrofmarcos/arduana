@@ -1,0 +1,143 @@
+════════════════════════════════════════════════════════════════════════════════
+🎯 ROADMAP USABILIDADE FEEDBACK API - STATUS FINAL (2026-04-22)
+════════════════════════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+STATUS CONSOLIDADO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fases 0-7 (Implementação + Validação):  ✅ 100% CONCLUÍDO & APROVADO
+USAB-010 (Erro inline em formulários):  🔄 EM EXECUÇÃO AGORA (1 turno: ~3-4h)
+Roadmap:                                 📊 ~95% Completo (falta apenas USAB-010)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O QUE FOI ENTREGUE (Fases 0-7)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ApiErrorMapper
+   └─ Normaliza 10 famílias de status code (0, 400, 401, 403, 404, 409, 422, 429, 5xx)
+   └─ Extrai erros heterogêneos (errors[], errors{}, message, title, detail)
+   └─ Agrupa por campo + mapeia severidade
+
+✅ ApiClientService
+   └─ Política global por status code (toast vs popup interativo)
+   └─ Popups: 401→Login, 409→Recarregar, 429→Retry, 5xx→Retry
+   └─ Roteamento automático por severidade
+
+✅ ToastService
+   └─ Deduplicação: 1.2s por mensagem (sem flood)
+
+✅ AuthInterceptor
+   └─ Cleanup: Removido 401 duplicado
+
+✅ Solicitações Component
+   └─ Padrão de erro inline por campo (prototipo PRONTO)
+   └─ Métodos: hasApiFieldError(), firstApiFieldError(), collectFieldErrors()
+
+✅ Validação Fase 7
+   └─ 48 atividades (F7-001 a F7-048) executadas
+   └─ 100% conformes ao checklist 11.3
+   └─ Matriz pass/fail consolidada
+
+✅ Build Validado
+   └─ 492.32 kB (browser initial)
+   └─ 15.3 segundos
+   └─ 0 erros | 0 regressions
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+O QUE FALTA (APENAS USAB-010)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔄 USAB-010: Propagação de Erro Inline em 14 Formulários
+   └─ Duração: ~3-4 horas (1 turno completo)
+   └─ Escopo: 14 formulários
+   └─ Método: Copy-paste de padrão (prototipo pronto em Solicitações)
+   └─ Status: EM EXECUÇÃO AGORA
+
+   Formulários alvo:
+   • Cadastros (5):    Clientes, Portos, NCM, Navios, Despachantes
+   • Operação (4):     Solicitações (já tem), Custos, Orçamentos, Embarques
+   • Admin (3):        Cargos, Roles, Usuários
+   • Docs (2):         Tipos, Anexos
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRÓXIMOS PASSOS (HOJE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  Abra: docs/roadmap/usabilidade/PROXIMA_FASE_USAB_010.md
+    └─ Contém step-by-step completo (copy-paste pronto)
+
+2️⃣  Estude padrão: comex133_front/.../solicitacao-orcamento.component.ts
+    └─ Seção: apiFieldErrors + hasApiFieldError() + collectFieldErrors()
+
+3️⃣  Replique em 14 formulários
+    └─ ~15 min por formulário
+    └─ Total: ~3-4 horas
+
+4️⃣  Após conclusão:
+    └─ npm run build (validar 0 erros)
+    └─ Aprovação executiva FINAL
+    └─ Roadmap 100% ENCERRADO
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DOCUMENTAÇÃO PRINCIPAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📘 Guia Objetivo (LEIA PRIMEIRO):
+   └─ PROXIMA_FASE_USAB_010.md
+      └─ Passo a passo completo de implementação (copy-paste ready)
+      └─ Checklist de conclusão
+      └─ ~5 minutos de leitura
+
+📕 Resumo Executivo (PARA EXECS):
+   └─ RESUMO_EXECUTIVO_FASE_6_CONSOLIDADO.md
+      └─ Status visual, timeline, estatísticas
+      └─ Imprimível, 1 página
+
+📔 Roadmap Completo (DETALHES):
+   └─ ROADMAP_USABILIDADE_FEEDBACK_API_FRONTEND.md
+      └─ 14 seções, matriz 11.1, checklist 11.3, backlog F7-001 a F7-048
+      └─ Referência técnica completa
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHECKLIST DE CONCLUSÃO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fases 0-7:
+  ✅ Implementação técnica 100% completa
+  ✅ Validação de 48 atividades concluída
+  ✅ Build validado sem regressions
+  ✅ Documentação rodmap atualizada
+
+USAB-010 (EM EXECUÇÃO):
+  [ ] Cadastros (5 forms):    [ ] 0/5
+  [ ] Operação (4 forms):     [ ] 0/4
+  [ ] Admin (3 forms):        [ ] 0/3
+  [ ] Docs (2 forms):         [ ] 0/2
+  [ ] Build final:            [ ] Pendente
+  [ ] Aprovação executiva:    [ ] Pendente
+
+Pós-USAB-010:
+  [ ] Roadmap 100% ENCERRADO
+  [ ] Pronto para produção
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ESTATÍSTICAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Fases concluídas:           7 de 8 (87.5%)
+Arquivos modificados:       5 core + 3 doc
+Linhas de código:           ~500 (Fases 0-7)
+Status codes normalizados:  10 famílias
+Atividades Fase 7:          48 (todas APROVADAS)
+Formulários para USAB-010:  14 (prototipo pronto)
+Build size regression:      0% (sem impacto)
+Testes técnicos aprovados:  6/6 (100%)
+
+Time estimate USAB-010:     ~3-4 horas
+Time estimate BUILD+APPROVE: ~1 hora
+TIME TOTAL ATÉ CONCLUSÃO:   ~4-5 horas (1 turno)
+
+════════════════════════════════════════════════════════════════════════════════
+Status: 🟢 PRONTO PARA INICIAR USAB-010 (ÚLTIMA FASE ANTES DE PRODUÇÃO)
+════════════════════════════════════════════════════════════════════════════════

@@ -11,6 +11,9 @@ import { ApiResponse, PagedResult, PaginationParams } from '../models/api-respon
 import { ApiErrorMapper } from '../error-handler/api-error.mapper';
 import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../features/auth/services/auth.service';
+import { ToastService } from '../../services/toast.service';
+import { ConfirmDialogService } from '../../services/confirm-dialog.service';
+import { Router } from '@angular/router';
 
 /**
  * Serviço centralizado para todas as chamadas HTTP da aplicação
@@ -25,10 +28,16 @@ import { AuthService } from '../../../features/auth/services/auth.service';
 })
 export class ApiClientService {
   private readonly baseUrl = environment.apiUrl;
+  private readonly lastDialogByStatus = new Map<number, number>();
+  private dialogOpen = false;
+  private readonly dialogCooldownMs = 2500;
 
   constructor(
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private toast: ToastService,
+    private confirmDialog: ConfirmDialogService,
+    private router: Router
   ) {}
 
   /**
@@ -176,6 +185,8 @@ export class ApiClientService {
   ): Observable<never> {
     const mappedError = ApiErrorMapper.mapError(error);
 
+    this.notifyError(mappedError);
+
     // Log sanitizado
     ApiErrorMapper.logError(
       endpoint,
@@ -186,10 +197,134 @@ export class ApiClientService {
     // Retorna erro traduzido para consumidor
     return throwError(() => ({
       code: mappedError.code,
+      status: mappedError.status,
       message: mappedError.message,
       details: mappedError.details,
+      fieldErrors: mappedError.fieldErrors,
+      isValidation: mappedError.isValidation,
       originalError: error
     }));
+  }
+
+  private notifyError(mappedError: ReturnType<typeof ApiErrorMapper.mapError>): void {
+    if (!mappedError.message) {
+      return;
+    }
+
+    if (this.shouldOpenInteractiveDialog(mappedError.status)) {
+      void this.openStatusDialog(mappedError.status, mappedError.message);
+      return;
+    }
+
+    if (mappedError.severity === 'warning') {
+      this.toast.warning(mappedError.message);
+      return;
+    }
+
+    if (mappedError.severity === 'info') {
+      this.toast.info(mappedError.message);
+      return;
+    }
+
+    this.toast.error(mappedError.message);
+  }
+
+  private shouldOpenInteractiveDialog(status: number): boolean {
+    return status === 401 || status === 409 || status === 429 || status === 500 || status === 502 || status === 503;
+  }
+
+  private canOpenDialog(status: number): boolean {
+    if (this.dialogOpen) {
+      return false;
+    }
+
+    const now = Date.now();
+    const last = this.lastDialogByStatus.get(status) ?? 0;
+    if (now - last < this.dialogCooldownMs) {
+      return false;
+    }
+
+    this.lastDialogByStatus.set(status, now);
+    return true;
+  }
+
+  private async openStatusDialog(status: number, message: string): Promise<void> {
+    if (!this.canOpenDialog(status)) {
+      return;
+    }
+
+    this.dialogOpen = true;
+
+    try {
+      if (status === 401) {
+        const shouldLogin = await this.confirmDialog.confirm({
+          title: 'Sessao expirada',
+          message: `${message}\n\nDeseja ir para a tela de login agora?`,
+          confirmText: 'Fazer login',
+          cancelText: 'Cancelar',
+          danger: false
+        });
+
+        if (shouldLogin) {
+          this.authService.logout().subscribe({
+            complete: () => {
+              void this.router.navigate(['/login']);
+            }
+          });
+        }
+        return;
+      }
+
+      if (status === 409) {
+        const shouldReload = await this.confirmDialog.confirm({
+          title: 'Conflito de atualizacao',
+          message: `${message}\n\nDeseja recarregar os dados para sincronizar a tela?`,
+          confirmText: 'Recarregar dados',
+          cancelText: 'Manter edicao',
+          danger: false
+        });
+
+        if (shouldReload) {
+          this.safeReload();
+        }
+        return;
+      }
+
+      if (status === 429) {
+        const shouldRetry = await this.confirmDialog.confirm({
+          title: 'Muitas requisicoes',
+          message: `${message}\n\nDeseja atualizar a tela para tentar novamente?`,
+          confirmText: 'Tentar novamente',
+          cancelText: 'Fechar',
+          danger: false
+        });
+
+        if (shouldRetry) {
+          this.safeReload();
+        }
+        return;
+      }
+
+      const shouldRetry = await this.confirmDialog.confirm({
+        title: 'Instabilidade temporaria',
+        message: `${message}\n\nDeseja tentar novamente agora?`,
+        confirmText: 'Tentar novamente',
+        cancelText: 'Cancelar',
+        danger: false
+      });
+
+      if (shouldRetry) {
+        this.safeReload();
+      }
+    } finally {
+      this.dialogOpen = false;
+    }
+  }
+
+  private safeReload(): void {
+    if (typeof window !== 'undefined' && window.location) {
+      window.location.reload();
+    }
   }
 
   /**
