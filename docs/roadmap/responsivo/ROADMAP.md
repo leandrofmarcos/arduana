@@ -425,15 +425,15 @@ $bp-md: 1024px;
 | 1 | Shell V2 Mobile | ✅ 100% | 22/04/2026 | 22/04/2026 | ✅ Continuar |
 | 2 | CRUD Compartilhado | ✅ 100% | 22/04/2026 | 22/04/2026 | ✅ Continuar |
 | 3 | Dashboard | ✅ 100% | 22/04/2026 | 22/04/2026 | ✅ Continuar |
-| 4 | Solicitações de Orçamento | 0% | — | — | — |
-| 5 | Orçamentos de Venda | 0% | — | — | — |
-| 6 | Custo Despachante | 0% | — | — | — |
-| 7 | Embarque / Aduana | 0% | — | — | — |
-| 8 | Controle de Navios | 0% | — | — | — |
-| 9 | Documentos + Administração | 0% | — | — | — |
-| 10 | Autenticação | 0% | — | — | — |
-| 11 | Testes e Polimento | 0% | — | — | — |
-| **TOTAL** | | **36%** | 22/04/2026 | — | — |
+| 4 | Solicitações de Orçamento | ✅ 100% | 22/04/2026 | 22/04/2026 | ✅ Continuar |
+| 5 | Orçamentos de Venda | ✅ 100% | 22/04/2026 | 22/04/2026 | ✅ Continuar |
+| 6 | Custo Despachante | ✅ 100% | 22/04/2026 | 22/04/2026 | ✅ Continuar |
+| 7 | Embarque / Aduana | ✅ 100% | 22/04/2026 | 22/04/2026 | ✅ Continuar |
+| 8 | Controle de Navios | ✅ 100% | 22/04/2026 | 22/04/2026 | ✅ Continuar |
+| 9 | Documentos + Administração | ✅ 100% | 22/04/2026 | 22/04/2026 | ✅ Continuar |
+| 10 | Autenticação | ✅ 100% — já responsivo (verificado) | 22/04/2026 | 22/04/2026 | ✅ Continuar |
+| 11 | Testes e Polimento | 0% | — | — | Próxima |
+| **TOTAL** | | **91%** | 22/04/2026 | — | — |
 
 ---
 
@@ -444,6 +444,7 @@ $bp-md: 1024px;
 | Data | Fase | Commit Hash | Mensagem | Decisão |
 |---|---|---|---|---|
 | 22/04/2026 | 0+1+2+3 | `c833795` | feat(responsividade): fases 0-3 - fundacao CSS, shell drawer mobile, CRUD styles e dashboard | ✅ Continuar para Fase 4 |
+| 22/04/2026 | 4+5+6+7+8+9 | `9a97bf2` | feat(responsividade): fases 4-9 - solicitacoes, orcamentos, custos, embarque, navios, docs | ✅ Continuar para Fase 11 |
 
 ---
 
@@ -489,5 +490,5 @@ $bp-md: 1024px;
 ---
 
 *Documento criado em: 22/04/2026*  
-*Última atualização: 22/04/2026 — após commit fases 0-3 (36% concluído)*  
+*Última atualização: 22/04/2026 — após commit fases 4-9 (91% concluído)*  
 *Branch: feat/responsividade-layout*

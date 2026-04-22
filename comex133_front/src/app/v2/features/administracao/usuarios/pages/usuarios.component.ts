@@ -41,6 +41,17 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
         border: 2px solid var(--color-border);
         border-radius: 8px;
       }
+      @media (max-width: 768px) {
+        .role-picker {
+          grid-column: 1 !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 480px) {
+        .role-picker {
+          grid-template-columns: 1fr;
+        }
+      }
       .role-picker label {
         display: flex;
         align-items: center;

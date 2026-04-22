@@ -412,6 +412,18 @@ interface NotificationMessage {
         min-width: unset;
       }
     }
+
+    @media (max-width: 480px) {
+      .card-section {
+        padding: 16px;
+      }
+      .card-section h2 {
+        font-size: 15px;
+      }
+      .profile-card {
+        border-radius: 0;
+      }
+    }
   `]
 })
 export class ProfileComponent {
