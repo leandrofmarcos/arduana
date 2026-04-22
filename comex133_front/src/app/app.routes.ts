@@ -80,6 +80,10 @@ export const routes: Routes = [
         loadComponent: () => import('./v2/features/administracao/cargos/pages/cargos.component').then(m => m.CargosComponent)
       },
       {
+        path: 'niveis-acesso',
+        loadComponent: () => import('./v2/features/administracao/niveis-acesso/pages/niveis-acesso.component').then(m => m.NiveisAcessoComponent)
+      },
+      {
         path: 'admin/roles',
         canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/administracao/roles/pages/roles.component').then(m => m.RolesComponent)

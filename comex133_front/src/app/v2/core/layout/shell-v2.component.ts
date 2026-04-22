@@ -118,6 +118,9 @@ import { Router } from '@angular/router';
             <a routerLink="/cargos" routerLinkActive="active">
               <span class="icon">🎖️</span><span>Cargos</span>
             </a>
+            <a routerLink="/niveis-acesso" routerLinkActive="active">
+              <span class="icon">🔑</span><span>Níveis de Acesso</span>
+            </a>
             <a *ngIf="auth.hasRole('admin')" routerLink="/admin/roles" routerLinkActive="active">
               <span class="icon">🛡️</span><span>Roles</span>
             </a>
