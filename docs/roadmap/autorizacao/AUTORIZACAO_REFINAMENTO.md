@@ -2,7 +2,7 @@
 
 **Criado em**: 2026-04-23  
 **Atualizado em**: 2026-04-23  
-**Status**: P1 ✅ P2 ✅ P3-despachante ✅ | Próximas: P5 (eager-load) → P6 (backend roles) → P7 (frontend)  
+**Status**: P1 ✅ P2 ✅ P3 ✅ P5 ✅ P6 ✅ P7 ✅ | Feature concluída — commit `2b3f007`  
 **Escopo**: `comex133_api` + `comex133_front`
 
 ---
@@ -490,17 +490,17 @@ Atualmente todos os endpoints ainda têm `[Authorize(Roles = "Administrador")]` 
 
 ---
 
-### Fase AUT-P7 — Frontend: Proteção de UI e Dashboard Role-Aware
+### Fase AUT-P7 — Frontend: Proteção de UI e Dashboard Role-Aware ✅ CONCLUÍDA (commit `2b3f007`)
 
 > Esta fase substitui e expande a antiga AUT-P4.
 
-| ID | Tarefa | Arquivo(s) |
-|----|--------|-----------|
-| P7-A1 | Dashboard role-aware (movido de P5-A3 — pode ser feito junto ou separado) | `dashboard.component.ts` |
-| P7-A2 | Esconder botões de escrita (Criar / Editar / Excluir) para Despachante em todas as telas operacionais | `solicitacao-orcamento.component.ts`, `embarque-aduana.component.ts`, etc. |
-| P7-A3 | Esconder seções de cadastro no shell para Analista (acesso somente às telas operacionais) | `shell-v2.component.ts` |
-| P7-A4 | Exibir mensagem amigável em caso de 403 Forbidden (toast ou inline) em vez de tela em branco | `api-client.service.ts` ou interceptor HTTP |
-| P7-A5 | Painel de vínculos usuário ↔ entidade (Admin) — CRUD de `UsuarioVinculos` na tela de Usuários | `usuarios/` |
+| ID | Tarefa | Arquivo(s) | Status |
+|----|--------|-----------|--------|
+| P7-A1 | Dashboard role-aware — Despachante vê painel alternativo; Admin/Gerente/Analista veem KPIs completos | `dashboard.component.ts` | ✅ (feito em P5-A3) |
+| P7-A2 | Esconder botões de escrita (Criar / Editar / Excluir) para Despachante em todas as telas operacionais | `solicitacao-orcamento.component.ts`, `embarque-aduana.component.ts`, `orcamento-venda.component.ts` | ✅ Implementado |
+| P7-A3 | Shell: seção Cadastros visível para Admin e Gerente; oculta para Analista e Despachante | `shell-v2.component.ts` | ✅ Implementado |
+| P7-A4 | Silenciar 403 nos serviços de catálogo (lazy-load + marcação `loaded=true`) | serviços em `cadastros/` | ✅ (feito em P5-A2) |
+| P7-A5 | Painel de vínculos usuário ↔ entidade (Admin) — CRUD de `UsuarioVinculos` na tela de Usuários | `usuarios.component.ts` | ✅ (feito em P2.5) |
 
 
 
