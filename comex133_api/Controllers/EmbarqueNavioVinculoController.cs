@@ -23,6 +23,7 @@ public class EmbarqueNavioVinculoController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Administrador,Despachante")]
     public async Task<IActionResult> Get(int embarqueId)
     {
         var result = await _service.GetVinculoAsync(embarqueId);

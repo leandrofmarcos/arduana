@@ -7,7 +7,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/logistica")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "Administrador,Despachante")]
 public class LogisticaController : ControllerBase
 {
     private readonly NaviosService _service;
@@ -17,6 +17,7 @@ public class LogisticaController : ControllerBase
     /// <summary>
     /// Retorna navios com embarques ativos, trajetos e posição atual no porto.
     /// Somente navios com ao menos 1 embarque ativo vinculado são incluídos.
+    /// Para Despachante, retorna apenas navios com embarques associados ao próprio despachante.
     /// </summary>
     [HttpGet("controle-navios")]
     public async Task<IActionResult> GetControleNavios() =>

@@ -1,3 +1,4 @@
+using Comex133Api.Core.Auth;
 using Comex133Api.Core.Database;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Core.Models;
@@ -13,14 +14,16 @@ public class NaviosService
     private readonly AppDbContext _db;
     private readonly IMemoryCache _cache;
     private readonly ILogger<NaviosService> _logger;
+    private readonly ICurrentUserContext _currentUser;
     private const string ControleNaviosCacheKey = "logistica:controle-navios:latest";
     private static readonly TimeSpan ControleNaviosCacheTtl = TimeSpan.FromMinutes(10);
 
-    public NaviosService(AppDbContext db, IMemoryCache cache, ILogger<NaviosService> logger)
+    public NaviosService(AppDbContext db, IMemoryCache cache, ILogger<NaviosService> logger, ICurrentUserContext currentUser)
     {
         _db = db;
         _cache = cache;
         _logger = logger;
+        _currentUser = currentUser;
     }
 
     // ── Navios ────────────────────────────────────────────────────────────────
@@ -340,6 +343,20 @@ public class NaviosService
 
     public async Task<EmbarqueNavioVinculoDto?> GetVinculoAsync(int embarqueId)
     {
+        // Despachante pode ver apenas o vinculo de embarques seus
+        if (_currentUser.HasRole("Despachante"))
+        {
+            var despachanteId = await _currentUser.GetVinculoIdAsync("Despachante");
+            if (despachanteId is null)
+                throw new ForbiddenException("Despachante sem vínculo cadastrado.");
+
+            var temAcesso = await _db.Set<SolicitacaoOrcamentoDespachante>()
+                .AnyAsync(x => x.SolicitacaoOrcamentoId == embarqueId && x.DespachanteId == despachanteId.Value);
+
+            if (!temAcesso)
+                throw new ForbiddenException("Acesso negado a este embarque.");
+        }
+
         var vinculo = await _db.EmbarqueNavioVinculos
             .Include(v => v.Navio)
             .Include(v => v.NavioTrajeto)
@@ -424,9 +441,18 @@ public class NaviosService
 
     public async Task<IList<NavioOperacionalDto>> GetControleNaviosOperacionalAsync()
     {
+        // Determina filtro de despachante (null = sem filtro = Admin)
+        int? despachanteIdFiltro = null;
+        if (_currentUser.HasRole("Despachante"))
+        {
+            despachanteIdFiltro = await _currentUser.GetVinculoIdAsync("Despachante");
+            if (despachanteIdFiltro is null)
+                return new List<NavioOperacionalDto>();
+        }
+
         try
         {
-            var result = await GetControleNaviosOperacionalCoreAsync();
+            var result = await GetControleNaviosOperacionalCoreAsync(despachanteIdFiltro);
 
             _cache.Set(ControleNaviosCacheKey, result, new MemoryCacheEntryOptions
             {
@@ -451,10 +477,10 @@ public class NaviosService
         }
     }
 
-    private async Task<IList<NavioOperacionalDto>> GetControleNaviosOperacionalCoreAsync()
+    private async Task<IList<NavioOperacionalDto>> GetControleNaviosOperacionalCoreAsync(int? despachanteId = null)
     {
         // Buscar vínculos de embarque ativos para compor contagem operacional
-        var vinculos = await _db.EmbarqueNavioVinculos
+        var vinculosQuery = _db.EmbarqueNavioVinculos
             .Include(v => v.Navio)
             .Include(v => v.NavioTrajeto)
                 .ThenInclude(t => t!.PortoOrigem)
@@ -462,8 +488,16 @@ public class NaviosService
                 .ThenInclude(t => t!.PortoDestino)
             .Include(v => v.EmbarqueAduana)
                 .ThenInclude(e => e.Cliente)
-            .Where(v => v.Ativo)
-            .ToListAsync();
+            .Include(v => v.EmbarqueAduana)
+                .ThenInclude(e => e.Despachantes)
+            .Where(v => v.Ativo);
+
+        // Filtrar pelo despachante quando fornecido
+        if (despachanteId.HasValue)
+            vinculosQuery = vinculosQuery.Where(v =>
+                v.EmbarqueAduana.Despachantes.Any(d => d.DespachanteId == despachanteId.Value));
+
+        var vinculos = await vinculosQuery.ToListAsync();
 
         // Filtrar embarques ativos (status diferente de Entregue/Finalizado)
         var statusFinais = new[] { "Entregue", "Finalizado", "Cancelado" };

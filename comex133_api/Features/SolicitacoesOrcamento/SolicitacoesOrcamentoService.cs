@@ -131,11 +131,20 @@ public class SolicitacoesOrcamentoService
 
     public async Task<IReadOnlyList<SolicitacaoOrcamentoDespachanteDto>> GetDespachantesAsync(int solicitacaoId)
     {
-        await EnsureSolicitacaoExistsAsync(solicitacaoId);
+        await EnsureSolicitacaoAccessAsync(solicitacaoId);
 
-        return await _db.Set<SolicitacaoOrcamentoDespachante>()
+        var query = _db.Set<SolicitacaoOrcamentoDespachante>()
             .AsNoTracking()
-            .Where(x => x.SolicitacaoOrcamentoId == solicitacaoId)
+            .Where(x => x.SolicitacaoOrcamentoId == solicitacaoId);
+
+        // Despachante vê apenas o próprio vínculo
+        if (_currentUser.HasRole("Despachante"))
+        {
+            var despachanteId = await _currentUser.GetVinculoIdAsync("Despachante");
+            query = query.Where(x => x.DespachanteId == despachanteId!.Value);
+        }
+
+        return await query
             .OrderByDescending(x => x.DataEnvio)
             .Select(x => new SolicitacaoOrcamentoDespachanteDto(
                 x.Id,
@@ -198,7 +207,7 @@ public class SolicitacoesOrcamentoService
 
     public async Task<IReadOnlyList<SolicitacaoOrcamentoDocumentoDto>> GetDocumentosAsync(int solicitacaoId)
     {
-        await EnsureSolicitacaoExistsAsync(solicitacaoId);
+        await EnsureSolicitacaoAccessAsync(solicitacaoId);
 
         return await _db.Set<SolicitacaoOrcamentoDocumento>()
             .AsNoTracking()
@@ -272,6 +281,26 @@ public class SolicitacoesOrcamentoService
         var exists = await _db.Set<SolicitacaoOrcamento>().AnyAsync(x => x.Id == solicitacaoId);
         if (!exists)
             throw new NotFoundException("SolicitacaoOrcamento", solicitacaoId);
+    }
+
+    /// <summary>
+    /// Verifica existência e, para Despachante, verifica que está vinculado à solicitação.
+    /// </summary>
+    private async Task EnsureSolicitacaoAccessAsync(int solicitacaoId)
+    {
+        await EnsureSolicitacaoExistsAsync(solicitacaoId);
+
+        if (!_currentUser.HasRole("Despachante")) return;
+
+        var despachanteId = await _currentUser.GetVinculoIdAsync("Despachante");
+        if (despachanteId is null)
+            throw new ForbiddenException("Despachante sem vínculo cadastrado.");
+
+        var temAcesso = await _db.Set<SolicitacaoOrcamentoDespachante>()
+            .AnyAsync(x => x.SolicitacaoOrcamentoId == solicitacaoId && x.DespachanteId == despachanteId.Value);
+
+        if (!temAcesso)
+            throw new ForbiddenException("Acesso negado a esta solicitação.");
     }
 
     private async Task ValidateReferencesAsync(int? clienteId, int? importadorId, int portoOrigemId, int portoDestinoId)
