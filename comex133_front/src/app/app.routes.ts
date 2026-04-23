@@ -124,6 +124,7 @@ export const routes: Routes = [
       // Documentos — Etapa 8
       {
         path: 'documentos',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/documentos/pages/documentos.component').then(m => m.DocumentosComponent)
       },
       // Despesas e Modelos — Etapa 11

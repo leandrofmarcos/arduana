@@ -119,15 +119,15 @@ import { filter, Subscription } from 'rxjs';
           </div>
 
           <!-- Administração -->
-          <div class="menu-group">
+          <div class="menu-group" *ngIf="auth.hasRole('admin')">
             <div class="menu-title">Administração</div>
-            <a *ngIf="auth.hasRole('admin')" routerLink="/admin/roles" routerLinkActive="active">
+            <a routerLink="/admin/roles" routerLinkActive="active">
               <span class="icon">🛡️</span><span>Roles</span>
             </a>
-            <a *ngIf="auth.hasRole('admin')" routerLink="/admin/usuarios" routerLinkActive="active">
+            <a routerLink="/admin/usuarios" routerLinkActive="active">
               <span class="icon">👤</span><span>Usuários</span>
             </a>
-            <a *ngIf="auth.hasRole('admin')" routerLink="/admin/push-test" routerLinkActive="active">
+            <a routerLink="/admin/push-test" routerLinkActive="active">
               <span class="icon">🔔</span><span>Teste Push</span>
             </a>
             <a routerLink="/documentos" routerLinkActive="active">
