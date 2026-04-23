@@ -9,7 +9,8 @@ import { PushNotificationService } from '../services/push-notification.service';
   imports: [CommonModule],
   template: `
     <!-- ── Banner principal de instalação PWA ─────────────────────────── -->
-    <div class="install-banner" *ngIf="installSvc.canInstall() && !pushStep()" role="banner" aria-live="polite">
+    <!-- Só aparece se push já foi resolvido (concedido ou dispensado) -->
+    <div class="install-banner" *ngIf="installSvc.canInstall() && !pushStep() && !showPushBanner()" role="banner" aria-live="polite">
       <div class="banner-inner">
         <img src="icons/icon-192x192.png" alt="Comex 133" class="banner-icon" />
         <div class="banner-text">
@@ -46,8 +47,8 @@ import { PushNotificationService } from '../services/push-notification.service';
       </div>
     </div>
 
-    <!-- ── Banner de push standalone (sem instalar PWA) ───────────────── -->
-    <div class="install-banner push-standalone" *ngIf="showPushBanner() && !pushStep() && !installSvc.canInstall()" role="banner" aria-live="polite">
+    <!-- ── Banner de push standalone (aparece em mobile e desktop, tem prioridade sobre install) ── -->
+    <div class="install-banner push-standalone" *ngIf="showPushBanner() && !pushStep()" role="banner" aria-live="polite">
       <div class="banner-inner">
         <span class="push-icon">🔔</span>
         <div class="banner-text">
