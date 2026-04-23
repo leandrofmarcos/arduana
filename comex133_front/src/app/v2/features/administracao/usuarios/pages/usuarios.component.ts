@@ -114,6 +114,18 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
       .vinculos-add-row select {
         flex: 1;
         min-width: 180px;
+        padding: 10px 12px;
+        border: 2px solid var(--color-border);
+        border-radius: 8px;
+        font-size: 14px;
+        background: var(--color-surface);
+        color: var(--color-text);
+        transition: .2s;
+      }
+      .vinculos-add-row select:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(102,126,234,.12);
       }
     `
   ],
