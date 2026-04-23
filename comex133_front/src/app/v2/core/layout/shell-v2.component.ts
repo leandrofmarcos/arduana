@@ -154,18 +154,33 @@ import { filter, Subscription } from 'rxjs';
     .wrapper {
       display: grid;
       grid-template-columns: 260px 1fr;
-      grid-template-rows: 56px 1fr 40px;
+      /* Linhas crescem com safe-area: header absorve notch/status-bar, footer absorve home-indicator */
+      grid-template-rows:
+        calc(56px + env(safe-area-inset-top, 0px))
+        1fr
+        calc(40px + env(safe-area-inset-bottom, 0px));
       height: 100vh;
+      height: 100dvh; /* Android Chrome resize correto */
       background: var(--color-bg);
+      /* Insets laterais para landscape com notch */
+      padding-left: env(safe-area-inset-left, 0);
+      padding-right: env(safe-area-inset-right, 0);
     }
     .main-header {
       grid-column: 1 / -1;
       display: flex;
-      align-items: center;
+      align-items: flex-end; /* conteudo fica abaixo do inset */
       justify-content: space-between;
       background: var(--color-header-bg);
       color: #fff;
-      padding: 0 16px;
+      /* padding-top absorve status-bar/notch no standalone */
+      padding: env(safe-area-inset-top, 0) 16px 0 16px;
+      padding-bottom: 0;
+      min-height: calc(56px + env(safe-area-inset-top, 0px));
+    }
+    /* Conteudo interno do header alinhado na base da area segura */
+    .main-header > * {
+      padding-bottom: 10px;
     }
     .brand-area { display: flex; align-items: center; gap: 12px; }
     .sidebar-toggle {
@@ -252,7 +267,13 @@ import { filter, Subscription } from 'rxjs';
     }
     .menu a:hover, .menu a.active { background: var(--color-header-bg); }
     .icon { font-size: 16px; min-width: 20px; text-align: center; }
-    .content-wrapper { background: var(--color-bg); overflow: auto; }
+    .content-wrapper {
+      background: var(--color-bg);
+      overflow: auto;
+      /* overscroll nativo no iOS/Android */
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
     .content { padding: 24px; }
     .main-footer {
       grid-column: 1 / -1;
@@ -260,10 +281,15 @@ import { filter, Subscription } from 'rxjs';
       border-top: 1px solid var(--color-border);
       color: var(--color-muted);
       display: flex;
-      align-items: center;
+      align-items: flex-start; /* conteudo no topo, padding-bottom empurra para cima do home-indicator */
       justify-content: space-between;
-      padding: 0 16px;
+      padding: 0 16px env(safe-area-inset-bottom, 0) 16px;
+      padding-top: 0;
+      min-height: calc(40px + env(safe-area-inset-bottom, 0px));
       font-size: 12px;
+    }
+    .main-footer > * {
+      padding-top: 12px;
     }
     .sidebar-collapsed { grid-template-columns: 64px 1fr; }
     .sidebar-collapsed .menu a span:last-child { display: none; }
@@ -296,6 +322,9 @@ import { filter, Subscription } from 'rxjs';
         transition: transform 0.3s ease;
         grid-row: unset;
         border-right: none;
+        /* Safe area: sidebar parte do topo absoluto, precisa compensar notch */
+        padding-top: env(safe-area-inset-top, 0);
+        padding-bottom: env(safe-area-inset-bottom, 0);
       }
       .wrapper.sidebar-open .main-sidebar {
         transform: translateX(0);
@@ -321,7 +350,24 @@ import { filter, Subscription } from 'rxjs';
     @media (max-width: 480px) {
       .content { padding: 12px; }
       .brand { font-size: 14px; }
-      .main-footer { font-size: 11px; padding: 0 12px; }
+      .main-footer { font-size: 11px; }
+    }
+
+    /* ===== PWA STANDALONE: iOS e Android ===== */
+    /* Detecta modo standalone (PWA instalado) e reforça safe areas */
+    @media (display-mode: standalone) {
+      .wrapper {
+        /* Garantir que wrapper ocupe toda a tela sem barras do browser */
+        height: 100dvh;
+      }
+      /* Remove sombra do header em standalone — fica flush com barra de status */
+      .main-header {
+        box-shadow: none;
+      }
+      /* Tap highlight transparente em toda a app (padrao nativo) */
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
     }
   `]
 })
