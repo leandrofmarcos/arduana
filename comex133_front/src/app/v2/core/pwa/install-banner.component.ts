@@ -46,6 +46,24 @@ import { PushNotificationService } from '../services/push-notification.service';
       </div>
     </div>
 
+    <!-- ── Banner de push standalone (sem instalar PWA) ───────────────── -->
+    <div class="install-banner push-standalone" *ngIf="showPushBanner() && !pushStep() && !installSvc.canInstall()" role="banner" aria-live="polite">
+      <div class="banner-inner">
+        <span class="push-icon">🔔</span>
+        <div class="banner-text">
+          <strong class="banner-title">Ativar notificações</strong>
+          <span class="banner-desc">Receba alertas de embarques e atualizações em tempo real.</span>
+        </div>
+        <div class="banner-actions">
+          <button class="btn-install push-btn" (click)="enablePushStandalone()">
+            <span *ngIf="pushLoading()">Ativando…</span>
+            <span *ngIf="!pushLoading()">Ativar</span>
+          </button>
+          <button class="btn-dismiss" (click)="dismissPushBanner()">Depois</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Dica para iOS (sem suporte a beforeinstallprompt) ───────────── -->
     <div class="install-ios-hint" *ngIf="showIosHint()" role="complementary">
       <div class="ios-inner">
@@ -71,6 +89,9 @@ import { PushNotificationService } from '../services/push-notification.service';
       animation: slideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);
     }
     .install-banner.push-step {
+      border-top-color: #10b981;
+    }
+    .install-banner.push-standalone {
       border-top-color: #10b981;
     }
     @keyframes slideUp {
@@ -133,7 +154,7 @@ import { PushNotificationService } from '../services/push-notification.service';
       white-space: nowrap;
     }
     .btn-install:hover { opacity: 0.88; }
-    .push-step .btn-install {
+    .push-step .btn-install, .push-standalone .btn-install {
       background: linear-gradient(135deg, #10b981, #059669);
     }
     .btn-dismiss {
@@ -193,6 +214,7 @@ export class InstallBannerComponent {
   pushStep     = signal(false);
   pushLoading  = signal(false);
   showIosHint  = signal(this._shouldShowIosHint());
+  showPushBanner = signal(this._shouldShowPushBanner());
 
   async install(): Promise<void> {
     this.installing.set(true);
@@ -214,13 +236,39 @@ export class InstallBannerComponent {
     this.pushStep.set(false);
   }
 
+  async enablePushStandalone(): Promise<void> {
+    if (this.pushLoading()) return;
+    this.pushLoading.set(true);
+    try {
+      await this.pushSvc.requestAndSubscribe();
+    } catch { /* silencioso */ }
+    this.pushLoading.set(false);
+    this.showPushBanner.set(false);
+  }
+
   dismissPush(): void {
     this.pushStep.set(false);
+  }
+
+  dismissPushBanner(): void {
+    this.showPushBanner.set(false);
+    // Suprimir por 30 dias
+    const until = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    localStorage.setItem('push-banner-dismissed-until', String(until));
   }
 
   dismissIos(): void {
     this.showIosHint.set(false);
     sessionStorage.setItem('ios-hint-dismissed', '1');
+  }
+
+  private _shouldShowPushBanner(): boolean {
+    if (typeof window === 'undefined') return false;
+    if (!('Notification' in window)) return false;
+    if (Notification.permission !== 'default') return false;
+    const until = localStorage.getItem('push-banner-dismissed-until');
+    if (until && Date.now() < Number(until)) return false;
+    return true;
   }
 
   private _shouldShowIosHint(): boolean {

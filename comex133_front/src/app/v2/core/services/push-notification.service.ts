@@ -48,6 +48,23 @@ export class PushNotificationService implements OnDestroy {
     return this.swPush.messages;
   }
 
+  /**
+   * Tenta se inscrever automaticamente.
+   * - Se permissão já concedida: registra subscription silenciosamente.
+   * - Se permissão não solicitada (default): retorna false — o chamador deve exibir um prompt.
+   * - Se permissão negada ou SW desabilitado: retorna false, sem ação.
+   */
+  async tryAutoSubscribe(): Promise<boolean> {
+    if (!this.isSupported || !this.swPush.isEnabled) return false;
+    if (Notification.permission !== 'granted') return false;
+    try {
+      await this.requestAndSubscribe();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async requestAndSubscribe(): Promise<void> {
     if (!this.isSupported) {
       throw new Error('Push notifications não são suportadas neste browser.');

@@ -4,6 +4,7 @@ import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../../features/auth/auth.providers';
 import { NotificationPanelComponent } from '../notifications/notification-panel.component';
 import { InstallBannerComponent } from '../pwa/install-banner.component';
+import { PushNotificationService } from '../services/push-notification.service';
 import { filter, Subscription } from 'rxjs';
 
 
@@ -331,7 +332,8 @@ export class ShellV2Component implements OnInit, OnDestroy {
 
   constructor(
     public auth: AuthService,
-    private router: Router
+    private router: Router,
+    private push: PushNotificationService
   ) {}
 
   ngOnInit(): void {
@@ -342,6 +344,9 @@ export class ShellV2Component implements OnInit, OnDestroy {
       .subscribe(() => {
         if (this.isMobile()) this.drawerOpen.set(false);
       });
+    // Auto-subscribe ao push: se permissão já concedida, registra silenciosamente.
+    // Se ainda não solicitada, o InstallBannerComponent cuidará de perguntar.
+    this.push.tryAutoSubscribe().catch(() => {});
   }
 
   ngOnDestroy(): void {

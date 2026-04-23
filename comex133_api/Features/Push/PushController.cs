@@ -31,9 +31,18 @@ public class PushController : ControllerBase
 
     private (WebPushClient client, VapidDetails vapid) BuildClient()
     {
-        var subject    = _configuration["Vapid:Subject"]!;
-        var publicKey  = _configuration["Vapid:PublicKey"]!;
-        var privateKey = _configuration["Vapid:PrivateKey"]!;
+        var subject    = _configuration["Vapid:Subject"];
+        var publicKey  = _configuration["Vapid:PublicKey"];
+        var privateKey = _configuration["Vapid:PrivateKey"];
+
+        if (string.IsNullOrWhiteSpace(subject) ||
+            string.IsNullOrWhiteSpace(publicKey) ||
+            string.IsNullOrWhiteSpace(privateKey))
+        {
+            throw new InvalidOperationException(
+                "Chaves VAPID nao configuradas. Verifique Vapid:Subject, Vapid:PublicKey e Vapid:PrivateKey em appsettings.json.");
+        }
+
         return (new WebPushClient(), new VapidDetails(subject, publicKey, privateKey));
     }
 
@@ -136,12 +145,18 @@ public class PushController : ControllerBase
                 return BadRequest(new { error = "targetType invalido. Use: all | user | role" });
         }
 
-        var (sent, errors) = await DispatchAsync(targets, request.Title, request.Message);
-        _logger.LogInformation("Push send: {Sent} enviadas, {Errors} erros. Target={TargetType}", sent, errors, request.TargetType);
-        return Ok(new { sent, errors });
+        try
+        {
+            var (sent, errors) = await DispatchAsync(targets, request.Title, request.Message);
+            _logger.LogInformation("Push send: {Sent} enviadas, {Errors} erros. Target={TargetType}", sent, errors, request.TargetType);
+            return Ok(new { sent, errors });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(ex, "Configuracao VAPID ausente ao tentar enviar push.");
+            return StatusCode(500, new { error = ex.Message });
+        }
     }
-
-    /// <summary>Compatibilidade com Fase 4: envia para todas as subscriptions.</summary>
     [HttpPost("send-test")]
     [Authorize(Roles = "Administrador")]
     [ProducesResponseType(StatusCodes.Status200OK)]
