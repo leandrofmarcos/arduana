@@ -2,7 +2,7 @@
 
 **Criado em**: 2026-04-23  
 **Atualizado em**: 2026-04-23  
-**Status**: Fase 1 — em implementação (`feat/autorizacao`)  
+**Status**: P1 ✅ P2 ✅ P3-despachante ✅ | Próximas: P5 (eager-load) → P6 (backend roles) → P7 (frontend)  
 **Escopo**: `comex133_api` + `comex133_front`
 
 ---
@@ -370,17 +370,139 @@ Na tabela 5.1, `Despachante` não pode criar solicitação. Confirmar: a solicit
 | P2.6 | `SolicitacoesOrcamentoService`: filtrar por vínculo Despachante | `Features/SolicitacoesOrcamento/SolicitacoesOrcamentoService.cs` | ✅ Implementado |
 | P2.7 | `ForbiddenException` (HTTP 403) + middleware | `Core/Exceptions/ForbiddenException.cs`, `ExceptionHandlingMiddleware.cs` | ✅ Implementado |
 
-### Fase AUT-P3 — Relaxamento completo de roles nos controllers
-- [ ] AUT-P3.1: `LogisticaController` / `ControleNaviosController` — abrir para Analista, Gerente
-- [ ] AUT-P3.2: `CustoDespachanteController` (quando criado) — abrir para Despachante com ownership
-- [ ] AUT-P3.3: `OrcamentoVendaController` — abrir para Analista, Gerente
-- [ ] AUT-P3.4: `EmbarqueAduanaController` — abrir para Analista, Gerente
-- [ ] AUT-P3.5: Cadastros — abrir leitura (GET) para Analista/Gerente, escrita Admin/Gerente
+### Fase AUT-P3 — Isolamento de dados por Despachante ✅ CONCLUÍDA (commit `2519698`)
+
+| ID | Tarefa | Arquivo(s) | Status |
+|----|--------|-----------|--------|
+| P3.1 | `SolicitacoesOrcamentoService`: `EnsureSolicitacaoAccessAsync` (ownership check para sub-recursos) | `Features/SolicitacoesOrcamento/SolicitacoesOrcamentoService.cs` | ✅ |
+| P3.2 | `GetDespachantesAsync`: filtrar ao próprio registro quando Despachante | idem | ✅ |
+| P3.3 | `GetDocumentosAsync`: usar `EnsureSolicitacaoAccessAsync` | idem | ✅ |
+| P3.4 | Operações de escrita em Solicitações → `[Authorize(Roles = "Administrador")]` (Create/Update/Delete/AddDespachante/RemoveDespachante/AddDocumento/RemoveDocumento) | `Controllers/SolicitacoesOrcamentoController.cs` | ✅ |
+| P3.5 | `EmbarqueNavioVinculoController` GET → aberto para `Administrador,Despachante` | `Controllers/EmbarqueNavioVinculoController.cs` | ✅ |
+| P3.6 | `NaviosService`: injetar `ICurrentUserContext`; ownership check em `GetVinculoAsync`; filtro por despachante em `GetControleNaviosOperacionalCoreAsync` | `Features/Navios/NaviosService.cs` | ✅ |
+| P3.7 | `LogisticaController` → `[Authorize(Roles = "Administrador,Despachante")]` | `Controllers/LogisticaController.cs` | ✅ |
+
+> **Observação**: `SetStatus` (PATCH `/{id}/status`) ficou sem a restrição de Despachante — corrigir em P5.
+
+---
 
 ### Fase AUT-P4 — Frontend avançado
 - [ ] AUT-P4.1: Esconder botões de ação (editar/excluir) por role
 - [ ] AUT-P4.2: Tela de gerenciamento de vínculos usuário ↔ despachante (Admin)
 - [ ] AUT-P4.3: Tratar 403 Forbidden nos services Angular com mensagem amigável
+
+---
+
+### Fase AUT-P5 — Correção do Eager Loading dos Serviços de Catálogo
+
+#### Problema identificado
+
+Todos os 13 serviços de cadastro (`ClienteV2Service`, `ImportadorService`, `DespachanteV2Service`, `PortoOrigemService`, `PortoDestinoService`, `NcmService`, `DespesaCadastroService`, `AgenteCargaService`, `ExportadorService`, `FabricanteService`, `NaviosCadastroService`, `ModeloDespesaService`, `ListaPrecoLclService`) são `@Injectable({ providedIn: 'root' })` — **singletons globais** — e chamam `this.refresh()` **no constructor**.
+
+O `DashboardV2Component` (rota padrão pós-login) injeta 7 desses serviços → Angular os instancia ao renderizar o dashboard → **7 requisições GET simultâneas** disparam para endpoints de cadastro → todas retornam **403 Forbidden** para usuários Despachante.
+
+**Causa raiz dupla**:
+1. Serviços fazem fetch no constructor (eager load), não no primeiro acesso (lazy load).
+2. O Dashboard carrega dados de cadastro independente do papel do usuário.
+
+#### Serviços afetados (fetch no constructor)
+
+| Serviço | Endpoint disparado | Quem instancia primeiro |
+|---------|-------------------|------------------------|
+| `ClienteV2Service` | `GET /clientes?page=1&pageSize=100` | Dashboard |
+| `ImportadorService` | `GET /importadores?…` | Dashboard |
+| `DespachanteV2Service` | `GET /despachantes?…` | Dashboard |
+| `PortoOrigemService` | `GET /portos-origem?…` | Dashboard / Solicitações |
+| `PortoDestinoService` | `GET /portos-destino?…` | Dashboard / Solicitações |
+| `NcmService` | `GET /ncms?…` | Dashboard |
+| `DespesaCadastroService` | `GET /despesas-catalogo?…` | Dashboard |
+| `AgenteCargaService` | `GET /agentes-carga?…` | Solicitações / Embarque |
+| `ExportadorService` | `GET /exportadores?…` | Solicitações |
+| `FabricanteService` | `GET /fabricantes?…` | Solicitações |
+| `NaviosCadastroService` | `GET /navios?…` | Embarque / Controle |
+| `ModeloDespesaService` | `GET /modelos-despesa?…` | Custo Despachante |
+| `ListaPrecoLclService` | `GET /lista-preco-lcl?…` | Orçamento Venda |
+
+#### Solução proposta
+
+**A — Lazy load nos serviços**: Remover `this.refresh()` do constructor; disparar fetch na primeira chamada real de `getAll()`. Serviços nunca mais carregam automaticamente ao iniciar.
+
+**B — Dashboard role-aware**: `DashboardV2Component` não usa serviços de cadastro para Despachante. Exibe um dashboard alternativo com as solicitações vinculadas ao despachante logado.
+
+**C — Silenciar 403 nos serviços**: Quando o fetch retorna 403, marcar `loaded = true` com array vazio (não tentar novamente, não logar como erro).
+
+#### Atividades
+
+| ID | Tarefa | Arquivo(s) |
+|----|--------|-----------|
+| P5-A1 | Remover `this.refresh()` do constructor dos 13 serviços de cadastro; implementar lazy-load em `getAll()` (if not loaded → fetch; else return cache) | Todos os `*.service.ts` de `cadastros/` |
+| P5-A2 | Silenciar 403 no handler `error` dos serviços: `if (err.status === 403) { this.loaded = true; return; }` | idem |
+| P5-A3 | `DashboardV2Component`: detectar role via `AuthService`; para Admin/Gerente/Analista manter KPIs de cadastro; para Despachante exibir painel alternativo com contagem de solicitações próprias | `v2/features/dashboard/dashboard.component.ts` |
+| P5-A4 | Corrigir bug: `SetStatus` (PATCH `/{id}/status`) em `SolicitacoesOrcamentoController` — adicionar `[Authorize(Roles = "Administrador")]` (Despachante não deve alterar status) | `Controllers/SolicitacoesOrcamentoController.cs` |
+
+---
+
+### Fase AUT-P6 — Backend: Abertura Completa de Roles (Gerente e Analista)
+
+#### Problema
+
+Atualmente todos os endpoints ainda têm `[Authorize(Roles = "Administrador")]` no nível de controller, ou estão abertos apenas para `Administrador,Despachante`. Usuários com roles `Gerente` e `Analista` **não conseguem usar nenhuma funcionalidade operacional do sistema**.
+
+#### Política por controller (visão completa)
+
+| Controller / Endpoint | Administrador | Gerente | Analista | Despachante |
+|----------------------|:---:|:---:|:---:|:---:|
+| **Cadastros — GET (listar/buscar)** | ✅ | ✅ | ✅ | ❌ (exceto Despachantes: 👁️) |
+| **Cadastros — POST/PUT/DELETE** | ✅ | ✅ | ❌ | ❌ |
+| **Cadastros — PATCH ativo** | ✅ | ✅ | ❌ | ❌ |
+| **SolicitacoesOrcamento — GET** | ✅ | ✅ | ✅ | 🔒 (ownership) |
+| **SolicitacoesOrcamento — POST Create** | ✅ | ✅ | ✅ | ❌ |
+| **SolicitacoesOrcamento — PUT Update** | ✅ | ✅ | ✅ | ❌ |
+| **SolicitacoesOrcamento — PATCH Status** | ✅ | ✅ | ✅ | ❌ |
+| **SolicitacoesOrcamento — DELETE** | ✅ | ❌ | ❌ | ❌ |
+| **SolicitacoesOrcamento — POST/DELETE Despachante** | ✅ | ✅ | ✅ | ❌ |
+| **SolicitacoesOrcamento — GET Documentos** | ✅ | ✅ | ✅ | 🔒 |
+| **SolicitacoesOrcamento — POST/DELETE Documentos** | ✅ | ✅ | ✅ | ❌ |
+| **EmbarqueNavioVinculo — GET** | ✅ | ✅ | ✅ | 🔒 (ownership) |
+| **EmbarqueNavioVinculo — POST/PUT/DELETE** | ✅ | ✅ | ✅ | ❌ |
+| **Logística controle-navios — GET** | ✅ | ✅ | ✅ | 🔒 (filtrado) |
+| **ControleNavios — CRUD** | ✅ | ✅ | ❌ | ❌ |
+| **Navios — GET** | ✅ | ✅ | ✅ | 👁️ |
+| **Navios — POST/PUT/DELETE** | ✅ | ✅ | ❌ | ❌ |
+| **Usuarios — CRUD** | ✅ | ❌ | ❌ | ❌ |
+| **Roles — GET** | ✅ | ✅ | ❌ | ❌ |
+| **Parametros** | ✅ | ❌ | ❌ | ❌ |
+
+#### Atividades
+
+| ID | Tarefa | Arquivo(s) |
+|----|--------|-----------|
+| P6-A1 | Cadastros GET → `[Authorize(Roles = "Administrador,Gerente,Analista")]` nos GET de todos os 14 cadastros controllers | `Controllers/Clientes`, `Importadores`, `Despachantes`, `PortosOrigem`, `PortosDestino`, `Ncms`, `DespesasCatalogo`, `AgentesCarga`, `Exportadores`, `Fabricantes`, `Navios`, `ModelosDespesa`, `ListaPrecoLcl`, `ControleNavios` |
+| P6-A2 | Cadastros POST/PUT/PATCH/DELETE → `[Authorize(Roles = "Administrador,Gerente")]` | idem |
+| P6-A3 | `SolicitacoesOrcamentoController` — Create/Update/SetStatus/AddDespachante/RemoveDespachante/AddDocumento/RemoveDocumento → `[Authorize(Roles = "Administrador,Gerente,Analista")]`; Delete → `[Authorize(Roles = "Administrador")]` | `Controllers/SolicitacoesOrcamentoController.cs` |
+| P6-A4 | `EmbarqueNavioVinculoController` — POST/PUT/DELETE → `[Authorize(Roles = "Administrador,Gerente,Analista")]` | `Controllers/EmbarqueNavioVinculoController.cs` |
+| P6-A5 | `ControleNaviosController` — GET já abre para todos (P6-A1); POST/PUT/DELETE → `[Authorize(Roles = "Administrador,Gerente")]` | `Controllers/ControleNaviosController.cs` |
+| P6-A6 | `NaviosController` — GET → `[Authorize(Roles = "Administrador,Gerente,Analista,Despachante")]`; escrita → `[Authorize(Roles = "Administrador,Gerente")]` | `Controllers/NaviosController.cs` |
+| P6-A7 | `RolesController` — GET → `[Authorize(Roles = "Administrador,Gerente")]` | `Controllers/RolesController.cs` |
+| P6-A8 | Regression: smoke-test com usuário Gerente e Analista cobrindo os endpoints principais | — |
+
+> **Dependência**: P6 não altera regras de ownership (Despachante), apenas abre roles faltantes. A lógica de row-level security da P3 permanece intacta.
+
+---
+
+### Fase AUT-P7 — Frontend: Proteção de UI e Dashboard Role-Aware
+
+> Esta fase substitui e expande a antiga AUT-P4.
+
+| ID | Tarefa | Arquivo(s) |
+|----|--------|-----------|
+| P7-A1 | Dashboard role-aware (movido de P5-A3 — pode ser feito junto ou separado) | `dashboard.component.ts` |
+| P7-A2 | Esconder botões de escrita (Criar / Editar / Excluir) para Despachante em todas as telas operacionais | `solicitacao-orcamento.component.ts`, `embarque-aduana.component.ts`, etc. |
+| P7-A3 | Esconder seções de cadastro no shell para Analista (acesso somente às telas operacionais) | `shell-v2.component.ts` |
+| P7-A4 | Exibir mensagem amigável em caso de 403 Forbidden (toast ou inline) em vez de tela em branco | `api-client.service.ts` ou interceptor HTTP |
+| P7-A5 | Painel de vínculos usuário ↔ entidade (Admin) — CRUD de `UsuarioVinculos` na tela de Usuários | `usuarios/` |
+
+
 
 ---
 
