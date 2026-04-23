@@ -270,6 +270,9 @@ import { filter, Subscription } from 'rxjs';
     .sidebar-collapsed .menu-title { display: none; }
     .sidebar-collapsed .user-panel .info { display: none; }
 
+    /* Garantir que componentes fixed (banner, painel) nao sejam grid-items */
+    app-install-banner { display: contents; }
+
     /* ===== OVERLAY (mobile) ===== */
     .sidebar-overlay {
       display: none;
