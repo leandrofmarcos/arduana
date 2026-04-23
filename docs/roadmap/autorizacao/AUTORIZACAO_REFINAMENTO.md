@@ -358,13 +358,17 @@ Na tabela 5.1, `Despachante` não pode criar solicitação. Confirmar: a solicit
 
 ---
 
-### Fase AUT-P2 — Fundação de Ownership (próxima fase)
-- [ ] AUT-P2.1: Criar tabela `UsuarioVinculos` (migration EF Core)
-- [ ] AUT-P2.2: Criar entidade `UsuarioVinculo` e adicionar ao `AppDbContext`
-- [ ] AUT-P2.3: Criar `ICurrentUserContext` + implementação
-- [ ] AUT-P2.4: Registrar no DI e injetar via `IHttpContextAccessor`
-- [ ] AUT-P2.5: Endpoints CRUD para gerenciar vínculos (Admin only)
-- [ ] AUT-P2.6: `SolicitacoesOrcamentoService` — filtrar para Despachante ver apenas as vinculadas a ele
+### Fase AUT-P2 — Fundação de Ownership ✅ CONCLUÍDA
+
+| ID | Tarefa | Arquivo(s) | Status |
+|----|--------|-----------|--------|
+| P2.1 | Criar tabela `UsuarioVinculos` (migration EF Core) | `Migrations/…AddUsuarioVinculos.cs` | ✅ Implementado |
+| P2.2 | Criar entidade `UsuarioVinculo` + adicionar ao `AppDbContext` | `Domain/Entities/UsuarioVinculo.cs`, `AppDbContext.cs` | ✅ Implementado |
+| P2.3 | Criar `ICurrentUserContext` + `CurrentUserContext` | `Core/Auth/ICurrentUserContext.cs`, `CurrentUserContext.cs` | ✅ Implementado |
+| P2.4 | Registrar no DI via `IHttpContextAccessor` | `Core/Extensions/ServiceCollectionExtensions.cs` | ✅ Implementado |
+| P2.5 | Endpoints CRUD `UsuarioVinculos` (Admin only) | `Features/UsuarioVinculos/`, `Controllers/UsuarioVinculosController.cs` | ✅ Implementado |
+| P2.6 | `SolicitacoesOrcamentoService`: filtrar por vínculo Despachante | `Features/SolicitacoesOrcamento/SolicitacoesOrcamentoService.cs` | ✅ Implementado |
+| P2.7 | `ForbiddenException` (HTTP 403) + middleware | `Core/Exceptions/ForbiddenException.cs`, `ExceptionHandlingMiddleware.cs` | ✅ Implementado |
 
 ### Fase AUT-P3 — Relaxamento completo de roles nos controllers
 - [ ] AUT-P3.1: `LogisticaController` / `ControleNaviosController` — abrir para Analista, Gerente

@@ -1,3 +1,4 @@
+using Comex133Api.Core.Auth;
 using Comex133Api.Core.Database;
 using Comex133Api.Core.Exceptions;
 using Comex133Api.Core.Models;
@@ -9,13 +10,30 @@ namespace Comex133Api.Features.SolicitacoesOrcamento;
 public class SolicitacoesOrcamentoService
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentUserContext _currentUser;
 
-    public SolicitacoesOrcamentoService(AppDbContext db) => _db = db;
+    public SolicitacoesOrcamentoService(AppDbContext db, ICurrentUserContext currentUser)
+    {
+        _db = db;
+        _currentUser = currentUser;
+    }
 
     public async Task<PagedResult<SolicitacaoOrcamentoDto>> GetAllAsync(PaginationQuery pagination)
     {
         var query = _db.Set<SolicitacaoOrcamento>()
-            .AsNoTracking()
+            .AsNoTracking();
+
+        // Despachante only sees solicitações linked to them
+        if (_currentUser.HasRole("Despachante"))
+        {
+            var despachanteId = await _currentUser.GetVinculoIdAsync("Despachante");
+            if (despachanteId is null)
+                return PagedResult<SolicitacaoOrcamentoDto>.Empty(pagination);
+
+            query = query.Where(x => x.Despachantes.Any(d => d.DespachanteId == despachanteId.Value));
+        }
+
+        return await query
             .OrderByDescending(x => x.Data)
             .ThenByDescending(x => x.Id)
             .Select(x => new SolicitacaoOrcamentoDto(
@@ -34,9 +52,8 @@ public class SolicitacoesOrcamentoService
                 EF.Property<DateTime?>(x, nameof(SolicitacaoOrcamento.CriadoEm)) ?? DateTime.UnixEpoch,
                 EF.Property<DateTime?>(x, nameof(SolicitacaoOrcamento.AtualizadoEm)) ?? DateTime.UnixEpoch,
                 x.Despachantes.Count,
-                x.Documentos.Count));
-
-        return await query.ToPagedResultAsync(pagination);
+                x.Documentos.Count))
+            .ToPagedResultAsync(pagination);
     }
 
     public async Task<SolicitacaoOrcamentoDto> GetByIdAsync(int id)

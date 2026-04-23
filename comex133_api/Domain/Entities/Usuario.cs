@@ -26,4 +26,5 @@ public class Usuario
 
     public ICollection<UsuarioRole> UsuarioRoles { get; set; } = new List<UsuarioRole>();
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public ICollection<UsuarioVinculo> Vinculos { get; set; } = new List<UsuarioVinculo>();
 }

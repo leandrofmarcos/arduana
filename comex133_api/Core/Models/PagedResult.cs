@@ -9,4 +9,12 @@ public class PagedResult<T>
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
     public bool HasNextPage => Page < TotalPages;
     public bool HasPreviousPage => Page > 1;
+
+    public static PagedResult<T> Empty(PaginationQuery pagination) => new()
+    {
+        Items      = new List<T>(),
+        TotalCount = 0,
+        Page       = pagination.Page,
+        PageSize   = pagination.PageSize
+    };
 }

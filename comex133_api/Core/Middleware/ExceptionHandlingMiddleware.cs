@@ -37,6 +37,7 @@ public class ExceptionHandlingMiddleware
         {
             NotFoundException notFound => ApiResponse.Error(notFound.Message, (int)HttpStatusCode.NotFound),
             UnauthorizedException unauthorized => ApiResponse.Error(unauthorized.Message, (int)HttpStatusCode.Unauthorized),
+            ForbiddenException forbidden => ApiResponse.Error(forbidden.Message, (int)HttpStatusCode.Forbidden),
             ValidationException validation => new ApiResponse
             {
                 Success = false,

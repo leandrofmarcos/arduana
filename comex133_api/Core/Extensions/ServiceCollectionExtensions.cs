@@ -1,4 +1,6 @@
+using Comex133Api.Core.Auth;
 using Comex133Api.Core.Database;
+using Comex133Api.Features.UsuarioVinculos;
 using Comex133Api.Features.AgentesCarga;
 using Comex133Api.Features.Auth;
 using Comex133Api.Features.Navios;
@@ -80,6 +82,10 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddFeatureServices(this IServiceCollection services)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+        services.AddScoped<UsuarioVinculosService>();
+
         services.AddScoped<ParametroService>();
         services.AddScoped<JwtService>();
         services.AddScoped<AuthService>();

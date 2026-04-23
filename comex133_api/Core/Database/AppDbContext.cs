@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<UsuarioRole> UsuarioRoles => Set<UsuarioRole>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<UsuarioVinculo> UsuarioVinculos => Set<UsuarioVinculo>();
 
     // Phase 3 — Cadastros
     public DbSet<PortoOrigem>       PortosOrigem      => Set<PortoOrigem>();
@@ -57,6 +58,16 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.HasIndex(e => e.Token).IsUnique();
+        });
+
+        modelBuilder.Entity<UsuarioVinculo>(entity =>
+        {
+            entity.HasIndex(e => new { e.UsuarioId, e.TipoVinculo, e.EntidadeId }).IsUnique();
+
+            entity.HasOne(e => e.Usuario)
+                  .WithMany(u => u.Vinculos)
+                  .HasForeignKey(e => e.UsuarioId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Ncm>(entity =>
