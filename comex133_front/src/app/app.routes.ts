@@ -31,46 +31,57 @@ export const routes: Routes = [
       // Cadastros — Bloco 1
       {
         path: 'portos-origem',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/portos-origem/pages/portos-origem.component').then(m => m.PortosOrigemComponent)
       },
       {
         path: 'exportadores',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/exportadores/pages/exportadores.component').then(m => m.ExportadoresComponent)
       },
       {
         path: 'agentes-carga',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/agentes-carga/pages/agentes-carga.component').then(m => m.AgentesCargaComponent)
       },
       {
         path: 'fabricantes',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/fabricantes/pages/fabricantes.component').then(m => m.FabricantesComponent)
       },
       {
         path: 'ncm',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/ncm/pages/ncm.component').then(m => m.NcmComponent)
       },
       {
         path: 'lista-preco-lcl',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/lista-preco-lcl/pages/lista-preco-lcl.component').then(m => m.ListaPrecoLclComponent)
       },
       {
         path: 'portos-destino',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/portos-destino/pages/portos-destino.component').then(m => m.PortosDestinoComponent)
       },
       {
         path: 'clientes',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/clientes/pages/clientes-v2.component').then(m => m.ClientesV2Component)
       },
       {
         path: 'importadores',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/importadores/pages/importadores.component').then(m => m.ImportadoresComponent)
       },
       {
         path: 'despachantes',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/despachantes/pages/despachantes-v2.component').then(m => m.DespachantesV2Component)
       },
       {
         path: 'navios',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/navios/pages/navios.component').then(m => m.NaviosComponent)
       },
 
@@ -118,10 +129,12 @@ export const routes: Routes = [
       // Despesas e Modelos — Etapa 11
       {
         path: 'despesas-cadastro',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/despesas-cadastro/pages/despesas-cadastro.component').then(m => m.DespesasCadastroComponent)
       },
       {
         path: 'modelos-despesa',
+        canActivate: [adminGuard],
         loadComponent: () => import('./v2/features/cadastros/modelos-despesa/pages/modelos-despesa.component').then(m => m.ModelosDespesaComponent)
       },
       {

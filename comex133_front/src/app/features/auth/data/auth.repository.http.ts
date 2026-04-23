@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { environment } from '../../../../environments/environment';
 import { Observable, catchError, map, of, switchMap } from 'rxjs';
 import { AuthRepository } from '../domain/auth.repository';
-import { AuthSession, AuthToken, Credentials, User } from '../domain/auth.models';
+import { AuthSession, AuthToken, Credentials, Permission, User, UserRole } from '../domain/auth.models';
 
 interface ApiEnvelope<T> {
   success: boolean;
@@ -240,16 +240,40 @@ export class AuthRepositoryHttp extends AuthRepository {
   }
 
   private mapUser(usuario: LoginApiResponse['usuario'] | MeApiResponse): User {
-    const isAdmin = (usuario.roles ?? []).some(role =>
-      role.toLowerCase() === 'admin' || role.toLowerCase() === 'administrador'
-    );
+    const roles = (usuario.roles ?? []).map(r => r.toLowerCase());
+    const isAdmin = roles.some(r => r === 'admin' || r === 'administrador');
+    const isDespachante = roles.some(r => r === 'despachante');
+
+    let role: UserRole;
+    let permissions: Permission[];
+
+    if (isAdmin) {
+      role = 'admin';
+      permissions = ['admin:all'];
+    } else if (isDespachante) {
+      role = 'despachante';
+      permissions = [
+        'orcamento:read',
+        'orcamento:write',
+        'packlist:read',
+        'packlist:write',
+        'custo:read',
+        'custo:write',
+        'aduana:read',
+        'aduana:write',
+        'despachantes:read'
+      ];
+    } else {
+      role = 'cliente';
+      permissions = ['orcamento:read'];
+    }
 
     return {
       id: String(usuario.id),
       username: usuario.nomeCompleto,
       email: usuario.email,
-      role: isAdmin ? 'admin' : 'cliente',
-      permissions: isAdmin ? ['admin:all'] : ['orcamento:read']
+      role,
+      permissions
     };
   }
 
