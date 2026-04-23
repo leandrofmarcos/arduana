@@ -3,16 +3,18 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../../features/auth/auth.providers';
 import { NotificationPanelComponent } from '../notifications/notification-panel.component';
+import { InstallBannerComponent } from '../pwa/install-banner.component';
 import { filter, Subscription } from 'rxjs';
 
 
 @Component({
   selector: 'app-shell-v2',
   standalone: true,
-  imports: [CommonModule, RouterModule, NotificationPanelComponent],
+  imports: [CommonModule, RouterModule, NotificationPanelComponent, InstallBannerComponent],
   template: `
     <div class="wrapper" [class.sidebar-collapsed]="collapsed()" [class.sidebar-open]="isMobile() && drawerOpen()">
       <div class="sidebar-overlay" (click)="closeMobileDrawer()"></div>
+      <app-install-banner></app-install-banner>
       <header class="main-header">
         <div class="brand-area">
           <button class="sidebar-toggle" (click)="toggleSidebar()">☰</button>
