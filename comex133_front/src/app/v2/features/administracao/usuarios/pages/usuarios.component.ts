@@ -6,6 +6,9 @@ import { Role } from '../../roles/models/role.models';
 import { RoleService } from '../../roles/services/role.service';
 import { Usuario, CreateUsuarioInput } from '../models/usuario.models';
 import { UsuarioService } from '../services/usuario.service';
+import { UsuarioVinculoService, UsuarioVinculo } from '../services/usuario-vinculo.service';
+import { DespachanteV2Service } from '../../../cadastros/despachantes/services/despachante-v2.service';
+import { DespachanteV2 } from '../../../cadastros/despachantes/models/despachante-v2.models';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
@@ -86,6 +89,32 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
         border-color: #ef4444;
         color: #b91c1c;
       }
+      .vinculos-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 16px;
+        font-size: 13px;
+      }
+      .vinculos-table th, .vinculos-table td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--color-border);
+      }
+      .vinculos-table th {
+        font-weight: 600;
+        color: #374151;
+        background: #f9fafb;
+      }
+      .vinculos-add-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .vinculos-add-row select {
+        flex: 1;
+        min-width: 180px;
+      }
     `
   ],
   template: `
@@ -99,7 +128,7 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
         <button class="btn btn-primary" (click)="openForm()">+ Novo Usuário</button>
       </div>
 
-      <ng-container *ngIf="!showForm && !showRolesForm && !showSenhaForm">
+      <ng-container *ngIf="!showForm && !showRolesForm && !showSenhaForm && !showVinculoForm">
         <div class="content-section">
           <div class="toolbar">
             <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome, email ou role" />
@@ -113,7 +142,7 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
                 <th>Roles</th>
                 <th>Status</th>
                 <th>Último login</th>
-                <th style="width:230px">Ações</th>
+                <th style="width:280px">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -140,6 +169,7 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
                     <button class="btn-mini" (click)="openForm(u)">✏️ Editar</button>
                     <button class="btn-mini" (click)="openRoles(u)">🛡️ Roles</button>
                     <button class="btn-mini" (click)="openSenha(u)">🔒 Senha</button>
+                    <button class="btn-mini" (click)="openVinculo(u)">🔗 Vínculo</button>
                     <button
                       class="btn-mini warn"
                       (click)="toggleAtivo(u)"
@@ -269,6 +299,56 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
         </div>
       </ng-container>
 
+      <ng-container *ngIf="showVinculoForm && vinculoTarget">
+        <div class="detail-header">
+          <h2>🔗 Vínculos de Entidade</h2>
+          <p>{{ vinculoTarget.nomeCompleto }} ({{ vinculoTarget.email }})</p>
+        </div>
+        <div class="card">
+          <ng-container *ngIf="vinculos.length > 0; else semVinculos">
+            <table class="vinculos-table">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Entidade</th>
+                  <th>Status</th>
+                  <th style="width:100px">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let v of vinculos">
+                  <td>{{ v.tipoVinculo }}</td>
+                  <td>{{ getNomeDespachante(v.entidadeId) }}</td>
+                  <td>
+                    <span [class]="v.ativo ? 'badge-active' : 'badge-inactive'">
+                      {{ v.ativo ? 'Ativo' : 'Inativo' }}
+                    </span>
+                  </td>
+                  <td>
+                    <button class="btn-mini danger" (click)="removeVinculo(v.id)">🗑️</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </ng-container>
+          <ng-template #semVinculos>
+            <p style="color:#6b7280; font-size:13px; margin-bottom:16px">Nenhum vínculo cadastrado.</p>
+          </ng-template>
+
+          <div class="vinculos-add-row">
+            <select [(ngModel)]="vinculoDespachanteId">
+              <option value="">— Selecione o despachante —</option>
+              <option *ngFor="let d of despachantesAtivos" [value]="d.id">{{ d.nome }}</option>
+            </select>
+            <button class="btn btn-primary" (click)="addVinculo()">+ Vincular Despachante</button>
+          </div>
+
+          <div class="actions" style="margin-top:16px">
+            <button class="btn btn-secondary" (click)="cancelVinculo()">✖️ Fechar</button>
+          </div>
+        </div>
+      </ng-container>
+
     </div>
   `
 })
@@ -280,6 +360,7 @@ export class UsuariosComponent implements OnInit {
   showForm = false;
   showRolesForm = false;
   showSenhaForm = false;
+  showVinculoForm = false;
 
   showErrors = false;
   showErrorsSenha = false;
@@ -288,6 +369,10 @@ export class UsuariosComponent implements OnInit {
   editing: Usuario | null = null;
   rolesTarget: Usuario | null = null;
   senhaTarget: Usuario | null = null;
+  vinculoTarget: Usuario | null = null;
+
+  vinculos: UsuarioVinculo[] = [];
+  vinculoDespachanteId = '';
 
   form = {
     email: '',
@@ -302,6 +387,8 @@ export class UsuariosComponent implements OnInit {
   constructor(
     private usuarioService: UsuarioService,
     private roleService: RoleService,
+    private vinculoService: UsuarioVinculoService,
+    private despachanteService: DespachanteV2Service,
     private toast: ToastService,
     private confirmDialog: ConfirmDialogService,) {}
 
@@ -400,6 +487,79 @@ export class UsuariosComponent implements OnInit {
 
     this.cancel();
     this.load();
+  }
+
+  get despachantesAtivos(): DespachanteV2[] {
+    return this.despachanteService.getAtivos();
+  }
+
+  getNomeDespachante(id: number): string {
+    const d = this.despachanteService.getAll().find(x => Number(x.id) === id);
+    return d ? d.nome : String(id);
+  }
+
+  openVinculo(usuario: Usuario): void {
+    this.vinculoTarget = usuario;
+    this.vinculoDespachanteId = '';
+    this.vinculos = [];
+    this.showVinculoForm = true;
+    this.showForm = false;
+    this.showRolesForm = false;
+    this.showSenhaForm = false;
+    void this.loadVinculos();
+  }
+
+  cancelVinculo(): void {
+    this.showVinculoForm = false;
+    this.vinculoTarget = null;
+    this.vinculos = [];
+    this.vinculoDespachanteId = '';
+  }
+
+  async loadVinculos(): Promise<void> {
+    if (!this.vinculoTarget) return;
+    try {
+      this.vinculos = await this.vinculoService.getByUsuario(Number(this.vinculoTarget.id));
+    } catch {
+      this.toast.error('Erro ao carregar vínculos.');
+    }
+  }
+
+  async addVinculo(): Promise<void> {
+    if (!this.vinculoTarget || !this.vinculoDespachanteId) {
+      this.toast.error('Selecione um despachante.');
+      return;
+    }
+    try {
+      await this.vinculoService.criar(
+        Number(this.vinculoTarget.id),
+        'Despachante',
+        Number(this.vinculoDespachanteId)
+      );
+      this.vinculoDespachanteId = '';
+      await this.loadVinculos();
+      this.toast.success('Vínculo criado com sucesso.');
+    } catch {
+      this.toast.error('Erro ao criar vínculo.');
+    }
+  }
+
+  async removeVinculo(vinculoId: number): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Remover vínculo',
+      message: 'Deseja remover este vínculo?',
+      confirmText: 'Remover',
+      cancelText: 'Cancelar',
+      danger: true
+    });
+    if (!ok) return;
+    try {
+      await this.vinculoService.remover(vinculoId);
+      await this.loadVinculos();
+      this.toast.success('Vínculo removido com sucesso.');
+    } catch {
+      this.toast.error('Erro ao remover vínculo.');
+    }
   }
 
   openRoles(usuario: Usuario): void {

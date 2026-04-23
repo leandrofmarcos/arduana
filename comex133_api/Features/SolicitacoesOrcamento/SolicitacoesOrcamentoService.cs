@@ -59,6 +59,14 @@ public class SolicitacoesOrcamentoService
     public async Task<SolicitacaoOrcamentoDto> GetByIdAsync(int id)
     {
         var entity = await FindSolicitacaoOrThrowAsync(id);
+
+        if (_currentUser.HasRole("Despachante"))
+        {
+            var despachanteId = await _currentUser.GetVinculoIdAsync("Despachante");
+            if (despachanteId is null || !entity.Despachantes.Any(d => d.DespachanteId == despachanteId.Value))
+                throw new ForbiddenException("Acesso negado a esta solicitação.");
+        }
+
         return ToDto(entity);
     }
 
