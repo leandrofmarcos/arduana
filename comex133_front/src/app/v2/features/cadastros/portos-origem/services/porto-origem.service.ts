@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, map, tap, switchMap } from 'rxjs';
+import { Observable, of, map, tap, switchMap, catchError, EMPTY } from 'rxjs';
 import { PortoOrigem } from '../models/porto-origem.models';
 import { ApiClientService } from '../../../../../core/api/client/api-client.service';
 import { PagedResult } from '../../../../../core/api/models/api-response.model';
@@ -19,9 +19,7 @@ export class PortoOrigemService {
   private readonly activeItems: PortoOrigem[] = [];
   private cacheLoaded = false;
 
-  constructor(private apiClient: ApiClientService) {
-    this.refreshCache().subscribe();
-  }
+  constructor(private apiClient: ApiClientService) {  }
 
   getAll(): PortoOrigem[] {
     this.ensureCache();
@@ -97,7 +95,8 @@ export class PortoOrigemService {
           this.replaceArray(this.activeItems, items.filter((item: PortoOrigem) => item.ativo));
           this.cacheLoaded = true;
         }),
-        map(() => void 0)
+        map(() => void 0),
+        catchError((err: { status?: number }) => { if (err?.status === 403) { this.cacheLoaded = true; } return EMPTY; })
       );
   }
 

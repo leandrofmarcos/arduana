@@ -68,6 +68,7 @@ public class SolicitacoesOrcamentoController : ControllerBase
     }
 
     [HttpPatch("{id:int}/status")]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
     public async Task<IActionResult> SetStatus(int id, [FromBody] UpdateSolicitacaoOrcamentoStatusRequest request)
     {
         var validation = await _statusValidator.ValidateAsync(request);

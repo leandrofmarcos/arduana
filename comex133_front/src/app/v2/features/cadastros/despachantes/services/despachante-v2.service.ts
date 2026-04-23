@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { DespachanteV2 } from '../models/despachante-v2.models';
 import { ApiClientService } from '../../../../../core/api/client/api-client.service';
 
@@ -17,9 +17,7 @@ export class DespachanteV2Service {
   private readonly items: DespachanteV2[] = [];
   private loaded = false;
 
-  constructor(private apiClient: ApiClientService) {
-    this.refresh();
-  }
+  constructor(private apiClient: ApiClientService) {  }
 
   getAll(): DespachanteV2[] {
     this.ensureLoaded();
@@ -74,6 +72,9 @@ export class DespachanteV2Service {
       next: result => {
         this.items.splice(0, this.items.length, ...result.items.map(item => this.mapDto(item)));
         this.loaded = true;
+      },
+      error: (err: { status?: number }) => {
+        this.loaded = err?.status === 403 ? true : this.items.length > 0;
       }
     });
   }

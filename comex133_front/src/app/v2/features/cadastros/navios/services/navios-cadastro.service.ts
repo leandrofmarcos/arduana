@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { ApiClientService } from '../../../../../core/api/client/api-client.service';
@@ -23,9 +23,7 @@ export class NaviosCadastroService {
   readonly loading$ = new BehaviorSubject<boolean>(false);
   readonly loadError$ = new BehaviorSubject<string | null>(null);
 
-  constructor(private apiClient: ApiClientService) {
-    this.refresh();
-  }
+  constructor(private apiClient: ApiClientService) {  }
 
   reload(): void {
     this.loaded = false;
@@ -84,7 +82,8 @@ export class NaviosCadastroService {
         this.loading$.next(false);
         this.loadError$.next(null);
       },
-      error: (err) => {
+      error: (err: { status?: number; message?: string }) => {
+        if (err?.status === 403) { this.loaded = true; this.loading$.next(false); return; }
         this.loaded = false;
         this.loading$.next(false);
         this.loadError$.next(err?.message ?? 'Nao foi possivel carregar os navios.');

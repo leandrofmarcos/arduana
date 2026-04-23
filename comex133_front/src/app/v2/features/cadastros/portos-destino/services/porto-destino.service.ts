@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, map, tap, switchMap } from 'rxjs';
+import { Observable, of, map, tap, switchMap, catchError, EMPTY } from 'rxjs';
 import { PortoDestino } from '../models/porto-destino.models';
 import { ApiClientService } from '../../../../../core/api/client/api-client.service';
 import { PagedResult } from '../../../../../core/api/models/api-response.model';
@@ -20,9 +20,7 @@ export class PortoDestinoService {
   private readonly activeItems: PortoDestino[] = [];
   private cacheLoaded = false;
 
-  constructor(private apiClient: ApiClientService) {
-    this.refreshCache().subscribe();
-  }
+  constructor(private apiClient: ApiClientService) {  }
 
   getAll(): PortoDestino[] {
     this.ensureCache();
@@ -100,7 +98,8 @@ export class PortoDestinoService {
           this.replaceArray(this.activeItems, items.filter((item: PortoDestino) => item.ativo));
           this.cacheLoaded = true;
         }),
-        map(() => void 0)
+        map(() => void 0),
+        catchError((err: { status?: number }) => { if (err?.status === 403) { this.cacheLoaded = true; } return EMPTY; })
       );
   }
 

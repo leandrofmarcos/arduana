@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { Exportador } from '../models/exportador.models';
 import { ApiClientService } from '../../../../../core/api/client/api-client.service';
 
@@ -17,9 +17,7 @@ export class ExportadorService {
   private readonly items: Exportador[] = [];
   private loaded = false;
 
-  constructor(private apiClient: ApiClientService) {
-    this.refresh();
-  }
+  constructor(private apiClient: ApiClientService) {  }
 
   getAll(): Exportador[] {
     this.ensureLoaded();
@@ -74,6 +72,9 @@ export class ExportadorService {
       next: result => {
         this.items.splice(0, this.items.length, ...result.items.map(item => this.mapDto(item)));
         this.loaded = true;
+      },
+      error: (err: { status?: number }) => {
+        this.loaded = err?.status === 403 ? true : this.items.length > 0;
       }
     });
   }

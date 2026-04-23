@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { DespesaCadastro, CategoriaDespesa } from '../models/despesa-cadastro.models';
 import { ApiClientService } from '../../../../../core/api/client/api-client.service';
 
@@ -16,9 +16,7 @@ export class DespesaCadastroService {
   private readonly items: DespesaCadastro[] = [];
   private loaded = false;
 
-  constructor(private apiClient: ApiClientService) {
-    this.refresh();
-  }
+  constructor(private apiClient: ApiClientService) {  }
 
   getAll(): DespesaCadastro[] {
     this.ensureLoaded();
@@ -75,6 +73,9 @@ export class DespesaCadastroService {
       next: result => {
         this.items.splice(0, this.items.length, ...result.items.map(item => this.mapDto(item)));
         this.loaded = true;
+      },
+      error: (err: { status?: number }) => {
+        this.loaded = err?.status === 403 ? true : this.items.length > 0;
       }
     });
   }

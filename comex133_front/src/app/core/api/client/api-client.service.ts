@@ -211,6 +211,11 @@ export class ApiClientService {
       return;
     }
 
+    // 403 é comportamento esperado em sistema RBAC — sem toast; componentes tratam inline
+    if (mappedError.status === 403) {
+      return;
+    }
+
     if (this.shouldOpenInteractiveDialog(mappedError.status)) {
       void this.openStatusDialog(mappedError.status, mappedError.message);
       return;

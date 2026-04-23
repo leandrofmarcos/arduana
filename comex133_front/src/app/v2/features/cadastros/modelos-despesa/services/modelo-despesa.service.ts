@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { Observable, of, map, switchMap, tap } from 'rxjs';
 import { ModeloDespesa, ModeloDespesaItem } from '../models/modelo-despesa.models';
 import { ApiClientService } from '../../../../../core/api/client/api-client.service';
@@ -21,9 +21,7 @@ export class ModeloDespesaService {
   private readonly itens: ModeloDespesaItem[] = [];
   private loaded = false;
 
-  constructor(private apiClient: ApiClientService) {
-    this.refresh();
-  }
+  constructor(private apiClient: ApiClientService) {  }
 
   getAll(): ModeloDespesa[] {
     this.ensureLoaded();
@@ -132,6 +130,9 @@ export class ModeloDespesaService {
         })));
         this.rebuildItens();
         this.loaded = true;
+      },
+      error: (err: { status?: number }) => {
+        this.loaded = err?.status === 403 ? true : this.modelos.length > 0;
       }
     });
   }

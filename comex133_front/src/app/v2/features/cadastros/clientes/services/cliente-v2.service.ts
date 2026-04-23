@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { ClienteV2 } from '../models/cliente-v2.models';
 import { ApiClientService } from '../../../../../core/api/client/api-client.service';
 
@@ -17,9 +17,7 @@ export class ClienteV2Service {
   private readonly items: ClienteV2[] = [];
   private loaded = false;
 
-  constructor(private apiClient: ApiClientService) {
-    this.refresh();
-  }
+  constructor(private apiClient: ApiClientService) {  }
 
   getAll(): ClienteV2[] {
     this.ensureLoaded();

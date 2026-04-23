@@ -8,6 +8,7 @@ import { PortoOrigemService } from '../cadastros/portos-origem/services/porto-or
 import { PortoDestinoService } from '../cadastros/portos-destino/services/porto-destino.service';
 import { NcmService } from '../cadastros/ncm/services/ncm.service';
 import { DespesaCadastroService } from '../cadastros/despesas-cadastro/services/despesa-cadastro.service';
+import { AuthService } from '../../../features/auth/auth.providers';
 
 interface StatusCount {
   nome: string;
@@ -26,49 +27,61 @@ interface StatusCount {
         <p class="page-subtitle">Visão geral do sistema (dados via API)</p>
       </div>
 
-      <div class="kpi-grid">
-        <div class="kpi-card" routerLink="/clientes">
-          <div class="kpi-value">{{ kpi.clientes }}</div>
-          <div class="kpi-label">Clientes Ativos</div>
-        </div>
-        <div class="kpi-card" routerLink="/importadores">
-          <div class="kpi-value">{{ kpi.importadores }}</div>
-          <div class="kpi-label">Importadores Ativos</div>
-        </div>
-        <div class="kpi-card" routerLink="/despachantes">
-          <div class="kpi-value">{{ kpi.despachantes }}</div>
-          <div class="kpi-label">Despachantes Ativos</div>
-        </div>
-        <div class="kpi-card" routerLink="/portos-origem">
-          <div class="kpi-value">{{ kpi.portosOrigem }}</div>
-          <div class="kpi-label">Portos de Origem</div>
-        </div>
-        <div class="kpi-card" routerLink="/portos-destino">
-          <div class="kpi-value">{{ kpi.portosDestino }}</div>
-          <div class="kpi-label">Portos de Destino</div>
-        </div>
-        <div class="kpi-card" routerLink="/ncm">
-          <div class="kpi-value">{{ kpi.ncms }}</div>
-          <div class="kpi-label">NCMs Ativos</div>
-        </div>
-        <div class="kpi-card" routerLink="/despesas-cadastro">
-          <div class="kpi-value">{{ kpi.despesas }}</div>
-          <div class="kpi-label">Despesas Catálogo</div>
-        </div>
-      </div>
-
-      <div class="panel">
-        <div class="panel-header">Distribuição de Cadastros</div>
-        <div class="panel-body">
-          <div class="status-bar-row" *ngFor="let s of statusCounts">
-            <span class="status-bar-label">{{ s.nome }}</span>
-            <div class="status-bar-track">
-              <div class="status-bar-fill" [style.width.%]="(s.count / maxStatusCount) * 100" [style.background]="s.cor"></div>
-            </div>
-            <span class="status-bar-count">{{ s.count }}</span>
+      <ng-container *ngIf="isDespachante; else adminDashboard">
+        <div class="info-panel">
+          <div class="info-icon">🚢</div>
+          <div class="info-text">
+            <strong>Bem-vindo, {{ nomeUsuario }}!</strong>
+            <p>Acesse o menu <strong>Solicitações de Orçamento</strong> para visualizar e acompanhar suas solicitações.</p>
           </div>
         </div>
-      </div>
+      </ng-container>
+
+      <ng-template #adminDashboard>
+        <div class="kpi-grid">
+          <div class="kpi-card" routerLink="/clientes">
+            <div class="kpi-value">{{ kpi.clientes }}</div>
+            <div class="kpi-label">Clientes Ativos</div>
+          </div>
+          <div class="kpi-card" routerLink="/importadores">
+            <div class="kpi-value">{{ kpi.importadores }}</div>
+            <div class="kpi-label">Importadores Ativos</div>
+          </div>
+          <div class="kpi-card" routerLink="/despachantes">
+            <div class="kpi-value">{{ kpi.despachantes }}</div>
+            <div class="kpi-label">Despachantes Ativos</div>
+          </div>
+          <div class="kpi-card" routerLink="/portos-origem">
+            <div class="kpi-value">{{ kpi.portosOrigem }}</div>
+            <div class="kpi-label">Portos de Origem</div>
+          </div>
+          <div class="kpi-card" routerLink="/portos-destino">
+            <div class="kpi-value">{{ kpi.portosDestino }}</div>
+            <div class="kpi-label">Portos de Destino</div>
+          </div>
+          <div class="kpi-card" routerLink="/ncm">
+            <div class="kpi-value">{{ kpi.ncms }}</div>
+            <div class="kpi-label">NCMs Ativos</div>
+          </div>
+          <div class="kpi-card" routerLink="/despesas-cadastro">
+            <div class="kpi-value">{{ kpi.despesas }}</div>
+            <div class="kpi-label">Despesas Catálogo</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">Distribuição de Cadastros</div>
+          <div class="panel-body">
+            <div class="status-bar-row" *ngFor="let s of statusCounts">
+              <span class="status-bar-label">{{ s.nome }}</span>
+              <div class="status-bar-track">
+                <div class="status-bar-fill" [style.width.%]="(s.count / maxStatusCount) * 100" [style.background]="s.cor"></div>
+              </div>
+              <span class="status-bar-count">{{ s.count }}</span>
+            </div>
+          </div>
+        </div>
+      </ng-template>
     </div>
   `,
   styles: [`
@@ -99,9 +112,16 @@ interface StatusCount {
       .status-bar-label { min-width: unset; width: 100%; font-weight: 600; }
       .status-bar-count { margin-left: auto; }
     }
+    .info-panel { display: flex; align-items: flex-start; gap: 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: 20px; }
+    .info-icon { font-size: 32px; line-height: 1; }
+    .info-text strong { font-size: 16px; }
+    .info-text p { margin: 6px 0 0; color: var(--color-muted); font-size: 14px; }
   `]
 })
 export class DashboardV2Component implements OnInit {
+  isDespachante = false;
+  nomeUsuario = '';
+
   kpi = {
     clientes: 0,
     importadores: 0,
@@ -116,6 +136,7 @@ export class DashboardV2Component implements OnInit {
   maxStatusCount = 1;
 
   constructor(
+    private auth: AuthService,
     private clienteSvc: ClienteV2Service,
     private importadorSvc: ImportadorService,
     private despachanteSvc: DespachanteV2Service,
@@ -126,8 +147,12 @@ export class DashboardV2Component implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.refresh();
-    setTimeout(() => this.refresh(), 250);
+    this.isDespachante = this.auth.hasRole('despachante');
+    this.nomeUsuario = this.auth.currentUser?.username ?? this.auth.currentUser?.email ?? '';
+    if (!this.isDespachante) {
+      this.refresh();
+      setTimeout(() => this.refresh(), 250);
+    }
   }
 
   private refresh(): void {
