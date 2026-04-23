@@ -205,8 +205,8 @@ type LinhaForm = { descricao: string; valor: number };
                 <td>
                   <div class="row-actions">
                     <button class="btn-icon" title="Visualizar" (click)="abrirPreview(o)">👁️</button>
-                    <button class="btn-icon" title="Editar" (click)="openForm(o)">✏️</button>
-                    <button class="btn-icon danger" title="Excluir" (click)="remove(o.id)">🗑️</button>
+                    <button class="btn-icon" *ngIf="!isDespachante" title="Editar" (click)="openForm(o)">✏️</button>
+                    <button class="btn-icon danger" *ngIf="!isDespachante" title="Excluir" (click)="remove(o.id)">🗑️</button>
                   </div>
                 </td>
               </tr>
@@ -613,7 +613,7 @@ type LinhaForm = { descricao: string; valor: number };
           <div class="preview-toolbar">
             <h4>📋 Previsão de Numerário — {{ previewOrc?.codigoInterno }}</h4>
             <div class="pt-actions">
-              <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" (click)="openForm(previewOrc!);fecharPreview()">✏️ Editar</button>
+              <button class="btn btn-secondary" *ngIf="!isDespachante" style="font-size:12px;padding:5px 12px" (click)="openForm(previewOrc!);fecharPreview()">✏️ Editar</button>
               <button class="btn btn-primary" style="font-size:12px;padding:5px 12px" (click)="exportarOrcamentoPDF()">📄 Exportar PDF</button>
               <button class="btn-icon-sm" (click)="previewMaximized=!previewMaximized" [title]="previewMaximized ? 'Restaurar' : 'Maximizar'">{{ previewMaximized ? '⊡' : '⛶' }}</button>
               <button class="btn-icon-sm" (click)="fecharPreview()" title="Fechar">✕</button>
@@ -629,6 +629,8 @@ type LinhaForm = { descricao: string; valor: number };
   `
 })
 export class OrcamentoVendaComponent implements OnInit {
+
+  isDespachante = false;
 
   // ── List ──────────────────────────────────────────────────────────────
   orcamentos: OrcamentoVenda[] = [];
@@ -697,6 +699,7 @@ export class OrcamentoVendaComponent implements OnInit {
     private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void {
+    this.isDespachante = this.auth.hasRole('despachante');
     this.clientes     = this.clienteSvc.getAtivos();
     this.custos       = this.custoSvc.getAll();
     this.solicitacoes = this.solicitacaoSvc.getAll();

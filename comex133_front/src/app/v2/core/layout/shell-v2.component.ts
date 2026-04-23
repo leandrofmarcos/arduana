@@ -75,7 +75,7 @@ import { filter, Subscription } from 'rxjs';
           </div>
 
           <!-- Cadastros -->
-          <div class="menu-group" *ngIf="auth.hasRole('admin')">
+          <div class="menu-group" *ngIf="auth.hasRole('admin') || auth.hasRole('gerente')">
             <div class="menu-title">Cadastros</div>
             <a routerLink="/portos-origem" routerLinkActive="active">
               <span class="icon">🌐</span><span>Portos Origem</span>

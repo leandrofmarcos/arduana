@@ -143,7 +143,7 @@ const OV_STATUS_COLORS: Record<string, string> = {
           <h1>📋 Solicitações de Orçamento</h1>
           <p class="subtitle">Ponto de entrada do processo — cotações enviadas a N despachantes</p>
         </div>
-        <button class="btn btn-primary" (click)="openForm()">+ Nova Solicitação</button>
+        <button class="btn btn-primary" *ngIf="!isDespachante" (click)="openForm()">+ Nova Solicitação</button>
       </div>
 
       <!-- ── LISTAGEM ── -->
@@ -223,8 +223,8 @@ const OV_STATUS_COLORS: Record<string, string> = {
                 </td>
                 <td>
                   <div class="row-actions">
-                    <button class="btn-icon" (click)="openForm(s)" title="Editar">✏️</button>
-                    <button class="btn-icon danger" (click)="remover(s.id)" title="Excluir">🗑️</button>
+                    <button class="btn-icon" *ngIf="!isDespachante" (click)="openForm(s)" title="Editar">✏️</button>
+                    <button class="btn-icon danger" *ngIf="!isDespachante" (click)="remover(s.id)" title="Excluir">🗑️</button>
                   </div>
                 </td>
               </tr>
@@ -537,6 +537,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   showErr = false;
   apiFieldErrors: Record<string, string[]> = {};
   loading = false;
+  isDespachante = false;
   hasLoadError = false;
   loadErrorMessage = '';
 
@@ -575,6 +576,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.isDespachante = this.auth.hasRole('despachante');
     void this.carregar();
   }
 

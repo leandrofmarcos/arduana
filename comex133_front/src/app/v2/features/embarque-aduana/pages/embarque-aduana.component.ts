@@ -162,7 +162,7 @@ type Mode = 'list' | 'form' | 'detail' | 'acompanhamento';
                 <td>
                   <div class="row-actions" (click)="$event.stopPropagation()">
                     <button class="btn-icon" title="Detalhe" (click)="openDetail(e)">🔍</button>
-                    <button class="btn-icon danger" title="Excluir" (click)="remove(e.id)">🗑️</button>
+                    <button class="btn-icon danger" *ngIf="!isDespachante" title="Excluir" (click)="remove(e.id)">🗑️</button>
                   </div>
                 </td>
               </tr>
@@ -355,7 +355,7 @@ type Mode = 'list' | 'form' | 'detail' | 'acompanhamento';
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-secondary" (click)="abrirModalStatus()" *ngIf="!editMode">🔄 Alterar Status</button>
             <button class="btn btn-primary" (click)="saveEdit()" *ngIf="editMode">💾 Salvar</button>
-            <button class="btn btn-secondary" (click)="editMode ? (editMode = false) : startEdit()">{{ editMode ? '✕ Cancelar' : '✏️ Editar' }}</button>
+            <button class="btn btn-secondary" *ngIf="!isDespachante" (click)="editMode ? (editMode = false) : startEdit()">{{ editMode ? '✕ Cancelar' : '✏️ Editar' }}</button>
             <button class="btn btn-secondary" (click)="mode = 'list'; editMode = false">← Voltar</button>
           </div>
         </div>
@@ -723,6 +723,8 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
 
   private _subs = new Subscription();
 
+  isDespachante = false;
+
   // ── State ─────────────────────────────────────────────────────────────
   mode: Mode = 'list';
   detail: EmbarqueAduana | null = null;
@@ -804,6 +806,7 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     private confirmDialog: ConfirmDialogService,) {}
 
   ngOnInit(): void {
+    this.isDespachante = this.auth.hasRole('despachante');
     this.statusList   = this.statusSvc.getAll();
     this.clientes     = this.clienteSvc.getAtivos();
     this.despachantes = this.despachanteSvc.getAtivos();
