@@ -2,13 +2,14 @@ import { Component, OnInit, OnDestroy, signal, HostListener } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../../features/auth/auth.providers';
+import { NotificationPanelComponent } from '../notifications/notification-panel.component';
 import { filter, Subscription } from 'rxjs';
 
 
 @Component({
   selector: 'app-shell-v2',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, NotificationPanelComponent],
   template: `
     <div class="wrapper" [class.sidebar-collapsed]="collapsed()" [class.sidebar-open]="isMobile() && drawerOpen()">
       <div class="sidebar-overlay" (click)="closeMobileDrawer()"></div>
@@ -18,6 +19,7 @@ import { filter, Subscription } from 'rxjs';
           <span class="brand">Aduana <span class="brand-v2">V2</span></span>
         </div>
         <div class="nav-actions">
+          <app-notification-panel></app-notification-panel>
           <a routerLink="/profile" class="profile-link hide-mobile" title="Meu Perfil">{{ auth.currentUser?.username }}</a>
           <button class="logout" (click)="logout()">Sair</button>
         </div>

@@ -4,6 +4,18 @@ import { SwPush } from '@angular/service-worker';
 import { firstValueFrom, Subscription } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
+export interface SendPushRequest {
+  targetType: 'all' | 'user' | 'role';
+  targetId?: string;
+  title: string;
+  message: string;
+}
+
+export interface SubscriptionUserDto {
+  userId: string;
+  userEmail: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PushNotificationService implements OnDestroy {
 
@@ -32,6 +44,10 @@ export class PushNotificationService implements OnDestroy {
     return Notification.permission;
   }
 
+  get messages$() {
+    return this.swPush.messages;
+  }
+
   async requestAndSubscribe(): Promise<void> {
     if (!this.isSupported) {
       throw new Error('Push notifications não são suportadas neste browser.');
@@ -49,6 +65,16 @@ export class PushNotificationService implements OnDestroy {
     );
   }
 
+  async sendNotification(request: SendPushRequest): Promise<{ sent: number; errors: number }> {
+    return firstValueFrom(
+      this.http.post<{ sent: number; errors: number }>(
+        `${environment.apiUrl}/push/send`,
+        request
+      )
+    );
+  }
+
+  /** @deprecated Use sendNotification() com targetType:'all' */
   async sendTestNotification(): Promise<{ sent: number; errors: number }> {
     return firstValueFrom(
       this.http.post<{ sent: number; errors: number }>(
@@ -58,7 +84,14 @@ export class PushNotificationService implements OnDestroy {
     );
   }
 
+  async getSubscriptions(): Promise<SubscriptionUserDto[]> {
+    return firstValueFrom(
+      this.http.get<SubscriptionUserDto[]>(`${environment.apiUrl}/push/subscriptions`)
+    );
+  }
+
   ngOnDestroy(): void {
     this.clickSub?.unsubscribe();
   }
 }
+
