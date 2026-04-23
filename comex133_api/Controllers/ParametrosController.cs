@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "Administrador,Gerente,Analista")]
 public class ParametrosController : ControllerBase
 {
     private readonly ParametroService _service;
@@ -46,6 +46,7 @@ public class ParametrosController : ControllerBase
 
     /// <summary>Cria um novo parâmetro.</summary>
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Create([FromBody] CreateParametroRequest request)
     {
         var validation = await _createValidator.ValidateAsync(request);
@@ -64,6 +65,7 @@ public class ParametrosController : ControllerBase
 
     /// <summary>Atualiza um parâmetro existente.</summary>
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateParametroRequest request)
     {
         var validation = await _updateValidator.ValidateAsync(request);
@@ -82,6 +84,7 @@ public class ParametrosController : ControllerBase
 
     /// <summary>Exclui um parâmetro pelo ID.</summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
         await _service.DeleteAsync(id);

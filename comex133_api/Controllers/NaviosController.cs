@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/navios")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "Administrador,Gerente,Analista")]
 public class NaviosController : ControllerBase
 {
     private readonly NaviosService                          _service;
@@ -42,6 +42,7 @@ public class NaviosController : ControllerBase
         Ok(ApiResponse.Ok(await _service.GetByIdAsync(id)));
 
     [HttpPost]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> Create([FromBody] CreateNavioRequest request)
     {
         var v = await _createValidator.ValidateAsync(request);
@@ -53,6 +54,7 @@ public class NaviosController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateNavioRequest request)
     {
         var v = await _updateValidator.ValidateAsync(request);
@@ -64,6 +66,7 @@ public class NaviosController : ControllerBase
     }
 
     [HttpPatch("{id:int}/ativo")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> SetAtivo(int id, [FromBody] AtivoRequest request)
     {
         await _service.SetAtivoAsync(id, request.Ativo);
@@ -71,6 +74,7 @@ public class NaviosController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> Delete(int id)
     {
         await _service.DeleteAsync(id);
@@ -84,6 +88,7 @@ public class NaviosController : ControllerBase
         Ok(ApiResponse.Ok(await _service.GetTrajetosAsync(navioId)));
 
     [HttpPost("{navioId:int}/trajetos")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> AddTrajeto(int navioId, [FromBody] CreateNavioTrajetoRequest request)
     {
         var v = await _createTrajetoValidator.ValidateAsync(request);
@@ -95,6 +100,7 @@ public class NaviosController : ControllerBase
     }
 
     [HttpPatch("{navioId:int}/trajetos")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> ReplaceTrajetos(int navioId, [FromBody] IList<CreateNavioTrajetoRequest> requests)
     {
         var payload = requests ?? new List<CreateNavioTrajetoRequest>();
@@ -113,6 +119,7 @@ public class NaviosController : ControllerBase
     }
 
     [HttpPut("{navioId:int}/trajetos/{id:int}")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> UpdateTrajeto(int navioId, int id, [FromBody] UpdateNavioTrajetoRequest request)
     {
         var v = await _updateTrajetoValidator.ValidateAsync(request);
@@ -124,12 +131,14 @@ public class NaviosController : ControllerBase
     }
 
     [HttpPatch("{navioId:int}/trajetos/{id:int}/status")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> UpdateTrajetoStatus(int navioId, int id, [FromBody] UpdateNavioTrajetoStatusRequest request)
     {
         return Ok(ApiResponse.Ok(await _service.UpdateTrajetoStatusAsync(navioId, id, request.StatusPerna)));
     }
 
     [HttpDelete("{navioId:int}/trajetos/{id:int}")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> DeleteTrajeto(int navioId, int id)
     {
         await _service.DeleteTrajetoAsync(navioId, id);

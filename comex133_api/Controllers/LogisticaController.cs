@@ -7,7 +7,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/logistica")]
-[Authorize(Roles = "Administrador,Despachante")]
+[Authorize(Roles = "Administrador,Gerente,Analista,Despachante")]
 public class LogisticaController : ControllerBase
 {
     private readonly NaviosService _service;

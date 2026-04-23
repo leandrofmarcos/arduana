@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/lista-preco-lcl")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "Administrador,Gerente,Analista")]
 public class ListaPrecoLclController : ControllerBase
 {
     private readonly ListaPrecoLclService                   _service;
@@ -34,6 +34,7 @@ public class ListaPrecoLclController : ControllerBase
         Ok(ApiResponse.Ok(await _service.GetByIdAsync(id)));
 
     [HttpPost]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> Create([FromBody] CreateListaPrecoLclRequest request)
     {
         var v = await _createValidator.ValidateAsync(request);
@@ -45,6 +46,7 @@ public class ListaPrecoLclController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateListaPrecoLclRequest request)
     {
         var v = await _updateValidator.ValidateAsync(request);
@@ -56,6 +58,7 @@ public class ListaPrecoLclController : ControllerBase
     }
 
     [HttpPatch("{id:int}/ativo")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> SetAtivo(int id, [FromBody] AtivoRequest request)
     {
         await _service.SetAtivoAsync(id, request.Ativo);
@@ -63,6 +66,7 @@ public class ListaPrecoLclController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> Delete(int id)
     {
         await _service.DeleteAsync(id);

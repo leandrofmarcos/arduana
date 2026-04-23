@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/embarques/{embarqueId:int}/navio-vinculo")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "Administrador,Gerente,Analista,Despachante")]
 public class EmbarqueNavioVinculoController : ControllerBase
 {
     private readonly NaviosService                                  _service;
@@ -23,7 +23,6 @@ public class EmbarqueNavioVinculoController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Administrador,Despachante")]
     public async Task<IActionResult> Get(int embarqueId)
     {
         var result = await _service.GetVinculoAsync(embarqueId);
@@ -31,6 +30,7 @@ public class EmbarqueNavioVinculoController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
     public async Task<IActionResult> Create(int embarqueId, [FromBody] CreateEmbarqueNavioVinculoRequest request)
     {
         var v = await _createValidator.ValidateAsync(request);
@@ -42,10 +42,12 @@ public class EmbarqueNavioVinculoController : ControllerBase
     }
 
     [HttpPatch]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
     public async Task<IActionResult> Update(int embarqueId, [FromBody] UpdateEmbarqueNavioVinculoRequest request) =>
         Ok(ApiResponse.Ok(await _service.UpdateVinculoAsync(embarqueId, request)));
 
     [HttpDelete]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
     public async Task<IActionResult> Delete(int embarqueId)
     {
         await _service.DeleteVinculoAsync(embarqueId);

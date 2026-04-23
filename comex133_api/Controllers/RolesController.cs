@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/roles")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "Administrador,Gerente")]
 public class RolesController : ControllerBase
 {
     private readonly RoleService                    _service;
@@ -43,6 +43,7 @@ public class RolesController : ControllerBase
 
     /// <summary>Cria uma nova role.</summary>
     [HttpPost]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Create([FromBody] CreateRoleRequest request)
     {
         var v = await _createValidator.ValidateAsync(request);
@@ -56,6 +57,7 @@ public class RolesController : ControllerBase
 
     /// <summary>Atualiza uma role.</summary>
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateRoleRequest request)
     {
         var v = await _updateValidator.ValidateAsync(request);
@@ -69,6 +71,7 @@ public class RolesController : ControllerBase
 
     /// <summary>Remove uma role.</summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Administrador")]
     public async Task<IActionResult> Delete(int id)
     {
         await _service.DeleteAsync(id);

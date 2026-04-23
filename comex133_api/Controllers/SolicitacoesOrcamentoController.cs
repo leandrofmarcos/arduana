@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/solicitacoes-orcamento")]
-[Authorize(Roles = "Administrador,Despachante")]
+[Authorize(Roles = "Administrador,Gerente,Analista,Despachante")]
 public class SolicitacoesOrcamentoController : ControllerBase
 {
     private readonly SolicitacoesOrcamentoService _service;
@@ -43,7 +43,7 @@ public class SolicitacoesOrcamentoController : ControllerBase
         Ok(ApiResponse.Ok(await _service.GetByIdAsync(id)));
 
     [HttpPost]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
     public async Task<IActionResult> Create([FromBody] CreateSolicitacaoOrcamentoRequest request)
     {
         var validation = await _createValidator.ValidateAsync(request);
@@ -56,7 +56,7 @@ public class SolicitacoesOrcamentoController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateSolicitacaoOrcamentoRequest request)
     {
         var validation = await _updateValidator.ValidateAsync(request);
@@ -93,7 +93,7 @@ public class SolicitacoesOrcamentoController : ControllerBase
         Ok(ApiResponse.Ok(await _service.GetDespachantesAsync(id)));
 
     [HttpPost("{id:int}/despachantes")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
     public async Task<IActionResult> AddDespachante(int id, [FromBody] AddSolicitacaoDespachanteRequest request)
     {
         var validation = await _addDespachanteValidator.ValidateAsync(request);
@@ -106,7 +106,7 @@ public class SolicitacoesOrcamentoController : ControllerBase
     }
 
     [HttpDelete("{id:int}/despachantes/{solicitacaoDespachanteId:int}")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
     public async Task<IActionResult> RemoveDespachante(int id, int solicitacaoDespachanteId)
     {
         await _service.RemoveDespachanteAsync(id, solicitacaoDespachanteId);
@@ -118,7 +118,7 @@ public class SolicitacoesOrcamentoController : ControllerBase
         Ok(ApiResponse.Ok(await _service.GetDocumentosAsync(id)));
 
     [HttpPost("{id:int}/documentos")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
     public async Task<IActionResult> AddDocumento(int id, [FromBody] AddSolicitacaoDocumentoRequest request)
     {
         var validation = await _addDocumentoValidator.ValidateAsync(request);
@@ -131,7 +131,7 @@ public class SolicitacoesOrcamentoController : ControllerBase
     }
 
     [HttpDelete("{id:int}/documentos/{documentoId:int}")]
-    [Authorize(Roles = "Administrador")]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
     public async Task<IActionResult> RemoveDocumento(int id, int documentoId)
     {
         await _service.RemoveDocumentoAsync(id, documentoId);

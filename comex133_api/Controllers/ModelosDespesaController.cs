@@ -8,7 +8,7 @@ namespace Comex133Api.Controllers;
 
 [ApiController]
 [Route("api/modelos-despesa")]
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "Administrador,Gerente,Analista")]
 public class ModelosDespesaController : ControllerBase
 {
     private readonly ModelosDespesaService                   _service;
@@ -34,6 +34,7 @@ public class ModelosDespesaController : ControllerBase
         Ok(ApiResponse.Ok(await _service.GetByIdAsync(id)));
 
     [HttpPost]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> Create([FromBody] CreateModeloDespesaRequest request)
     {
         var v = await _createValidator.ValidateAsync(request);
@@ -45,6 +46,7 @@ public class ModelosDespesaController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateModeloDespesaRequest request)
     {
         var v = await _updateValidator.ValidateAsync(request);
@@ -56,6 +58,7 @@ public class ModelosDespesaController : ControllerBase
     }
 
     [HttpPatch("{id:int}/ativo")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> SetAtivo(int id, [FromBody] AtivoRequest request)
     {
         await _service.SetAtivoAsync(id, request.Ativo);
@@ -63,6 +66,7 @@ public class ModelosDespesaController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> Delete(int id)
     {
         await _service.DeleteAsync(id);
@@ -76,6 +80,7 @@ public class ModelosDespesaController : ControllerBase
         Ok(ApiResponse.Ok(await _service.GetItensAsync(id, pagination)));
 
     [HttpPost("{id:int}/itens")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> AddItem(int id, [FromBody] AddItemRequest request)
     {
         var item = await _service.AddItemAsync(id, request);
@@ -83,6 +88,7 @@ public class ModelosDespesaController : ControllerBase
     }
 
     [HttpDelete("{id:int}/itens/{despesaCatalogoId:int}")]
+    [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> RemoveItem(int id, int despesaCatalogoId)
     {
         await _service.RemoveItemAsync(id, despesaCatalogoId);
