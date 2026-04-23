@@ -360,9 +360,9 @@ A Notifications API é ideal para alertas em tempo real **enquanto o usuário es
 | 3 | Push Controller (Backend) | 100% | 22/04/2026 | 22/04/2026 | commit `2baadc8` |
 | 4 | Tela de Teste | 100% | 22/04/2026 | 22/04/2026 | commit `7acb52f` |
 | 5 | Validação Cross-browser | 0% | — | — | aguardando deploy |
-| 6 | Push Avançado + Painel de Notificações | 0% | — | — | aguardando início |
-| 7 | Notificações Desktop Nativas | 0% | — | — | aguardando Fase 6 |
-| **TOTAL** | | **57%** | 22/04/2026 | — | — |
+| 6 | Push Avançado + Painel de Notificações | 100% | 22/04/2026 | 22/04/2026 | commit `0b09bdd` |
+| 7 | Notificações Desktop Nativas | 100% | 22/04/2026 | 22/04/2026 | commit `0b09bdd` |
+| **TOTAL** | | **85%** | 22/04/2026 | — | — |
 
 ---
 
@@ -374,6 +374,7 @@ A Notifications API é ideal para alertas em tempo real **enquanto o usuário es
 | 22/04/2026 | 2 | `ec4bf3f` | feat(pwa): push notification service e subscribe flow | ✅ |
 | 22/04/2026 | 3 | `2baadc8` | feat(api): push notification controller para teste | ✅ |
 | 22/04/2026 | 4 | `7acb52f` | feat(pwa): tela de teste push notification em administracao | ✅ |
+| 22/04/2026 | 6+7 | `0b09bdd` | feat(pwa): fase 6 e 7 - push avancado, painel de notificacoes e desktop notifications | ✅ |
 
 ---
 
