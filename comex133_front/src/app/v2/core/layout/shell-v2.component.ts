@@ -308,7 +308,11 @@ import { filter, Subscription } from 'rxjs';
     @media (max-width: 768px) {
       .wrapper {
         grid-template-columns: 1fr;
-        grid-template-rows: 56px 1fr 40px;
+        /* Manter safe-area no mobile — sem isso o notch/Dynamic Island cobre o header */
+        grid-template-rows:
+          calc(56px + env(safe-area-inset-top, 0px))
+          1fr
+          calc(40px + env(safe-area-inset-bottom, 0px));
       }
       .main-sidebar {
         position: fixed;
@@ -357,14 +361,16 @@ import { filter, Subscription } from 'rxjs';
     /* Detecta modo standalone (PWA instalado) e reforça safe areas */
     @media (display-mode: standalone) {
       .wrapper {
-        /* Garantir que wrapper ocupe toda a tela sem barras do browser */
         height: 100dvh;
+        /* Reforço explícito no standalone — garante Dynamic Island (iPhone 15) e punch-hole (Xiaomi) */
+        grid-template-rows:
+          calc(56px + env(safe-area-inset-top, 0px))
+          1fr
+          calc(40px + env(safe-area-inset-bottom, 0px));
       }
-      /* Remove sombra do header em standalone — fica flush com barra de status */
       .main-header {
         box-shadow: none;
       }
-      /* Tap highlight transparente em toda a app (padrao nativo) */
       * {
         -webkit-tap-highlight-color: transparent;
       }
