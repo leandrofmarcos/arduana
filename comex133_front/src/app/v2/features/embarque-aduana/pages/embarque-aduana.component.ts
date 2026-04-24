@@ -20,7 +20,6 @@ import { CustoDespachanteService }from '../../custo-despachante/services/custo-d
 import { OrcamentoVendaService }  from '../../orcamento-venda/services/orcamento-venda.service';
 import { AuthService }            from '../../../../features/auth/auth.providers';
 import { SolicitacaoOrcamentoService } from '../../solicitacao-orcamento/services/solicitacao-orcamento.service';
-import { StatusSolicitacao }           from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
 import { generateV2Id }                from '../../../core/helpers/storage-v2.helper';
 import { EmbarqueAcompanhamentoComponent } from './embarque-acompanhamento.component';
 import { EmbarqueNavioVinculoFormComponent } from '../components/embarque-navio-vinculo-form.component';
@@ -1191,11 +1190,9 @@ export class EmbarqueAduanaComponent implements OnInit, OnDestroy {
     this.load();
     this.loadDetail();
     if (solicitacaoId) {
-      const nomeStatus = this.statusSvc.getById(statusEmbarqueId)?.nome ?? '';
-      const novoStatusSol = ('Embarque' + nomeStatus) as StatusSolicitacao;
       const sol = this.solicitacaoSvc.getById(solicitacaoId);
-      if (sol) {
-        this.solicitacaoSvc.update({ ...sol, status: novoStatusSol });
+      if (sol && sol.status !== 'Aprovada' && sol.status !== 'Cancelada') {
+        this.solicitacaoSvc.update({ ...sol, status: 'Aprovada' });
       }
     }
     this.toast.success('Status do embarque atualizado com sucesso.');

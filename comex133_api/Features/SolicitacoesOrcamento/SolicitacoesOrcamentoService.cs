@@ -85,7 +85,7 @@ public class SolicitacoesOrcamentoService
             TamContainer = request.TamContainer.Trim().ToUpperInvariant(),
             Peso = request.Peso,
             Observacao = request.Observacao?.Trim(),
-            Status = request.Status.Trim(),
+            Status = "AguardandoDespachante",
             Data = request.Data
         };
 
@@ -108,7 +108,6 @@ public class SolicitacoesOrcamentoService
         entity.TamContainer = request.TamContainer.Trim().ToUpperInvariant();
         entity.Peso = request.Peso;
         entity.Observacao = request.Observacao?.Trim();
-        entity.Status = request.Status.Trim();
         entity.Data = request.Data;
 
         await _db.SaveChangesAsync();
@@ -117,14 +116,63 @@ public class SolicitacoesOrcamentoService
 
     public async Task UpdateStatusAsync(int id, string status)
     {
-        var entity = await FindSolicitacaoOrThrowAsync(id);
-        entity.Status = status.Trim();
-        await _db.SaveChangesAsync();
+        var normalized = (status ?? string.Empty).Trim();
+
+        if (normalized == "Aprovada")
+        {
+            await AprovarAsync(id);
+            return;
+        }
+
+        if (normalized == "Cancelada")
+        {
+            await CancelarAsync(id);
+            return;
+        }
+
+        throw new BusinessException("Somente os status 'Aprovada' ou 'Cancelada' podem ser definidos manualmente.");
     }
 
     public async Task DeleteAsync(int id)
     {
         var entity = await FindSolicitacaoOrThrowAsync(id);
+
+        // Remove dependências com FK Restrict para evitar conflito ao excluir a solicitação.
+        var embarqueVinculos = await _db.EmbarqueNavioVinculos
+            .Where(x => x.EmbarqueAduanaId == id)
+            .ToListAsync();
+        if (embarqueVinculos.Count > 0)
+            _db.RemoveRange(embarqueVinculos);
+
+        var orcamentoIds = await _db.OrcamentosVenda
+            .Where(x => x.SolicitacaoOrcamentoId == id)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        var custoIds = await _db.CustosDespachante
+            .Where(x => x.SolicitacaoOrcamentoId == id)
+            .Select(x => x.Id)
+            .ToListAsync();
+
+        // Remove vínculos OrcamentosVendaCustos antes de excluir orçamentos e custos
+        var ovCustos = await _db.OrcamentosVendaCustos
+            .Where(x => orcamentoIds.Contains(x.OrcamentoVendaId) || custoIds.Contains(x.CustoDespachanteId))
+            .ToListAsync();
+        if (ovCustos.Count > 0)
+            _db.RemoveRange(ovCustos);
+
+        var orcamentos = await _db.OrcamentosVenda
+            .Where(x => orcamentoIds.Contains(x.Id))
+            .ToListAsync();
+        if (orcamentos.Count > 0)
+            _db.RemoveRange(orcamentos);
+
+        var custos = await _db.CustosDespachante
+            .Where(x => custoIds.Contains(x.Id))
+            .ToListAsync();
+        if (custos.Count > 0)
+            _db.RemoveRange(custos);
+
         _db.Remove(entity);
         await _db.SaveChangesAsync();
     }
@@ -150,7 +198,6 @@ public class SolicitacoesOrcamentoService
                 x.Id,
                 x.SolicitacaoOrcamentoId,
                 x.DespachanteId,
-                x.Status,
                 x.DataEnvio,
                 x.CriadoEm,
                 x.AtualizadoEm))
@@ -170,25 +217,107 @@ public class SolicitacoesOrcamentoService
         if (exists)
             throw new BusinessException("Despachante já vinculado a esta solicitação.");
 
+        var solicitacao = await _db.Set<SolicitacaoOrcamento>()
+            .AsNoTracking()
+            .FirstAsync(x => x.Id == solicitacaoId);
+
         var entity = new SolicitacaoOrcamentoDespachante
         {
             SolicitacaoOrcamentoId = solicitacaoId,
             DespachanteId = request.DespachanteId,
-            Status = request.Status.Trim(),
+            Status = "PendenteDespachante",
             DataEnvio = request.DataEnvio
         };
 
         _db.Add(entity);
+
+        // Auto-cria CustoDespachante somente se ainda não existir custo para a combinação solicitação + despachante.
+        var jaExisteCusto = await _db.CustosDespachante
+            .AnyAsync(x => x.SolicitacaoOrcamentoId == solicitacaoId && x.DespachanteId == request.DespachanteId);
+
+        if (!jaExisteCusto)
+        {
+            var custoCodigo = await GerarCodigoCustoInternoAsync();
+            var custo = new CustoDespachante
+            {
+                CodigoInterno          = custoCodigo,
+                SolicitacaoOrcamentoId = solicitacaoId,
+                DespachanteId          = request.DespachanteId,
+                ImportadorId           = solicitacao.ImportadorId,
+                PortoOrigemId          = solicitacao.PortoOrigemId,
+                PortoDestinoId         = solicitacao.PortoDestinoId,
+                Responsavel            = solicitacao.Responsavel ?? string.Empty,
+                TamContainer           = solicitacao.TamContainer ?? "LCL",
+                Peso                   = solicitacao.Peso,
+                FobUsd                 = 0,
+                FobReais               = 0,
+                CifUsd                 = 0,
+                CifReais               = 0,
+                SeguroUsd              = 0,
+                TaxaUsd                = 1,
+                Data                   = request.DataEnvio,
+                Status                 = "Pendente",
+                Versao                 = 1,
+                Imutavel               = false
+            };
+            _db.Add(custo);
+        }
+
         await _db.SaveChangesAsync();
 
         return new SolicitacaoOrcamentoDespachanteDto(
             entity.Id,
             entity.SolicitacaoOrcamentoId,
             entity.DespachanteId,
-            entity.Status,
             entity.DataEnvio,
             entity.CriadoEm,
             entity.AtualizadoEm);
+    }
+
+    public async Task AprovarAsync(int id)
+    {
+        var entity = await FindSolicitacaoOrThrowAsync(id);
+
+        if (entity.Status != "AguardandoAprovacaoCliente")
+            throw new BusinessException($"A solicitação precisa estar em 'AguardandoAprovacaoCliente' para ser aprovada. Status atual: {entity.Status}");
+
+        entity.Status = "Aprovada";
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task CancelarAsync(int id)
+    {
+        var entity = await FindSolicitacaoOrThrowAsync(id);
+
+        if (entity.Status != "AguardandoAprovacaoCliente")
+            throw new BusinessException($"A solicitação precisa estar em 'AguardandoAprovacaoCliente' para ser cancelada. Status atual: {entity.Status}");
+
+        entity.Status = "Cancelada";
+
+        // Ao cancelar a solicitação (sem virar embarque), cancela as versões correntes de custos e orçamento.
+        var custosCorrentes = await _db.CustosDespachante
+            .Where(c => c.SolicitacaoOrcamentoId == id)
+            .Where(c => !_db.CustosDespachante.Any(n => n.VersaoAnteriorId == c.Id))
+            .ToListAsync();
+
+        foreach (var custo in custosCorrentes)
+        {
+            if (custo.Status != "CanceladoPeloOV")
+                custo.Status = "CanceladoPeloOV";
+        }
+
+        var orcamentosCorrentes = await _db.OrcamentosVenda
+            .Where(o => o.SolicitacaoOrcamentoId == id)
+            .Where(o => !_db.OrcamentosVenda.Any(n => n.VersaoAnteriorId == o.Id))
+            .ToListAsync();
+
+        foreach (var ov in orcamentosCorrentes)
+        {
+            if (ov.Status != "Cancelado")
+                ov.Status = "Cancelado";
+        }
+
+        await _db.SaveChangesAsync();
     }
 
     public async Task RemoveDespachanteAsync(int solicitacaoId, int solicitacaoDespachanteId)
@@ -269,7 +398,6 @@ public class SolicitacoesOrcamentoService
     private async Task<SolicitacaoOrcamento> FindSolicitacaoOrThrowAsync(int id)
     {
         return await _db.Set<SolicitacaoOrcamento>()
-            .AsNoTracking()
             .Include(x => x.Despachantes)
             .Include(x => x.Documentos)
             .FirstOrDefaultAsync(x => x.Id == id)
@@ -338,6 +466,28 @@ public class SolicitacoesOrcamentoService
                 next = parsed + 1;
         }
 
+        return $"{prefix}{next:000}";
+    }
+
+    private async Task<string> GerarCodigoCustoInternoAsync()
+    {
+        var year   = DateTime.UtcNow.Year;
+        var prefix = $"CD-{year}-";
+
+        var last = await _db.CustosDespachante
+            .AsNoTracking()
+            .Where(x => x.CodigoInterno.StartsWith(prefix))
+            .OrderByDescending(x => x.Id)
+            .Select(x => x.CodigoInterno)
+            .FirstOrDefaultAsync();
+
+        var next = 1;
+        if (!string.IsNullOrWhiteSpace(last) && last.Length >= prefix.Length + 3)
+        {
+            var suffix = last[prefix.Length..];
+            if (int.TryParse(suffix, out var parsed))
+                next = parsed + 1;
+        }
         return $"{prefix}{next:000}";
     }
 

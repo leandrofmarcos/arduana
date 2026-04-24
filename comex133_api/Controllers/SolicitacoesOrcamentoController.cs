@@ -137,4 +137,20 @@ public class SolicitacoesOrcamentoController : ControllerBase
         await _service.RemoveDocumentoAsync(id, documentoId);
         return Ok(ApiResponse.Ok(message: "Documento removido da solicitação com sucesso."));
     }
+
+    [HttpPatch("{id:int}/aprovar")]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
+    public async Task<IActionResult> Aprovar(int id)
+    {
+        await _service.AprovarAsync(id);
+        return Ok(ApiResponse.Ok(message: "Solicitação aprovada com sucesso."));
+    }
+
+    [HttpPatch("{id:int}/cancelar")]
+    [Authorize(Roles = "Administrador,Gerente,Analista")]
+    public async Task<IActionResult> Cancelar(int id)
+    {
+        await _service.CancelarAsync(id);
+        return Ok(ApiResponse.Ok(message: "Solicitação cancelada com sucesso."));
+    }
 }

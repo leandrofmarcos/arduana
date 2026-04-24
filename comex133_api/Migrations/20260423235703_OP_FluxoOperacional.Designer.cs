@@ -4,6 +4,7 @@ using Comex133Api.Core.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Comex133Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260423235703_OP_FluxoOperacional")]
+    partial class OP_FluxoOperacional
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -955,9 +958,6 @@ namespace Comex133Api.Migrations
                     b.Property<decimal>("Honorarios")
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<bool>("Imutavel")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Observacao")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
@@ -996,12 +996,6 @@ namespace Comex133Api.Migrations
                     b.Property<decimal>("TotalImpostos")
                         .HasColumnType("decimal(18,4)");
 
-                    b.Property<int>("Versao")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("VersaoAnteriorId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
@@ -1010,8 +1004,6 @@ namespace Comex133Api.Migrations
                         .IsUnique();
 
                     b.HasIndex("SolicitacaoOrcamentoId");
-
-                    b.HasIndex("VersaoAnteriorId");
 
                     b.ToTable("OrcamentosVenda");
                 });
@@ -1794,15 +1786,9 @@ namespace Comex133Api.Migrations
                         .HasForeignKey("SolicitacaoOrcamentoId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("Comex133Api.Domain.Entities.OrcamentoVenda", "VersaoAnterior")
-                        .WithMany()
-                        .HasForeignKey("VersaoAnteriorId");
-
                     b.Navigation("Cliente");
 
                     b.Navigation("SolicitacaoOrcamento");
-
-                    b.Navigation("VersaoAnterior");
                 });
 
             modelBuilder.Entity("Comex133Api.Domain.Entities.OrcamentoVendaCusto", b =>

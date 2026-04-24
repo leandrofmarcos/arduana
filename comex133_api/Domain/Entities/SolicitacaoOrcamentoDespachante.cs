@@ -17,6 +17,7 @@ public class SolicitacaoOrcamentoDespachante : IHasTimestamps
     public int DespachanteId { get; set; }
     public Despachante Despachante { get; set; } = null!;
 
+    // Status fixo — coluna mantida no banco por compatibilidade (valor sempre "PendenteDespachante")
     [Required, MaxLength(60)]
     public string Status { get; set; } = "PendenteDespachante";
 

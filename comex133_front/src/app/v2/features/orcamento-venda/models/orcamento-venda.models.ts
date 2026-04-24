@@ -20,7 +20,10 @@ export interface OrcamentoVenda {
   totalExtras: number;
   totalGeral: number;
   observacao?: string;
-  status?: 'Rascunho' | 'Finalizado' | 'AguardandoDespachante' | 'AguardandoOrcamentoVenda';
+  status?: 'Aguardando' | 'EmAndamento' | 'Finalizado' | 'Cancelado';
+  versao: number;
+  versaoAnteriorId?: number;
+  imutavel: boolean;
 }
 
 export interface OrcamentoVendaDespesa {

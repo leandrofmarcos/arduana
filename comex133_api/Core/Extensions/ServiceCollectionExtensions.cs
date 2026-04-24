@@ -3,6 +3,7 @@ using Comex133Api.Core.Database;
 using Comex133Api.Features.UsuarioVinculos;
 using Comex133Api.Features.AgentesCarga;
 using Comex133Api.Features.Auth;
+using Comex133Api.Features.CustosDespachante;
 using Comex133Api.Features.Navios;
 using Comex133Api.Features.Clientes;
 using Comex133Api.Features.ControleNavios;
@@ -13,6 +14,7 @@ using Comex133Api.Features.Fabricantes;
 using Comex133Api.Features.Importadores;
 using Comex133Api.Features.ListaPrecoLcl;
 using Comex133Api.Features.ModelosDespesa;
+using Comex133Api.Features.OrcamentosVenda;
 using Comex133Api.Features.Ncms;
 using Comex133Api.Features.Parametros;
 using Comex133Api.Features.PortosDestino;
@@ -110,6 +112,10 @@ public static class ServiceCollectionExtensions
 
         // Phase 5 — Navios
         services.AddScoped<NaviosService>();
+
+        // Phase OP — Fluxo operacional
+        services.AddScoped<CustosDespachanteService>();
+        services.AddScoped<OrcamentosVendaService>();
         return services;
     }
 
@@ -172,6 +178,20 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IValidator<CreateNavioTrajetoRequest>,             CreateNavioTrajetoValidator>();
         services.AddScoped<IValidator<UpdateNavioTrajetoRequest>,             UpdateNavioTrajetoValidator>();
         services.AddScoped<IValidator<CreateEmbarqueNavioVinculoRequest>,     CreateEmbarqueNavioVinculoValidator>();
+
+        // Phase OP — CustosDespachante
+        services.AddScoped<IValidator<CreateCustoDespachanteRequest>,         CreateCustoDespachanteValidator>();
+        services.AddScoped<IValidator<UpdateCustoDespachanteRequest>,         UpdateCustoDespachanteValidator>();
+        services.AddScoped<IValidator<UpsertCustoDespachanteLiRequest>,       UpsertLiValidator>();
+        services.AddScoped<IValidator<UpsertCustoDespachanteDespesaRequest>,  UpsertDespesaValidator>();
+        services.AddScoped<IValidator<UpsertNcmVinculadoCustoRequest>,        UpsertNcmValidator>();
+        services.AddScoped<IValidator<UpsertValorImpostoCustoRequest>,        UpsertValorImpostoValidator>();
+
+        // Phase OP — OrcamentosVenda
+        services.AddScoped<IValidator<CreateOrcamentoVendaRequest>,           CreateOrcamentoVendaValidator>();
+        services.AddScoped<IValidator<UpdateOrcamentoVendaRequest>,           UpdateOrcamentoVendaValidator>();
+        services.AddScoped<IValidator<UpsertOrcamentoVendaDespesaRequest>,    UpsertOrcamentoVendaDespesaValidator>();
+        services.AddScoped<IValidator<SolicitarReaberturaRequest>,            SolicitarReaberturaValidator>();
 
         return services;
     }

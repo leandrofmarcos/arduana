@@ -26,7 +26,6 @@ interface SolicitacaoOrcamentoDespachanteApiDto {
   id: number;
   solicitacaoOrcamentoId: number;
   despachanteId: number;
-  status: string;
   dataEnvio: string;
 }
 
@@ -73,7 +72,7 @@ export class SolicitacaoOrcamentoService {
     return this.getAll().find(s => s.id === id);
   }
 
-  async create(data: Omit<SolicitacaoOrcamento, 'id' | 'codigoInterno'>): Promise<SolicitacaoOrcamento> {
+  async create(data: Omit<SolicitacaoOrcamento, 'id' | 'codigoInterno' | 'status'>): Promise<SolicitacaoOrcamento> {
     const payload = {
       clienteId: data.clienteId ? Number(data.clienteId) : null,
       importadorId: data.importadorId ? Number(data.importadorId) : null,
@@ -83,7 +82,6 @@ export class SolicitacaoOrcamentoService {
       tamContainer: data.tamContainer,
       peso: data.peso,
       observacao: data.observacao,
-      status: data.status,
       data: data.data
     };
 
@@ -106,7 +104,6 @@ export class SolicitacaoOrcamentoService {
       tamContainer: item.tamContainer,
       peso: item.peso,
       observacao: item.observacao,
-      status: item.status,
       data: item.data
     };
 
@@ -130,6 +127,16 @@ export class SolicitacaoOrcamentoService {
     delete this.documentosBySolicitacao[id];
     this.despachantesLoaded.delete(id);
     this.documentosLoaded.delete(id);
+  }
+
+  async aprovar(id: string): Promise<void> {
+    await firstValueFrom(this.apiClient.patch(`/solicitacoes-orcamento/${id}/aprovar`, {}));
+    await this.refresh();
+  }
+
+  async cancelar(id: string): Promise<void> {
+    await firstValueFrom(this.apiClient.patch(`/solicitacoes-orcamento/${id}/cancelar`, {}));
+    await this.refresh();
   }
 
   // ── SolicitacaoOrcamentoDespachante ───────────────────────────────────
@@ -160,7 +167,6 @@ export class SolicitacaoOrcamentoService {
   async addDespachante(data: Omit<SolicitacaoOrcamentoDespachante, 'id'>): Promise<SolicitacaoOrcamentoDespachante> {
     const payload = {
       despachanteId: Number(data.despachanteId),
-      status: data.status,
       dataEnvio: data.dataEnvio
     };
 
@@ -181,7 +187,6 @@ export class SolicitacaoOrcamentoService {
     await this.addDespachante({
       solicitacaoOrcamentoId: item.solicitacaoOrcamentoId,
       despachanteId: item.despachanteId,
-      status: item.status,
       dataEnvio: item.dataEnvio
     });
   }
@@ -280,7 +285,6 @@ export class SolicitacaoOrcamentoService {
       id: String(dto.id),
       solicitacaoOrcamentoId: String(dto.solicitacaoOrcamentoId),
       despachanteId: String(dto.despachanteId),
-      status: dto.status as SolicitacaoOrcamentoDespachante['status'],
       dataEnvio: this.toDateOnly(dto.dataEnvio)
     };
   }

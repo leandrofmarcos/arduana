@@ -17,8 +17,6 @@ import { ImportadorService } from '../../cadastros/importadores/services/importa
 import { ImpostoCalculatorService } from '../../custo-despachante/services/imposto-calculator.service';
 import { SolicitacaoOrcamentoService } from '../../solicitacao-orcamento/services/solicitacao-orcamento.service';
 import { SolicitacaoOrcamento } from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
-import { EmbarqueAduanaService } from '../../embarque-aduana/services/embarque-aduana.service';
-import { StatusEmbarqueService } from '../../embarque-aduana/services/status-embarque.service';
 import { AuthService } from '../../../../features/auth/auth.providers';
 import { ModeloDespesaService } from '../../cadastros/modelos-despesa/services/modelo-despesa.service';
 import { ModeloDespesa } from '../../cadastros/modelos-despesa/models/modelo-despesa.models';
@@ -82,6 +80,33 @@ type LinhaForm = { descricao: string; valor: number };
     /* Badges */
     .cod-badge { background:var(--color-surface); border:1px solid var(--color-border); padding:2px 8px; border-radius:6px; font-family:monospace; font-size:12px; }
     .status-badge-s { display:inline-block; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:700; color:#fff; }
+    .version-tree-row.historical { background: linear-gradient(90deg, #f8fafc 0%, rgba(248, 250, 252, 0) 58%); }
+    .version-tree-row td:first-child { overflow: visible; }
+    .version-tree {
+      --level: 0;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding-left: calc(var(--level) * 18px + 6px);
+    }
+    .version-tree.node-root { padding-left: 6px; }
+    .version-branch {
+      display: none;
+    }
+    .version-node-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #f59e0b;
+      border: 1px solid #d97706;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px #ffffff;
+    }
+    .version-node-dot.current {
+      background: #22c55e;
+      border-color: #16a34a;
+    }
     /* Preview iframe modal */
     .preview-overlay { position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:1000; display:flex; align-items:center; justify-content:center; padding:16px; }
     .preview-modal { background:#fff; border-radius:12px; width:96%; max-width:1100px; height:92vh; display:flex; flex-direction:column; box-shadow:0 24px 72px rgba(0,0,0,.4); overflow:hidden; transition:width .2s,height .2s,border-radius .2s; }
@@ -166,6 +191,10 @@ type LinhaForm = { descricao: string; valor: number };
           <div class="toolbar">
             <input class="search" type="text" [(ngModel)]="q"
               placeholder="🔎 Buscar por código, cliente ou solicitação" />
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-muted)">
+              <input type="checkbox" [(ngModel)]="showHistoricoVersoesOv" (ngModelChange)="syncOrcamentosView()" />
+              Mostrar versões anteriores
+            </label>
           </div>
           <table class="data-table">
             <thead>
@@ -185,16 +214,28 @@ type LinhaForm = { descricao: string; valor: number };
               <tr *ngIf="filtered.length === 0">
                 <td colspan="9" class="empty-state">Nenhum orçamento cadastrado</td>
               </tr>
-              <tr *ngFor="let o of filtered">
-                <td><span class="cod-badge">{{ o.codigoInterno }}</span></td>
+              <tr *ngFor="let o of filtered" class="version-tree-row" [class.historical]="showHistoricoVersoesOv && !isCurrentVersionOv(o.id)">
+                <td>
+                  <div class="version-tree" [style.--level]="versionLevelOv(o.id, o.versao)" [class.node-root]="versionLevelOv(o.id, o.versao) === 0">
+                    <span class="version-branch"
+                      [class.root]="isVersionRootOv(o.id, o.versao)"
+                      [class.leaf]="isVersionLeaf(o.versao)"
+                      [class.single]="ovVersionCount(o.id) <= 1"></span>
+                    <span class="version-node-dot" [class.current]="isCurrentVersionOv(o.id)"></span>
+                    <span class="cod-badge">{{ o.codigoInterno }}</span>
+                  </div>
+                  <span class="badge" style="margin-left:6px">v{{ o.versao }}</span>
+                  <span *ngIf="isCurrentVersionOv(o.id)" class="badge" style="margin-left:6px;background:#dcfce7;color:#166534;border-color:#86efac">corrente</span>
+                  <span *ngIf="ovVersionCount(o.id) > 1" class="badge" style="margin-left:6px;background:#eff6ff;color:#1d4ed8;border-color:#93c5fd">{{ ovVersionCount(o.id) }} versões</span>
+                </td>
                 <td>
                   <span class="cod-badge" *ngIf="o.solicitacaoOrcamentoId">{{ codigoSolicitacao(o.solicitacaoOrcamentoId) }}</span>
                   <span *ngIf="!o.solicitacaoOrcamentoId" style="color:var(--color-text-muted);font-size:12px">—</span>
                 </td>
                 <td>
                   <span class="status-badge-s"
-                    [ngStyle]="{ background: o.status === 'Finalizado' ? '#22c55e' : '#f59e0b' }">
-                    {{ o.status || 'Rascunho' }}
+                    [ngStyle]="{ background: ovStatusColor(o.status) }">
+                    {{ ovStatusLabel(o.status) }}
                   </span>
                 </td>
                 <td>{{ nomeClienteById(o.clienteId) }}</td>
@@ -204,8 +245,8 @@ type LinhaForm = { descricao: string; valor: number };
                 <td style="text-align:right;font-weight:700">{{ o.totalGeral | currency:'BRL':'symbol':'1.2-2' }}</td>
                 <td>
                   <div class="row-actions">
-                    <button class="btn-icon" title="Visualizar" (click)="abrirPreview(o)">👁️</button>
-                    <button class="btn-icon" *ngIf="!isDespachante" title="Editar" (click)="openForm(o)">✏️</button>
+                    <button class="btn-icon" *ngIf="!isDespachante" [title]="isOrcamentoEditavel(o) ? 'Editar' : 'Somente visualização'" (click)="openForm(o)">{{ isOrcamentoEditavel(o) ? '✏️' : '👁️' }}</button>
+                    <button class="btn-icon warning" *ngIf="!isDespachante && canReabrirOv(o)" title="Reabrir orçamento" (click)="reabrirOv(o.id)">🔓</button>
                     <button class="btn-icon danger" *ngIf="!isDespachante" title="Excluir" (click)="remove(o.id)">🗑️</button>
                   </div>
                 </td>
@@ -222,7 +263,7 @@ type LinhaForm = { descricao: string; valor: number };
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
           <div>
             <h2 style="margin:0;font-size:18px;font-weight:800;color:var(--color-text)">
-              {{ editing ? 'Orçamento ' + editing.codigoInterno : 'Novo Orçamento de Venda' }}
+              {{ editing ? (modoVisualizacao ? 'Visualizar Orçamento ' : 'Orçamento ') + editing.codigoInterno : 'Novo Orçamento de Venda' }}
             </h2>
             <p style="margin:4px 0 0;font-size:12px;color:var(--color-text-muted)">
               <ng-container *ngIf="solicitacaoAtualId">📋 Vinculado a <strong>{{ codigoSolicitacao(solicitacaoAtualId) }}</strong> · </ng-container>
@@ -230,11 +271,15 @@ type LinhaForm = { descricao: string; valor: number };
             </p>
           </div>
           <div style="margin-left:auto;display:flex;gap:8px">
-            <button class="btn btn-primary" (click)="salvar()">&#128190; Salvar Rascunho</button>
-            <button class="btn" style="background:#22c55e;color:#fff" (click)="finalizar()">&#10003; Finalizar Orçamento</button>
+            <button class="btn btn-primary" *ngIf="!modoVisualizacao" (click)="salvar()">&#128190; Salvar</button>
+            <button class="btn" *ngIf="!modoVisualizacao" style="background:#22c55e;color:#fff" (click)="finalizar()">&#10003; Finalizar Orçamento</button>
             <button class="btn btn-secondary" (click)="abrirPreview(null)">&#128065;️ Preview</button>
             <button class="btn btn-secondary" (click)="cancelForm()">Cancelar</button>
           </div>
+        </div>
+
+        <div *ngIf="modoVisualizacao" style="margin:-8px 0 12px;padding:10px 12px;border-radius:10px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;font-size:12px;font-weight:700">
+          VERSAO HISTORICA - SOMENTE LEITURA
         </div>
 
         <span class="err-msg" *ngIf="showErr && !form.clienteId" style="display:block;margin-bottom:8px">Preencha o cliente antes de salvar</span>
@@ -250,6 +295,11 @@ type LinhaForm = { descricao: string; valor: number };
             <div class="ov-panel-header">
               <h3>📅 Custos Despachantes</h3>
               <span style="margin-left:auto;font-size:12px;color:var(--color-text-muted)">{{ custosFiltrados.length }} disponível(is)</span>
+            </div>
+
+            <div style="padding:8px 16px;border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--color-text-muted)">
+              <input type="checkbox" [(ngModel)]="showHistoricoVersoesCusto" (ngModelChange)="syncCustosDisponiveis()" />
+              Mostrar versões anteriores
             </div>
 
             <!-- Busca (standalone) -->
@@ -275,7 +325,18 @@ type LinhaForm = { descricao: string; valor: number };
                       <div>
                         <span class="custo-comp-name">{{ nomeDespachanteById(c.despachanteId) }}</span>
                         <span class="custo-status-badge" [ngStyle]="{ background: c.status === 'Finalizado' ? '#22c55e' : '#f59e0b' }">{{ c.status }}</span>
-                        <div class="custo-comp-cod">{{ c.codigoInterno }} · {{ c.tamContainer }}' · {{ c.data | date:'dd/MM/yyyy' }}</div>
+                        <div class="custo-comp-cod">
+                          <span class="version-tree" [style.--level]="versionLevelCusto(c.id, c.versao)" [class.node-root]="versionLevelCusto(c.id, c.versao) === 0">
+                            <span class="version-branch"
+                              [class.root]="isVersionRootCusto(c.id, c.versao)"
+                              [class.leaf]="isVersionLeaf(c.versao)"
+                              [class.single]="custoVersionCount(c.id) <= 1"></span>
+                            <span class="version-node-dot" [class.current]="isCurrentVersion(c.id)"></span>
+                            <span>{{ c.codigoInterno }} · v{{ c.versao }}</span>
+                          </span>
+                          <span> · {{ c.tamContainer }}' · {{ c.data | date:'dd/MM/yyyy' }}</span>
+                          <span *ngIf="isCurrentVersion(c.id)" style="margin-left:6px;color:#16a34a">(corrente)</span>
+                        </div>
                       </div>
                       <div style="text-align:right;flex-shrink:0;margin-left:12px">
                         <div style="font-size:10px;color:var(--color-text-muted)">Total Est.</div>
@@ -404,9 +465,18 @@ type LinhaForm = { descricao: string; valor: number };
                   </div>
                 </div>
 
-                <!-- Botão de seleção -->
-                <div style="display:flex;justify-content:flex-end;margin-top:12px">
-                  <button class="btn" [ngStyle]="{ background: isCustoSelecionado(c.id) ? '#22c55e' : 'var(--color-primary,#3b82f6)', color:'#fff' }" (click)="toggleCusto(c)">
+                <!-- Botão de seleção / reabrir -->
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+                  <button
+                    *ngIf="!modoVisualizacao && c.status === 'Finalizado' && isCurrentVersion(c.id)"
+                    class="btn btn-warning"
+                    style="background:#f59e0b;color:#fff;border:none"
+                    (click)="reabrirCusto(c.id)">
+                    🔓 Reabrir Custo
+                  </button>
+                  <span *ngIf="c.status === 'ReabertoPeloOV'" style="font-size:12px;color:#f59e0b;font-weight:600">⚠️ Custo reaberto para edição</span>
+                  <span style="flex:1"></span>
+                  <button class="btn" [disabled]="modoVisualizacao || !isCurrentVersion(c.id)" [title]="isCurrentVersion(c.id) ? 'Selecionar custo base' : 'Versão histórica (somente visualização)'" [ngStyle]="{ background: isCustoSelecionado(c.id) ? '#22c55e' : 'var(--color-primary,#3b82f6)', color:'#fff' }" (click)="toggleCusto(c)">
                     {{ isCustoSelecionado(c.id) ? '✓ Custo Selecionado como Base' : 'Selecionar como Base' }}
                   </button>
                 </div>
@@ -428,6 +498,8 @@ type LinhaForm = { descricao: string; valor: number };
               </ng-container>
             </div>
             <div class="ov-panel-body">
+
+              <fieldset [disabled]="modoVisualizacao" style="border:none;padding:0;margin:0;min-width:0">
 
               <!-- Dados gerais -->
               <div class="form-section">
@@ -593,10 +665,12 @@ type LinhaForm = { descricao: string; valor: number };
                 <div class="total-grand"><span>TOTAL GERAL</span><span>{{ calcTotalGeral() | currency:'BRL':'symbol':'1.2-2' }}</span></div>
               </div>
 
+              </fieldset>
+
               <!-- Botões inferiores -->
               <div class="actions" style="margin-top:16px">
-                <button class="btn btn-primary" (click)="salvar()">💾 Salvar Rascunho</button>
-                <button class="btn" style="background:#22c55e;color:#fff" (click)="finalizar()">&#10003; Finalizar Orçamento</button>
+                <button class="btn btn-primary" *ngIf="!modoVisualizacao" (click)="salvar()">💾 Salvar</button>
+                <button class="btn" *ngIf="!modoVisualizacao" style="background:#22c55e;color:#fff" (click)="finalizar()">&#10003; Finalizar Orçamento</button>
                 <button class="btn btn-secondary" (click)="abrirPreview(null)">👁️ Preview</button>
                 <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelForm()">Cancelar</button>
               </div>
@@ -613,7 +687,7 @@ type LinhaForm = { descricao: string; valor: number };
           <div class="preview-toolbar">
             <h4>📋 Previsão de Numerário — {{ previewOrc?.codigoInterno }}</h4>
             <div class="pt-actions">
-              <button class="btn btn-secondary" *ngIf="!isDespachante" style="font-size:12px;padding:5px 12px" (click)="openForm(previewOrc!);fecharPreview()">✏️ Editar</button>
+              <button class="btn btn-secondary" *ngIf="!isDespachante && previewOrc && isOrcamentoEditavel(previewOrc)" style="font-size:12px;padding:5px 12px" (click)="openForm(previewOrc);fecharPreview()">✏️ Editar</button>
               <button class="btn btn-primary" style="font-size:12px;padding:5px 12px" (click)="exportarOrcamentoPDF()">📄 Exportar PDF</button>
               <button class="btn-icon-sm" (click)="previewMaximized=!previewMaximized" [title]="previewMaximized ? 'Restaurar' : 'Maximizar'">{{ previewMaximized ? '⊡' : '⛶' }}</button>
               <button class="btn-icon-sm" (click)="fecharPreview()" title="Fechar">✕</button>
@@ -635,7 +709,9 @@ export class OrcamentoVendaComponent implements OnInit {
   // ── List ──────────────────────────────────────────────────────────────
   orcamentos: OrcamentoVenda[] = [];
   q = '';
+  showHistoricoVersoesOv = false;
   showForm = false;
+  modoVisualizacao = false;
   editing: OrcamentoVenda | null = null;
   showErr = false;
   apiFieldErrors: Record<string, string[]> = {};
@@ -644,6 +720,7 @@ export class OrcamentoVendaComponent implements OnInit {
   clientes: ClienteV2[] = [];
   custos: CustoDespachante[] = [];
   custoQuery = '';
+  showHistoricoVersoesCusto = false;
   custoBase: CustoDespachante | null = null;
   solicitacaoAtualId: string | undefined = undefined;
   private solicitacoes: SolicitacaoOrcamento[] = [];
@@ -688,8 +765,6 @@ export class OrcamentoVendaComponent implements OnInit {
     private importadorSvc: ImportadorService,
     private calculator: ImpostoCalculatorService,
     private solicitacaoSvc: SolicitacaoOrcamentoService,
-    private embarqueSvc: EmbarqueAduanaService,
-    private statusEmbarqueSvc: StatusEmbarqueService,
     private auth: AuthService,
     private modeloSvc: ModeloDespesaService,
     private despesaCadastroSvc: DespesaCadastroService,
@@ -698,17 +773,26 @@ export class OrcamentoVendaComponent implements OnInit {
     private toast: ToastService,
     private confirmDialog: ConfirmDialogService,) {}
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.isDespachante = this.auth.hasRole('despachante');
     this.clientes     = this.clienteSvc.getAtivos();
-    this.custos       = this.custoSvc.getAll();
     this.solicitacoes = this.solicitacaoSvc.getAll();
     this.despachanteSvc.getAll().forEach(d => this._despachantes[d.id] = d.nome);
     this.importadorSvc.getAll().forEach(i => this._importadores[i.id] = i.razaoSocial ?? i.id);
     this.portoOrigemSvc.getAll().forEach(p => this._portosOrigem[p.id] = p.nome);
     this.portoDestinoSvc.getAll().forEach(p => this._portosDestino[p.id] = p.nome);
     this.modelos = this.modeloSvc.getAll().filter(m => m.ativo);
-    this.load();
+    await this.custoSvc.ensureLoaded();
+    this.syncCustosDisponiveis();
+    await this.load();
+    // Reload catalogs after main data load (async catalog services have had time to populate)
+    this.clientes     = this.clienteSvc.getAtivos();
+    this.solicitacoes = this.solicitacaoSvc.getAll();
+    this.despachanteSvc.getAll().forEach(d => this._despachantes[d.id] = d.nome);
+    this.importadorSvc.getAll().forEach(i => this._importadores[i.id] = i.razaoSocial ?? i.id);
+    this.portoOrigemSvc.getAll().forEach(p => this._portosOrigem[p.id] = p.nome);
+    this.portoDestinoSvc.getAll().forEach(p => this._portosDestino[p.id] = p.nome);
+    this.modelos = this.modeloSvc.getAll().filter(m => m.ativo);
     // Abrir OV diretamente via query param ?editId=xxx (ex: navegação da tela de solicitações)
     this.route.queryParams.subscribe(params => {
       if (params['editId']) {
@@ -718,7 +802,74 @@ export class OrcamentoVendaComponent implements OnInit {
     });
   }
 
-  load(): void { this.orcamentos = this.service.getAll(); }
+  async load(): Promise<void> {
+    await this.service.refresh();
+    this.syncOrcamentosView();
+  }
+
+  syncOrcamentosView(): void {
+    this.orcamentos = this.showHistoricoVersoesOv
+      ? this.service.getAll()
+      : this.service.getAllCurrent();
+  }
+
+  isCurrentVersionOv(ovId: string): boolean {
+    return this.service.isCurrentVersion(ovId);
+  }
+
+  ovVersionCount(ovId: string): number {
+    return this.service.getVersionCount(ovId);
+  }
+
+  versionLevelOv(ovId: string, versao: number | undefined): number {
+    const total = this.ovVersionCount(ovId);
+    return Math.max(total - (versao ?? 1), 0);
+  }
+
+  isVersionRootOv(ovId: string, versao: number | undefined): boolean {
+    return (versao ?? 1) >= this.ovVersionCount(ovId);
+  }
+
+  custoVersionCount(custoId: string): number {
+    return this.custoSvc.getVersionCount(custoId);
+  }
+
+  versionLevelCusto(custoId: string, versao: number | undefined): number {
+    const total = this.custoVersionCount(custoId);
+    return Math.max(total - (versao ?? 1), 0);
+  }
+
+  isVersionRootCusto(custoId: string, versao: number | undefined): boolean {
+    return (versao ?? 1) >= this.custoVersionCount(custoId);
+  }
+
+  isVersionLeaf(versao: number | undefined): boolean {
+    return (versao ?? 1) <= 1;
+  }
+
+  abrirOvVersaoCorrente(ovId: string): void {
+    const corrente = this.service.getCurrentVersion(ovId);
+    if (!corrente) {
+      this.toast.error('Não foi possível localizar a versão corrente.');
+      return;
+    }
+
+    if (this.isDespachante) {
+      this.abrirPreview(corrente);
+      return;
+    }
+
+    this.openForm(corrente);
+  }
+
+  canReabrirOv(item: OrcamentoVenda): boolean {
+    return item.status === 'Finalizado' && this.isCurrentVersionOv(item.id);
+  }
+
+  isOrcamentoEditavel(item: OrcamentoVenda): boolean {
+    const st = (item.status ?? '').toString();
+    return this.isCurrentVersionOv(item.id) && !item.imutavel && st !== 'Finalizado' && st !== 'Cancelado';
+  }
 
   get filtered(): OrcamentoVenda[] {
     if (!this.q) return this.orcamentos;
@@ -732,15 +883,32 @@ export class OrcamentoVendaComponent implements OnInit {
   }
 
   get custosFiltrados(): CustoDespachante[] {
+    const base = this.showHistoricoVersoesCusto
+      ? this.custoSvc.getAll()
+      : this.custoSvc.getAllCurrent();
+
     let lista = this.solicitacaoAtualId
-      ? this.custos.filter(c => c.solicitacaoOrcamentoId === this.solicitacaoAtualId)
-      : this.custos;
+      ? base.filter(c => c.solicitacaoOrcamentoId === this.solicitacaoAtualId)
+      : base;
+
+    this.custos = base;
+
     if (!this.custoQuery) return lista;
     const s = this.custoQuery.toLowerCase();
     return lista.filter(c =>
       c.codigoInterno.toLowerCase().includes(s) ||
       (this._despachantes[c.despachanteId] ?? '').toLowerCase().includes(s)
     );
+  }
+
+  syncCustosDisponiveis(): void {
+    this.custos = this.showHistoricoVersoesCusto
+      ? this.custoSvc.getAll()
+      : this.custoSvc.getAllCurrent();
+  }
+
+  isCurrentVersion(custoId: string): boolean {
+    return this.custoSvc.isCurrentVersion(custoId);
   }
 
   // ── Lookup helpers ────────────────────────────────────────────────────
@@ -819,6 +987,13 @@ export class OrcamentoVendaComponent implements OnInit {
   // ── Custo base ────────────────────────────────────────────────────────
 
   toggleCusto(c: CustoDespachante): void {
+    if (this.modoVisualizacao) return;
+
+    if (!this.isCurrentVersion(c.id)) {
+      this.toast.info('Versões anteriores são apenas para consulta. Selecione a versão corrente.');
+      return;
+    }
+
     // Seleção única — comportamento radio; clicar no mesmo deseleciona
     if (this.custosSelecionados[0] === c.id) {
       this.custosSelecionados = [];
@@ -861,6 +1036,7 @@ export class OrcamentoVendaComponent implements OnInit {
   // ── Despesas / Extras ─────────────────────────────────────────────────
 
   carregarDoModelo(): void {
+    if (this.modoVisualizacao) return;
     if (!this.modeloSelId) return;
     const itens = this.modeloSvc.getItensByModelo(this.modeloSelId);
     const allDesp = this.despesaCadastroSvc.getAtivos();
@@ -875,6 +1051,7 @@ export class OrcamentoVendaComponent implements OnInit {
   }
 
   addDespesa(): void {
+    if (this.modoVisualizacao) return;
     if (!this.despesaForm.descricao.trim() || this.despesaForm.valor <= 0) {
       this.despesaErro = 'Descrição e valor são obrigatórios.'; return;
     }
@@ -883,9 +1060,13 @@ export class OrcamentoVendaComponent implements OnInit {
     this.despesaForm = { descricao: '', valor: 0 };
   }
 
-  removeDespesa(i: number): void { this.despesasForm.splice(i, 1); }
+  removeDespesa(i: number): void {
+    if (this.modoVisualizacao) return;
+    this.despesasForm.splice(i, 1);
+  }
 
   addExtra(): void {
+    if (this.modoVisualizacao) return;
     if (!this.extraForm.descricao.trim() || this.extraForm.valor <= 0) {
       this.extraErro = 'Descrição e valor são obrigatórios.'; return;
     }
@@ -894,11 +1075,19 @@ export class OrcamentoVendaComponent implements OnInit {
     this.extraForm = { descricao: '', valor: 0 };
   }
 
-  removeExtra(i: number): void { this.extrasForm.splice(i, 1); }
+  removeExtra(i: number): void {
+    if (this.modoVisualizacao) return;
+    this.extrasForm.splice(i, 1);
+  }
 
   // ── CRUD ──────────────────────────────────────────────────────────────
 
   openForm(item?: OrcamentoVenda): void {
+    this.modoVisualizacao = !!item && !this.isOrcamentoEditavel(item);
+    if (this.modoVisualizacao) {
+      this.toast.info('Esta versão está em modo somente leitura.');
+    }
+
     this.editing   = item ?? null;
     this.showErr   = false;
     this.apiFieldErrors = {};
@@ -950,9 +1139,19 @@ export class OrcamentoVendaComponent implements OnInit {
     this.showPreview = false;
   }
 
-  cancelForm(): void { this.showForm = false; this.editing = null; this.apiFieldErrors = {}; }
+  cancelForm(): void {
+    this.showForm = false;
+    this.editing = null;
+    this.modoVisualizacao = false;
+    this.apiFieldErrors = {};
+  }
 
-  salvar(status?: 'Rascunho' | 'Finalizado'): void {
+  async salvar(status?: 'EmAndamento' | 'Finalizado'): Promise<void> {
+    if (this.modoVisualizacao) {
+      this.toast.info('Este orçamento está em modo somente leitura.');
+      return;
+    }
+
     const eraEdicao = !!this.editing;
     this.showErr = true;
     this.apiFieldErrors = {};
@@ -962,37 +1161,53 @@ export class OrcamentoVendaComponent implements OnInit {
     const totalExtras   = this.somaExtras();
     const totalGeral    = this.calcTotalGeral();
 
-    const data: Omit<OrcamentoVenda, 'id' | 'codigoInterno'> = {
-      clienteId:              this.form.clienteId,
-      solicitacaoOrcamentoId: this.solicitacaoAtualId,
-      custoDespachanteId:     this.form.custoDespachanteId,
-      data:                this.form.data,
-      tamContainer:        this.form.tamContainer,
-      pesoBruto:           this.form.pesoBruto || 0,
-      pesoLiquido:         this.form.pesoLiquido || 0,
-      freteInternacional:  this.form.freteInternacional || 0,
-      cifReais:            this.form.cifReais || 0,
-      cifUsd:              this.form.cifUsd || 0,
-      fobReais:            this.form.fobReais || 0,
-      fobUsd:              this.form.fobUsd || 0,
-      taxaUsd:             this.form.taxaUsd || 0,
-      honorarios:          this.form.honorarios || 0,
-      totalImpostos:       this.form.totalImpostos || 0,
-      totalDespesas,
-      totalExtras,
-      totalGeral,
-      observacao:          this.form.observacao?.trim() || undefined,
-      status:              status ?? (this.editing?.status ?? 'Rascunho')
-    };
-
     let orcId: string;
+    let saved: OrcamentoVenda;
     try {
       if (this.editing) {
-        this.service.update({ ...this.editing, ...data });
+        saved = await this.service.update({
+          ...this.editing,
+          clienteId:           this.form.clienteId,
+          data:                this.form.data,
+          tamContainer:        this.form.tamContainer,
+          pesoBruto:           this.form.pesoBruto || 0,
+          pesoLiquido:         this.form.pesoLiquido || 0,
+          freteInternacional:  this.form.freteInternacional || 0,
+          cifReais:            this.form.cifReais || 0,
+          cifUsd:              this.form.cifUsd || 0,
+          fobReais:            this.form.fobReais || 0,
+          fobUsd:              this.form.fobUsd || 0,
+          taxaUsd:             this.form.taxaUsd || 0,
+          honorarios:          this.form.honorarios || 0,
+          totalImpostos:       this.form.totalImpostos || 0,
+          totalDespesas,
+          totalExtras,
+          totalGeral,
+          observacao:          this.form.observacao?.trim() || undefined,
+        });
         orcId = this.editing.id;
       } else {
-        const created = this.service.create(data);
-        orcId = created.id;
+        saved = await this.service.create({
+          clienteId:              this.form.clienteId,
+          solicitacaoOrcamentoId: this.solicitacaoAtualId,
+          data:                   this.form.data,
+          tamContainer:           this.form.tamContainer,
+          pesoBruto:              this.form.pesoBruto || 0,
+          pesoLiquido:            this.form.pesoLiquido || 0,
+          freteInternacional:     this.form.freteInternacional || 0,
+          cifReais:               this.form.cifReais || 0,
+          cifUsd:                 this.form.cifUsd || 0,
+          fobReais:               this.form.fobReais || 0,
+          fobUsd:                 this.form.fobUsd || 0,
+          taxaUsd:                this.form.taxaUsd || 0,
+          honorarios:             this.form.honorarios || 0,
+          totalImpostos:          this.form.totalImpostos || 0,
+          totalDespesas,
+          totalExtras,
+          totalGeral,
+          observacao:             this.form.observacao?.trim() || undefined,
+        });
+        orcId = saved.id;
       }
     } catch (err: any) {
       this.apiFieldErrors = this.collectFieldErrors(err);
@@ -1002,27 +1217,21 @@ export class OrcamentoVendaComponent implements OnInit {
       return;
     }
 
-    this.service.replaceDespesas(orcId, this.despesasForm);
-    this.service.replaceExtras(orcId, this.extrasForm);
-    this.service.replaceOrcCustos(orcId, this.custosSelecionados);
+    try {
+      await this.service.replaceDespesas(orcId, this.despesasForm);
+      await this.service.replaceExtras(orcId, this.extrasForm);
+      await this.service.replaceOrcCustos(orcId, this.custosSelecionados);
 
-    // Ao finalizar o orçamento, aprova a solicitação e gera embarque
-    if (status === 'Finalizado' && this.solicitacaoAtualId) {
-      const sol = this.solicitacaoSvc.getById(this.solicitacaoAtualId);
-      const statusTerminal: string[] = [
-        'Aprovada', 'Cancelada',
-        'EmbarquePrevisto', 'EmbarqueAguardando', 'EmbarqueAtracado',
-        'EmbarqueRegistrado', 'EmbarqueDesembaraçado', 'EmbarqueEntregue', 'EmbarqueFinalizado'
-      ];
-      if (sol && !statusTerminal.includes(sol.status)) {
-        this.solicitacaoSvc.update({ ...sol, status: 'Aprovada' });
-        this._criarEmbarqueParaSolicitacao(sol, orcId);
+      if (status === 'Finalizado') {
+        await this.service.finalizar(orcId);
       }
-    }
 
-    this.cancelForm();
-    this.load();
-    this.toast.success(status === 'Finalizado' ? 'Orcamento finalizado com sucesso.' : (eraEdicao ? 'Orcamento atualizado com sucesso.' : 'Orcamento criado com sucesso.'));
+      this.cancelForm();
+      await this.load();
+      this.toast.success(status === 'Finalizado' ? 'Orçamento finalizado com sucesso.' : (eraEdicao ? 'Orçamento atualizado com sucesso.' : 'Orçamento criado com sucesso.'));
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao salvar os dados do orçamento.');
+    }
   }
 
   async finalizar(): Promise<void> {
@@ -1039,7 +1248,7 @@ export class OrcamentoVendaComponent implements OnInit {
     });
     if (!ok) return;
 
-    this.salvar('Finalizado');
+    await this.salvar('Finalizado');
   }
 
   async remove(id: string): Promise<void> {
@@ -1052,9 +1261,52 @@ export class OrcamentoVendaComponent implements OnInit {
     });
     if (!ok) return;
 
-    this.service.remove(id);
-    this.load();
-    this.toast.success('Orcamento removido com sucesso.');
+    try {
+      await this.service.remove(id);
+      this.syncOrcamentosView();
+      this.toast.success('Orcamento removido com sucesso.');
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao excluir orçamento.');
+    }
+  }
+
+  async reabrirOv(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Reabrir orçamento de venda',
+      message: 'Reabrir este orçamento? Será criada uma nova versão corrente para edição.',
+      confirmText: 'Reabrir',
+      cancelText: 'Cancelar',
+      danger: false
+    });
+    if (!ok) return;
+
+    try {
+      await this.service.reabrir(id);
+      await this.load();
+      this.toast.success('Orçamento reaberto com nova versão corrente.');
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao reabrir orçamento.');
+    }
+  }
+
+  async reabrirCusto(custoId: string): Promise<void> {
+    if (this.modoVisualizacao) return;
+
+    const ok = await this.confirmDialog.confirm({
+      title: 'Reabrir custo despachante',
+      message: 'Reabrir este custo para edição? Ele ficará com status "Reaberto" enquanto o orçamento não for aprovado.',
+      confirmText: 'Reabrir',
+      cancelText: 'Cancelar',
+      danger: false
+    });
+    if (!ok) return;
+    try {
+      await this.custoSvc.reabrir(custoId);
+      this.syncCustosDisponiveis();
+      this.toast.success('Custo reaberto com sucesso.');
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao reabrir custo.');
+    }
   }
 
   hasApiFieldError(...keys: string[]): boolean {
@@ -1075,63 +1327,18 @@ export class OrcamentoVendaComponent implements OnInit {
     return ApiErrorMapper.mapError(err).fieldErrors;
   }
 
-  // ── Criar EmbarqueAduana ao finalizar orçamento ──────────────────────
+  ovStatusColor(status?: OrcamentoVenda['status']): string {
+    if (status === 'Finalizado') return '#22c55e';
+    if (status === 'Cancelado') return '#6b7280';
+    if (status === 'Aguardando') return '#64748b';
+    return '#f59e0b';
+  }
 
-  private _criarEmbarqueParaSolicitacao(sol: SolicitacaoOrcamento, orcamentoVendaId: string): void {
-    // Evitar duplicatas
-    const jaExiste = this.embarqueSvc.getAll().some(
-      e => e.solicitacaoOrcamentoId === sol.id
-    );
-    if (jaExiste) return;
-
-    // Despachante: preferir o do custo selecionado no OrcamentoVenda
-    let despachanteId = '';
-    let custoDespachanteId: string | undefined = undefined;
-    const orcCustos = this.service.getOrcCustos(orcamentoVendaId);
-    if (orcCustos.length > 0) {
-      const custo = this.custoSvc.getById(orcCustos[0].custoDespachanteId);
-      if (custo) {
-        despachanteId = custo.despachanteId;
-        custoDespachanteId = custo.id;
-      }
-    }
-    // Fallback: primeiro despachante da solicitação
-    if (!despachanteId) {
-      const despas = this.solicitacaoSvc.getDespachantes(sol.id);
-      despachanteId = despas[0]?.despachanteId ?? '';
-    }
-
-    const statusPrevisto = this.statusEmbarqueSvc.getPrevisto();
-    const created = this.embarqueSvc.create({
-      clienteId:              sol.clienteId ?? '',
-      portoOrigemId:          sol.portoOrigemId,
-      portoDestinoId:         sol.portoDestinoId,
-      despachanteId,
-      agenteCargaId:          '',
-      controleNavioId:        '',
-      usuarioResponsavelId:   this.auth.currentUser?.username ?? '',
-      statusEmbarqueId:       statusPrevisto?.id ?? '',
-      solicitacaoOrcamentoId: sol.id,
-      orcamentoVendaId,
-      custoDespachanteId,
-      refOminium:             '',
-      imp:                    '',
-      bl:                     '',
-      container:              sol.tamContainer,
-      li:                     '',
-      kg:                     sol.peso,
-      etd:                    sol.data,
-      eta:                    sol.data,
-    });
-
-    if (statusPrevisto) {
-      this.embarqueSvc.alterarStatus(
-        created.id,
-        created.statusEmbarqueId,
-        this.auth.currentUser?.username ?? '',
-        `Embarque criado automaticamente — Orçamento de Venda finalizado / Solicitação ${sol.codigoInterno} aprovada`
-      );
-    }
+  ovStatusLabel(status?: OrcamentoVenda['status']): string {
+    if (status === 'Finalizado') return 'Finalizado';
+    if (status === 'Cancelado') return 'Cancelado';
+    if (status === 'Aguardando') return 'Aguardando';
+    return 'Em Andamento';
   }
 
   // ── Preview ───────────────────────────────────────────────────────────

@@ -1,4 +1,9 @@
-export type StatusCustoDespachante = 'AguardandoCusto' | 'Rascunho' | 'Finalizado';
+export type StatusCustoDespachante =
+  | 'Pendente'
+  | 'EmAndamento'
+  | 'Finalizado'
+  | 'ReabertoPeloOV'
+  | 'CanceladoPeloOV';
 
 export interface CustoDespachante {
   id: string;
@@ -21,6 +26,9 @@ export interface CustoDespachante {
   observacao?: string;
   solicitacaoOrcamentoId?: string; // FK opcional — pré-preenchido ao vir de uma solicitação
   status: StatusCustoDespachante;
+  versao: number;
+  versaoAnteriorId?: number;
+  imutavel: boolean;
 }
 
 export interface CustoDespachanteLi {

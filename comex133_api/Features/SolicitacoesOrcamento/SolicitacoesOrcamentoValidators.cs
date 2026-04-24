@@ -25,9 +25,6 @@ public class CreateSolicitacaoOrcamentoValidator : AbstractValidator<CreateSolic
         RuleFor(x => x.Observacao)
             .MaximumLength(1000).WithMessage("Observação deve ter no máximo 1000 caracteres.");
 
-        RuleFor(x => x.Status)
-            .NotEmpty().WithMessage("Status é obrigatório.")
-            .MaximumLength(60).WithMessage("Status deve ter no máximo 60 caracteres.");
     }
 }
 
@@ -54,9 +51,6 @@ public class UpdateSolicitacaoOrcamentoValidator : AbstractValidator<UpdateSolic
         RuleFor(x => x.Observacao)
             .MaximumLength(1000).WithMessage("Observação deve ter no máximo 1000 caracteres.");
 
-        RuleFor(x => x.Status)
-            .NotEmpty().WithMessage("Status é obrigatório.")
-            .MaximumLength(60).WithMessage("Status deve ter no máximo 60 caracteres.");
     }
 }
 
@@ -66,7 +60,8 @@ public class UpdateSolicitacaoOrcamentoStatusValidator : AbstractValidator<Updat
     {
         RuleFor(x => x.Status)
             .NotEmpty().WithMessage("Status é obrigatório.")
-            .MaximumLength(60).WithMessage("Status deve ter no máximo 60 caracteres.");
+            .Must(v => v is "Aprovada" or "Cancelada")
+            .WithMessage("Somente os status 'Aprovada' ou 'Cancelada' podem ser definidos manualmente.");
     }
 }
 
@@ -75,10 +70,6 @@ public class AddSolicitacaoDespachanteValidator : AbstractValidator<AddSolicitac
     public AddSolicitacaoDespachanteValidator()
     {
         RuleFor(x => x.DespachanteId).GreaterThan(0).WithMessage("Despachante é obrigatório.");
-
-        RuleFor(x => x.Status)
-            .NotEmpty().WithMessage("Status é obrigatório.")
-            .MaximumLength(60).WithMessage("Status deve ter no máximo 60 caracteres.");
     }
 }
 

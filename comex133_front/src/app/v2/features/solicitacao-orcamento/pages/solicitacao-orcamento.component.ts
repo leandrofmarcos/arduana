@@ -12,8 +12,7 @@ import {
   SolicitacaoOrcamento,
   SolicitacaoOrcamentoDespachante,
   SolicitacaoOrcamentoDocumento,
-  StatusSolicitacao,
-  StatusSolicitacaoDespachante
+  StatusSolicitacao
 } from '../models/solicitacao-orcamento.models';
 import { SolicitacaoOrcamentoService } from '../services/solicitacao-orcamento.service';
 import { OrcamentoVendaService } from '../../orcamento-venda/services/orcamento-venda.service';
@@ -36,7 +35,6 @@ import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.s
 
 interface DespaForm {
   despachanteId: string;
-  status: StatusSolicitacaoDespachante;
   dataEnvio: string;
 }
 
@@ -48,53 +46,27 @@ interface DocForm {
 }
 
 const STATUS_COLORS: Record<StatusSolicitacao, string> = {
-  Rascunho:                    '#6b7280',
-  Aberta:                      '#3b82f6',
-  AguardandoCusto:             '#f59e0b',
+  AguardandoDespachante:       '#f59e0b',
+  AguardandoReabertura:        '#f97316',
   AguardandoOrcamentoVenda:    '#8b5cf6',
   AguardandoAprovacaoCliente:  '#0ea5e9',
-  EmAnalise:                   '#f59e0b',
   Aprovada:                    '#22c55e',
   Cancelada:                   '#ef4444',
-  EmbarquePrevisto:            '#14b8a6',
-  EmbarqueAguardando:          '#0891b2',
-  EmbarqueAtracado:            '#0284c7',
-  EmbarqueRegistrado:          '#2563eb',
-  EmbarqueDesembaraçado:       '#7c3aed',
-  EmbarqueEntregue:            '#16a34a',
-  EmbarqueFinalizado:          '#15803d',
 };
 
 const STATUS_LABELS: Record<StatusSolicitacao, string> = {
-  Rascunho:                    'Rascunho',
-  Aberta:                      'Aberta',
-  AguardandoCusto:             'Aguardando Custo',
+  AguardandoDespachante:       'Aguardando Despachante',
+  AguardandoReabertura:        'Aguardando Reabertura',
   AguardandoOrcamentoVenda:    'Aguardando Orçamento de Venda',
   AguardandoAprovacaoCliente:  'Aguardando Aprovação Cliente',
-  EmAnalise:                   'Em Análise',
   Aprovada:                    'Aprovada',
   Cancelada:                   'Cancelada',
-  EmbarquePrevisto:            'Embarque Previsto',
-  EmbarqueAguardando:          'Embarque Aguardando',
-  EmbarqueAtracado:            'Embarque Atracado',
-  EmbarqueRegistrado:          'Embarque Registrado',
-  EmbarqueDesembaraçado:       'Embarque Desembaraçado',
-  EmbarqueEntregue:            'Embarque Entregue',
-  EmbarqueFinalizado:          'Embarque Finalizado',
-};
-
-const DESP_STATUS_COLORS: Record<StatusSolicitacaoDespachante, string> = {
-  PendenteDespachante:   '#f59e0b',
-  FinalizadoDespachante: '#22c55e',
-  Respondido:            '#22c55e',
-  Recusado:              '#ef4444',
 };
 
 const OV_STATUS_COLORS: Record<string, string> = {
-  AguardandoDespachante:   '#f59e0b',
-  AguardandoOrcamentoVenda:'#8b5cf6',
-  Rascunho:                '#6b7280',
+  EmAndamento:             '#f59e0b',
   Finalizado:              '#22c55e',
+  Cancelado:               '#6b7280',
 };
 
 @Component({
@@ -155,18 +127,12 @@ const OV_STATUS_COLORS: Record<string, string> = {
               placeholder="🔎 Buscar por código, responsável ou porto" />
             <select class="filter-select" [(ngModel)]="filtroStatus" (ngModelChange)="onFiltersChanged()">
               <option value="">Todos os status</option>
-              <option value="Rascunho">Rascunho</option>
-              <option value="Aberta">Aberta</option>
-              <option value="EmAnalise">Em Análise</option>
+              <option value="AguardandoDespachante">Aguardando Despachante</option>
+              <option value="AguardandoReabertura">Aguardando Reabertura</option>
+              <option value="AguardandoOrcamentoVenda">Aguardando Orçamento de Venda</option>
+              <option value="AguardandoAprovacaoCliente">Aguardando Aprovação Cliente</option>
               <option value="Aprovada">Aprovada</option>
               <option value="Cancelada">Cancelada</option>
-              <option value="EmbarquePrevisto">Embarque Previsto</option>
-              <option value="EmbarqueAguardando">Embarque Aguardando</option>
-              <option value="EmbarqueAtracado">Embarque Atracado</option>
-              <option value="EmbarqueRegistrado">Embarque Registrado</option>
-              <option value="EmbarqueDesembaraçado">Embarque Desembaraçado</option>
-              <option value="EmbarqueEntregue">Embarque Entregue</option>
-              <option value="EmbarqueFinalizado">Embarque Finalizado</option>
             </select>
           </div>
 
@@ -317,17 +283,9 @@ const OV_STATUS_COLORS: Record<string, string> = {
               <input type="number" [(ngModel)]="form.peso" min="0" />
             </div>
             <div class="field" *ngIf="editando">
-              <label>Status</label>
-              <select [(ngModel)]="form.status">
-                <option value="Rascunho">Rascunho</option>
-                <option value="Aberta">Aberta</option>
-                <option value="AguardandoCusto">Aguardando Custo Despachante</option>
-                <option value="AguardandoOrcamentoVenda">Aguardando Orçamento de Venda</option>
-                <option value="AguardandoAprovacaoCliente">Aguardando Aprovação Cliente</option>
-                <option value="EmAnalise">Em Análise</option>
-                <option value="Aprovada">Aprovada</option>
-                <option value="Cancelada">Cancelada</option>
-              </select>
+              <label>Status (processo)</label>
+              <input type="text" [value]="statusLabel(form.status)" readonly
+                style="background:var(--color-bg);cursor:default;opacity:.75" />
             </div>
             <div class="field w2">
               <label>Observação</label>
@@ -363,7 +321,6 @@ const OV_STATUS_COLORS: Record<string, string> = {
                 <thead>
                   <tr>
                     <th>Despachante</th>
-                    <th>Status Solicitação</th>
                     <th>Data Envio</th>
                     <th>Custo Gerado</th>
                     <th>Status Custo</th>
@@ -373,11 +330,6 @@ const OV_STATUS_COLORS: Record<string, string> = {
                 <tbody>
                   <tr *ngFor="let d of depachantesForm; let i = index">
                     <td>{{ nomeDespachanteById(d.despachanteId) }}</td>
-                    <td>
-                      <span class="status-badge" [ngStyle]="{ background: despStatusColor(d.status) }">
-                        {{ despStatusLabel(d.status) }}
-                      </span>
-                    </td>
                     <td>{{ d.dataEnvio | date:'dd/MM/yyyy' }}</td>
                     <td>
                       <ng-container *ngIf="custoPorDespachante(d.despachanteId) as custo">
@@ -515,6 +467,8 @@ const OV_STATUS_COLORS: Record<string, string> = {
           <!-- Ações do form -->
           <div class="actions">
             <button class="btn btn-primary" (click)="salvar()">{{ editando ? 'Salvar' : 'Criar' }}</button>
+            <button class="btn" *ngIf="canDecidirSolicitacao()" style="background:#22c55e;color:#fff" (click)="aprovarSolicitacao()">✅ Aprovado Cliente</button>
+            <button class="btn" *ngIf="canDecidirSolicitacao()" style="background:#ef4444;color:#fff" (click)="cancelarSolicitacao()">⛔ Cancelado</button>
             <button class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
           </div>
         </div>
@@ -531,6 +485,8 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   clientes: ClienteV2[] = [];
   importadores: Importador[] = [];
   despachantes: DespachanteV2[] = [];
+  custos: CustoDespachante[] = [];
+  orcamentosVenda: OrcamentoVenda[] = [];
 
   showForm = false;
   editando = false;
@@ -594,6 +550,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     try {
       await this.svc.refresh();
       this.solicitacoes = this.svc.getAll();
+      await this.refreshFluxoData();
       this.portosOrigem = this.portoOrigemSvc.getAll().filter(p => p.ativo);
       this.portosDestino = this.portoDestinoSvc.getAll().filter(p => p.ativo);
       this.clientes = this.clienteSvc.getAll().filter(c => c.ativo);
@@ -607,6 +564,20 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     } finally {
       this.loading = false;
     }
+  }
+
+  private async refreshFluxoData(): Promise<void> {
+    await Promise.all([
+      this.custoDespachanteSvc.refresh(),
+      this.orcVendaSvc.refresh(),
+    ]);
+
+    const [custos, orcamentos] = [
+      this.custoDespachanteSvc.getAll(),
+      this.orcVendaSvc.getAll(),
+    ];
+    this.custos = custos;
+    this.orcamentosVenda = orcamentos;
   }
 
   get filtered(): SolicitacaoOrcamento[] {
@@ -675,7 +646,6 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
       const despas = await this.svc.loadDespachantes(sol.id);
       this.depachantesForm = despas.map(d => ({
         despachanteId: d.despachanteId,
-        status: d.status,
         dataEnvio: d.dataEnvio
       }));
       const docs = await this.svc.loadDocumentos(sol.id);
@@ -720,12 +690,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
 
     try {
       if (this.editando) {
-        const statusAnterior = this.svc.getById(this.form.id)?.status;
         await this.svc.update(this.form);
-        // Quando status transiciona de AguardandoAprovacaoCliente -> Aprovada, gerar EmbarqueAduana
-        if (statusAnterior === 'AguardandoAprovacaoCliente' && this.form.status === 'Aprovada') {
-          try { this._criarEmbarqueParaSolicitacao(); } catch (err) { console.error('Erro ao criar embarque:', err); }
-        }
       } else {
         const criada = await this.svc.create({
           clienteId:       this.form.clienteId,
@@ -736,7 +701,6 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
           tamContainer:    this.form.tamContainer,
           peso:            this.form.peso,
           observacao:      this.form.observacao,
-          status:          'AguardandoCusto',
           data:            this.form.data
         });
         this.form.id = criada.id;
@@ -744,21 +708,29 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
         this.editando = true;
       }
 
-      // Sincronizar despachantes: preserva status atual para nao perder atualizacoes do custo
-      const liveStatuses = new Map<string, StatusSolicitacaoDespachante>();
+      // Sincronizar despachantes por diff (evita remover/recriar vínculos e duplicar custo despachante)
       await this.svc.loadDespachantes(this.form.id);
       const despachantesAtuais = this.svc.getDespachantes(this.form.id);
-      for (const d of despachantesAtuais) {
-        liveStatuses.set(d.despachanteId, d.status);
-        await this.svc.removeDespachante(d.id, d.solicitacaoOrcamentoId);
+
+      const atuaisPorDespachante = new Map(despachantesAtuais.map(d => [d.despachanteId, d]));
+      const formPorDespachante = new Map(this.depachantesForm.map(d => [d.despachanteId, d]));
+
+      // Remove apenas vínculos que saíram do formulário
+      for (const atual of despachantesAtuais) {
+        if (!formPorDespachante.has(atual.despachanteId)) {
+          await this.svc.removeDespachante(atual.id, atual.solicitacaoOrcamentoId);
+        }
       }
+
+      // Adiciona apenas novos vínculos
       for (const d of this.depachantesForm) {
-        await this.svc.addDespachante({
-          solicitacaoOrcamentoId: this.form.id,
-          despachanteId: d.despachanteId,
-          status: liveStatuses.get(d.despachanteId) ?? d.status,
-          dataEnvio: d.dataEnvio
-        });
+        if (!atuaisPorDespachante.has(d.despachanteId)) {
+          await this.svc.addDespachante({
+            solicitacaoOrcamentoId: this.form.id,
+            despachanteId: d.despachanteId,
+            dataEnvio: d.dataEnvio
+          });
+        }
       }
 
       // Sincronizar documentos: remover tudo e recriar
@@ -776,15 +748,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
         });
       }
 
-      // Na criacao, gerar automaticamente custos e orcamento de venda
-      if (eraCriacao) {
-        try {
-          this._gerarCustosEOrcamento();
-        } catch (err) {
-          console.error('Erro ao gerar custos/orcamento:', err);
-          // Continua mesmo com erro na geracao - solicitacao ja foi salva
-        }
-      }
+      // Custos são criados automaticamente no backend ao vincular cada despachante.
 
       await this.carregar();
       this.showForm = false;
@@ -827,7 +791,6 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     if (!this.despaForm.despachanteId) return;
     this.depachantesForm.push({
       despachanteId: this.despaForm.despachanteId,
-      status: 'PendenteDespachante',
       dataEnvio: this.despaForm.dataEnvio
     });
     this.despaForm = this.emptyDespaForm();
@@ -849,6 +812,55 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     this.documentosForm.splice(i, 1);
   }
 
+  canDecidirSolicitacao(): boolean {
+    return this.editando && !this.isDespachante && this.form.status === 'AguardandoAprovacaoCliente';
+  }
+
+  async aprovarSolicitacao(): Promise<void> {
+    if (!this.form?.id) return;
+
+    const ok = await this.confirmDialog.confirm({
+      title: 'Aprovar solicitação',
+      message: 'Confirma a aprovação desta solicitação?',
+      confirmText: 'Aprovar',
+      cancelText: 'Cancelar',
+      danger: false
+    });
+    if (!ok) return;
+
+    try {
+      await this.svc.aprovar(this.form.id);
+      await this._criarEmbarqueParaSolicitacao();
+      await this.carregar();
+      this.form = this.svc.getById(this.form.id) ?? this.form;
+      this.toast.success('Solicitação aprovada com sucesso.');
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao aprovar solicitação.');
+    }
+  }
+
+  async cancelarSolicitacao(): Promise<void> {
+    if (!this.form?.id) return;
+
+    const ok = await this.confirmDialog.confirm({
+      title: 'Cancelar solicitação',
+      message: 'Confirma o cancelamento desta solicitação? Custos e orçamentos vinculados serão cancelados.',
+      confirmText: 'Cancelar solicitação',
+      cancelText: 'Voltar',
+      danger: true
+    });
+    if (!ok) return;
+
+    try {
+      await this.svc.cancelar(this.form.id);
+      await this.carregar();
+      this.form = this.svc.getById(this.form.id) ?? this.form;
+      this.toast.success('Solicitação cancelada com sucesso.');
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao cancelar solicitação.');
+    }
+  }
+
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
@@ -860,16 +872,16 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     }
   }
 
-  // ── Gerar CustoDespachante e Orçamento (chamado automaticamente na criação) ──
+  // ── Gerar CustoDespachante (chamado automaticamente na criação) ──
 
-  private _gerarCustosEOrcamento(): void {
+  private async _gerarCustos(): Promise<void> {
     const today = new Date().toISOString().slice(0, 10);
-    this.depachantesForm.forEach(d => {
-      const jaExiste = this.custoDespachanteSvc.getAll().some(
-        c => c.solicitacaoOrcamentoId === this.form.id && c.despachanteId === d.despachanteId
+    for (const d of this.depachantesForm) {
+      const jaExiste = this.custos.some(
+        (c: CustoDespachante) => c.solicitacaoOrcamentoId === this.form.id && c.despachanteId === d.despachanteId
       );
       if (!jaExiste) {
-        this.custoDespachanteSvc.create({
+        const created = await this.custoDespachanteSvc.create({
           despachanteId:          d.despachanteId,
           importadorId:           this.form.importadorId ?? '',
           portoOrigemId:          this.form.portoOrigemId,
@@ -886,33 +898,15 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
           data:                   today,
           observacao:             this.form.observacao,
           solicitacaoOrcamentoId: this.form.id,
-          status:                 'AguardandoCusto'
         });
+        this.custos.push(created);
       }
-    });
-
-    // Auto-criar Orçamento de Venda com status AguardandoDespachante
-    if (this.orcVendaSvc.getBySolicitacao(this.form.id).length === 0) {
-      this.orcVendaSvc.create({
-        clienteId:              this.form.clienteId ?? '',
-        solicitacaoOrcamentoId: this.form.id,
-        data:                   today,
-        tamContainer:           this.form.tamContainer,
-        pesoBruto:              this.form.peso,
-        pesoLiquido:            0,
-        freteInternacional:     0,
-        cifReais:               0, cifUsd:       0,
-        fobReais:               0, fobUsd:       0,
-        taxaUsd:                0, honorarios:   0,
-        totalImpostos:          0, totalDespesas: 0, totalExtras: 0, totalGeral: 0,
-        status:                 'AguardandoDespachante'
-      });
     }
   }
 
   orcDaSolicitacao(): OrcamentoVenda | undefined {
     if (!this.form?.id) return undefined;
-    return this.orcVendaSvc.getBySolicitacao(this.form.id)[0];
+    return this.orcamentosVenda.find(o => o.solicitacaoOrcamentoId === this.form.id);
   }
 
   ovStatusColor(status?: string): string {
@@ -921,18 +915,17 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
 
   ovStatusLabel(status?: string): string {
     const map: Record<string, string> = {
-      AguardandoDespachante:   'Aguardando Despachante',
-      AguardandoOrcamentoVenda:'Aguardando Orçamento de Venda',
-      Rascunho:                'Rascunho',
+      EmAndamento:             'Em Andamento',
       Finalizado:              'Finalizado',
+      Cancelado:               'Cancelado',
     };
     return map[status ?? ''] ?? (status ?? '—');
   }
 
   custoPorDespachante(despachanteId: string): CustoDespachante | undefined {
     if (!this.form?.id) return undefined;
-    return this.custoDespachanteSvc.getAll().find(
-      c => c.solicitacaoOrcamentoId === this.form.id && c.despachanteId === despachanteId
+    return this.custos.find(
+      (c: CustoDespachante) => c.solicitacaoOrcamentoId === this.form.id && c.despachanteId === despachanteId
     );
   }
 
@@ -955,13 +948,13 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   }
 
   contarCustosFinalizados(solId: string): number {
-    return this.custoDespachanteSvc.getAll().filter(
-      c => c.solicitacaoOrcamentoId === solId && c.status === 'Finalizado'
+    return this.custos.filter(
+      (c: CustoDespachante) => c.solicitacaoOrcamentoId === solId && c.status === 'Finalizado'
     ).length;
   }
 
   orcamentoPorSolicitacao(solId: string): OrcamentoVenda | undefined {
-    return this.orcVendaSvc.getBySolicitacao(solId)[0];
+    return this.orcamentosVenda.find(o => o.solicitacaoOrcamentoId === solId);
   }
 
   abrirOrcamento(ovId: string): void {
@@ -976,19 +969,9 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     return STATUS_LABELS[status] ?? status;
   }
 
-  despStatusColor(status: StatusSolicitacaoDespachante): string {
-    return DESP_STATUS_COLORS[status] ?? '#6b7280';
-  }
+  despStatusColor(_status: string): string { return ''; }
 
-  despStatusLabel(status: StatusSolicitacaoDespachante): string {
-    const map: Record<StatusSolicitacaoDespachante, string> = {
-      PendenteDespachante:   'Pendente Despachante',
-      FinalizadoDespachante: 'Finalizado Despachante',
-      Respondido:            'Respondido',
-      Recusado:              'Recusado',
-    };
-    return map[status] ?? status;
-  }
+  despStatusLabel(_status: string): string { return ''; }
 
   truncateLink(link: string): string {
     return link.length > 40 ? link.slice(0, 40) + '...' : link;
@@ -996,7 +979,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
 
   // ── Criar EmbarqueAduana ao aprovar solicitação ──────────────────────
 
-  private _criarEmbarqueParaSolicitacao(): void {
+  private async _criarEmbarqueParaSolicitacao(): Promise<void> {
     // Evitar duplicatas
     const jaExiste = this.embarqueSvc.getAll().some(
       e => e.solicitacaoOrcamentoId === this.form.id
@@ -1004,20 +987,16 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     if (jaExiste) return;
 
     // OrcamentoVenda vinculado
-    const ov = this.orcVendaSvc.getBySolicitacao(this.form.id)[0];
+    const ov = this.orcamentosVenda.find(o => o.solicitacaoOrcamentoId === this.form.id);
 
     // Despachante: preferir o do custo selecionado no OrcamentoVenda
     let despachanteId = '';
     let custoDespachanteId: string | undefined = undefined;
-    if (ov) {
-      const orcCustos = this.orcVendaSvc.getOrcCustos(ov.id);
-      if (orcCustos.length > 0) {
-        const custo = this.custoDespachanteSvc.getById(orcCustos[0].custoDespachanteId);
-        if (custo) {
-          despachanteId = custo.despachanteId;
-          custoDespachanteId = custo.id;
-        }
-      }
+    const custosDaSolicitacao = this.custos.filter(c => c.solicitacaoOrcamentoId === this.form.id);
+    const custo = custosDaSolicitacao.find(c => c.status === 'Finalizado') ?? custosDaSolicitacao[0];
+    if (custo) {
+      despachanteId = custo.despachanteId;
+      custoDespachanteId = custo.id;
     }
     // Fallback: primeiro despachante da solicitação
     if (!despachanteId) {
@@ -1073,7 +1052,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
       tamContainer: '40',
       peso: 0,
       observacao: '',
-      status: 'Rascunho',
+      status: 'AguardandoDespachante',
       data: today
     };
   }
@@ -1081,7 +1060,6 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   private emptyDespaForm(): DespaForm {
     return {
       despachanteId: '',
-      status: 'PendenteDespachante',
       dataEnvio: new Date().toISOString().slice(0, 10)
     };
   }

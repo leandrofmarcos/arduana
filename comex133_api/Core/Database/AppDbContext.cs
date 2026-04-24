@@ -41,6 +41,17 @@ public class AppDbContext : DbContext
     public DbSet<SolicitacaoOrcamentoDespachante> SolicitacoesOrcamentoDespachantes => Set<SolicitacaoOrcamentoDespachante>();
     public DbSet<SolicitacaoOrcamentoDocumento> SolicitacoesOrcamentoDocumentos => Set<SolicitacaoOrcamentoDocumento>();
 
+    // Phase OP — Fluxo operacional (CustoDespachante + OrcamentoVenda)
+    public DbSet<CustoDespachante>       CustosDespachante         => Set<CustoDespachante>();
+    public DbSet<CustoDespachanteLi>     CustosDespachantelis      => Set<CustoDespachanteLi>();
+    public DbSet<CustoDespachanteDespesa> CustosDepesas             => Set<CustoDespachanteDespesa>();
+    public DbSet<NcmVinculadoCusto>      NcmsVinculadosCusto       => Set<NcmVinculadoCusto>();
+    public DbSet<ValorImpostoCusto>      ValoresImpostoCusto        => Set<ValorImpostoCusto>();
+    public DbSet<OrcamentoVenda>         OrcamentosVenda            => Set<OrcamentoVenda>();
+    public DbSet<OrcamentoVendaDespesa>  OrcamentosVendaDespesas    => Set<OrcamentoVendaDespesa>();
+    public DbSet<OrcamentoVendaDespesaExtra> OrcamentosVendaExtras  => Set<OrcamentoVendaDespesaExtra>();
+    public DbSet<OrcamentoVendaCusto>    OrcamentosVendaCustos      => Set<OrcamentoVendaCusto>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -210,6 +221,128 @@ public class AppDbContext : DbContext
                   .HasForeignKey(v => v.NavioTrajetoId)
                   .OnDelete(DeleteBehavior.SetNull);
         });
+
+        // Phase OP — CustoDespachante
+        modelBuilder.Entity<CustoDespachante>(entity =>
+        {
+            entity.HasIndex(x => x.CodigoInterno).IsUnique();
+            entity.HasIndex(x => x.Status);
+
+            entity.HasOne(x => x.SolicitacaoOrcamento)
+                  .WithMany()
+                  .HasForeignKey(x => x.SolicitacaoOrcamentoId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Despachante)
+                  .WithMany()
+                  .HasForeignKey(x => x.DespachanteId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Importador)
+                  .WithMany()
+                  .HasForeignKey(x => x.ImportadorId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.PortoOrigem)
+                  .WithMany()
+                  .HasForeignKey(x => x.PortoOrigemId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.PortoDestino)
+                  .WithMany()
+                  .HasForeignKey(x => x.PortoDestinoId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Self-referencing FK for versioning
+            entity.HasOne(x => x.VersaoAnterior)
+                  .WithMany()
+                  .HasForeignKey(x => x.VersaoAnteriorId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CustoDespachanteLi>(entity =>
+        {
+            entity.HasOne(x => x.CustoDespachante)
+                  .WithMany(x => x.Lis)
+                  .HasForeignKey(x => x.CustoDespachanteId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CustoDespachanteDespesa>(entity =>
+        {
+            entity.HasOne(x => x.CustoDespachante)
+                  .WithMany(x => x.Despesas)
+                  .HasForeignKey(x => x.CustoDespachanteId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<NcmVinculadoCusto>(entity =>
+        {
+            entity.HasOne(x => x.CustoDespachante)
+                  .WithMany(x => x.Ncms)
+                  .HasForeignKey(x => x.CustoDespachanteId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Ncm)
+                  .WithMany()
+                  .HasForeignKey(x => x.NcmId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ValorImpostoCusto>(entity =>
+        {
+            entity.HasOne(x => x.NcmVinculadoCusto)
+                  .WithMany(x => x.ValoresImposto)
+                  .HasForeignKey(x => x.NcmVinculadoCustoId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Phase OP — OrcamentoVenda
+        modelBuilder.Entity<OrcamentoVenda>(entity =>
+        {
+            entity.HasIndex(x => x.CodigoInterno).IsUnique();
+
+            entity.HasOne(x => x.Cliente)
+                  .WithMany()
+                  .HasForeignKey(x => x.ClienteId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.SolicitacaoOrcamento)
+                  .WithMany()
+                  .HasForeignKey(x => x.SolicitacaoOrcamentoId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<OrcamentoVendaDespesa>(entity =>
+        {
+            entity.HasOne(x => x.OrcamentoVenda)
+                  .WithMany(x => x.Despesas)
+                  .HasForeignKey(x => x.OrcamentoVendaId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrcamentoVendaDespesaExtra>(entity =>
+        {
+            entity.HasOne(x => x.OrcamentoVenda)
+                  .WithMany(x => x.Extras)
+                  .HasForeignKey(x => x.OrcamentoVendaId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrcamentoVendaCusto>(entity =>
+        {
+            entity.HasIndex(x => new { x.OrcamentoVendaId, x.CustoDespachanteId }).IsUnique();
+
+            entity.HasOne(x => x.OrcamentoVenda)
+                  .WithMany(x => x.Custos)
+                  .HasForeignKey(x => x.OrcamentoVendaId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.CustoDespachante)
+                  .WithMany()
+                  .HasForeignKey(x => x.CustoDespachanteId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 
     public override int SaveChanges()
@@ -282,6 +415,17 @@ public class AppDbContext : DbContext
         SetTimestamps<SolicitacaoOrcamentoDocumento>(now);
         SetTimestamps<ControleNavio>(now);
         SetTimestamps<ControleNavioTrajeto>(now);
+
+        // Phase OP
+        SetTimestamps<CustoDespachante>(now);
+        SetTimestamps<CustoDespachanteLi>(now);
+        SetTimestamps<CustoDespachanteDespesa>(now);
+        SetTimestamps<NcmVinculadoCusto>(now);
+        SetTimestamps<ValorImpostoCusto>(now);
+        SetTimestamps<OrcamentoVenda>(now);
+        SetTimestamps<OrcamentoVendaDespesa>(now);
+        SetTimestamps<OrcamentoVendaDespesaExtra>(now);
+        SetTimestamps<OrcamentoVendaCusto>(now);
 
         foreach (var entry in ChangeTracker.Entries<ModeloDespesaItem>()
             .Where(e => e.State == EntityState.Added))

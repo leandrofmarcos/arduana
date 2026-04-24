@@ -19,7 +19,7 @@ import { ModeloDespesaService } from '../../cadastros/modelos-despesa/services/m
 import { DespesaCadastroService } from '../../cadastros/despesas-cadastro/services/despesa-cadastro.service';
 import { SolicitacaoOrcamentoService } from '../../solicitacao-orcamento/services/solicitacao-orcamento.service';
 import { SolicitacaoOrcamento } from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
-import { OrcamentoVendaService } from '../../orcamento-venda/services/orcamento-venda.service';
+
 import { DespachanteV2 } from '../../cadastros/despachantes/models/despachante-v2.models';
 import { Importador } from '../../cadastros/importadores/models/importador.models';
 import { PortoOrigem } from '../../cadastros/portos-origem/models/porto-origem.models';
@@ -107,6 +107,33 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
     .packlist-obs { font-size: 12px; color: var(--color-text-muted); flex: 1; }
     .packlist-date { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; }
     .status-custo-badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:11px; font-weight:700; color:#fff; }
+    .version-tree-row.historical { background: linear-gradient(90deg, #f8fafc 0%, rgba(248, 250, 252, 0) 58%); }
+    .version-tree-row td:first-child { overflow: visible; }
+    .version-tree {
+      --level: 0;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding-left: calc(var(--level) * 18px + 6px);
+    }
+    .version-tree.node-root { padding-left: 6px; }
+    .version-branch {
+      display: none;
+    }
+    .version-node-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #f59e0b;
+      border: 1px solid #d97706;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px #ffffff;
+    }
+    .version-node-dot.current {
+      background: #22c55e;
+      border-color: #16a34a;
+    }
     /* Resumo consolidado */
     .resumo-section { margin-bottom:20px; }
     .resumo-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--color-text-muted); margin:0 0 10px; padding-bottom:6px; border-bottom:1.5px solid var(--color-border); display:flex; align-items:center; gap:6px; }
@@ -183,6 +210,10 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
           <div class="toolbar">
             <input class="search" type="text" [(ngModel)]="q"
               placeholder="🔎 Buscar por código, despachante ou importador" />
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-muted)">
+              <input type="checkbox" [(ngModel)]="showHistoricoVersoes" (ngModelChange)="syncCustosView()" />
+              Mostrar versões anteriores
+            </label>
           </div>
           <table class="data-table">
             <thead>
@@ -202,23 +233,44 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               <tr *ngIf="filtered.length === 0">
                 <td colspan="9" class="empty-state">Nenhum custo cadastrado</td>
               </tr>
-              <tr *ngFor="let c of filtered">
-                <td><span class="cod-badge">{{ c.codigoInterno }}</span></td>
+              <tr *ngFor="let c of filtered" class="version-tree-row" [class.historical]="showHistoricoVersoes && !isCurrentVersion(c.id)">
+                <td>
+                  <div class="version-tree" [style.--level]="versionLevel(c.id, c.versao)" [class.node-root]="versionLevel(c.id, c.versao) === 0">
+                    <span class="version-branch"
+                      [class.root]="isVersionRoot(c.id, c.versao)"
+                      [class.leaf]="isVersionLeaf(c.versao)"
+                      [class.single]="versionCount(c.id) <= 1"></span>
+                    <span class="version-node-dot" [class.current]="isCurrentVersion(c.id)"></span>
+                    <span class="cod-badge">{{ c.codigoInterno }}</span>
+                  </div>
+                  <span class="badge" style="margin-left:6px">v{{ c.versao }}</span>
+                  <span *ngIf="isCurrentVersion(c.id)" class="badge" style="margin-left:6px;background:#dcfce7;color:#166534;border-color:#86efac">corrente</span>
+                  <span *ngIf="versionCount(c.id) > 1" class="badge" style="margin-left:6px;background:#eff6ff;color:#1d4ed8;border-color:#93c5fd">{{ versionCount(c.id) }} versões</span>
+                </td>
                 <td>{{ nomeDespachanteById(c.despachanteId) }}</td>
                 <td>{{ nomeImportadorById(c.importadorId) }}</td>
                 <td><span *ngIf="c.solicitacaoOrcamentoId" class="sol-badge">{{ codSolById(c.solicitacaoOrcamentoId) }}</span><span *ngIf="!c.solicitacaoOrcamentoId" style="color:var(--color-text-muted);font-size:12px">—</span></td>
                 <td><span class="badge">{{ c.tamContainer }}</span></td>
                 <td>{{ c.data | date:'dd/MM/yyyy' }}</td>
                 <td>
-                  <span class="status-custo-badge" [ngStyle]="{ background: c.status === 'Finalizado' ? '#22c55e' : c.status === 'Rascunho' ? '#64748b' : '#f59e0b' }">
-                    {{ c.status === 'Finalizado' ? 'Finalizado' : c.status === 'Rascunho' ? 'Rascunho' : 'Aguardando Custo' }}
+                  <span class="status-custo-badge" [ngStyle]="{ background: c.status === 'Finalizado' ? '#22c55e' : c.status === 'Pendente' ? '#64748b' : c.status === 'CanceladoPeloOV' ? '#6b7280' : '#f59e0b' }">
+                    {{ c.status === 'Finalizado' ? 'Finalizado' : c.status === 'Pendente' ? 'Pendente' : c.status === 'CanceladoPeloOV' ? 'Cancelado pelo OV' : c.status === 'ReabertoPeloOV' ? 'Reaberto pelo OV' : 'Em Andamento' }}
                   </span>
                 </td>
                 <td>{{ totalImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</td>
                 <td>
                   <div class="row-actions">
-                    <button class="btn-icon" title="Editar" (click)="openWizard(c)">✏️</button>
-                    <button class="btn-icon danger" title="Excluir" (click)="remove(c.id)">🗑️</button>
+                    <button class="btn-icon" [title]="isCustoEditavel(c) ? 'Editar' : 'Somente visualização'" (click)="openWizard(c)">{{ isCustoEditavel(c) ? '✏️' : '👁️' }}</button>
+                    <button
+                      class="btn-icon warning"
+                      *ngIf="canReabrir(c)"
+                      title="Reabrir custo para edição"
+                      (click)="reabrir(c.id)">🔓</button>
+                    <button
+                      class="btn-icon danger"
+                      [disabled]="!canDelete(c)"
+                      [title]="canDelete(c) ? 'Excluir' : 'Custos finalizados não podem ser excluídos'"
+                      (click)="remove(c.id)">🗑️</button>
                   </div>
                 </td>
               </tr>
@@ -230,7 +282,10 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
       <!-- ── WIZARD ── -->
       <ng-container *ngIf="showWizard">
         <div class="detail-header">
-          <h2>{{ editing ? 'Editar Custo — ' + editing.codigoInterno : 'Novo Custo Despachante' }}</h2>
+          <h2>{{ editing ? (modoVisualizacao ? 'Visualizar Custo — ' : 'Editar Custo — ') + editing.codigoInterno : 'Novo Custo Despachante' }}</h2>
+        </div>
+        <div *ngIf="modoVisualizacao" style="margin:-4px 0 12px;padding:10px 12px;border-radius:10px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;font-size:12px;font-weight:700">
+          VERSAO HISTORICA - SOMENTE LEITURA
         </div>
 
         <!-- Steps indicator -->
@@ -346,7 +401,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
 
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('AguardandoCusto')">💾 Salvar</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
             <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -431,7 +486,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
 
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('AguardandoCusto')">💾 Salvar</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
             <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
@@ -554,7 +609,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
 
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('AguardandoCusto')">💾 Salvar</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
             <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
@@ -643,7 +698,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
 
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('AguardandoCusto')">💾 Salvar</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
             <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
@@ -659,7 +714,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               <h3 style="margin:0 0 4px;font-size:16px;font-weight:800">📋 Resumo Consolidado</h3>
               <p style="margin:0;font-size:12px;color:var(--color-text-muted)">Visão completa de todos os dados do custo despachante</p>
             </div>
-            <span class="status-custo-badge" [ngStyle]="{ background: wizardStatus === 'Finalizado' ? '#22c55e' : wizardStatus === 'Rascunho' ? '#64748b' : '#f59e0b' }">{{ wizardStatus === 'Finalizado' ? 'Finalizado' : wizardStatus === 'Rascunho' ? 'Rascunho' : 'Aguardando Custo' }}</span>
+            <span class="status-custo-badge" [ngStyle]="{ background: wizardStatus === 'Finalizado' ? '#22c55e' : wizardStatus === 'Pendente' ? '#64748b' : wizardStatus === 'CanceladoPeloOV' ? '#6b7280' : '#f59e0b' }">{{ wizardStatus === 'Finalizado' ? 'Finalizado' : wizardStatus === 'Pendente' ? 'Pendente' : wizardStatus === 'CanceladoPeloOV' ? 'Cancelado pelo OV' : wizardStatus === 'ReabertoPeloOV' ? 'Reaberto pelo OV' : 'Em Andamento' }}</span>
           </div>
 
           <!-- Solicitação vinculada -->
@@ -914,9 +969,9 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
           </ng-container>
 
           <div class="actions" style="margin-top:24px">
-            <button class="btn btn-secondary" (click)="salvarTudo('AguardandoCusto')">💾 Salvar</button>
-            <button class="btn btn-primary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
-            <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
+            <button class="btn btn-secondary" *ngIf="!modoVisualizacao" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
+            <button class="btn btn-primary" *ngIf="!modoVisualizacao" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
+            <button class="btn btn-secondary" *ngIf="!modoVisualizacao" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-outline" (click)="openPreview()">👁 Preview</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -950,8 +1005,10 @@ export class CustoDespachanteComponent implements OnInit {
   // ── List ──────────────────────────────────────────────────────────────
   custos: CustoDespachante[] = [];
   q = '';
+  showHistoricoVersoes = false;
   showWizard = false;
   editing: CustoDespachante | null = null;
+  modoVisualizacao = false;
 
   // ── Lookup data ───────────────────────────────────────────────────────
   despachantes: DespachanteV2[] = [];
@@ -971,7 +1028,7 @@ export class CustoDespachanteComponent implements OnInit {
   step = 1;
   completedSteps = new Set<number>();
   showErr = false;
-  wizardStatus: StatusCustoDespachante = 'AguardandoCusto';
+  wizardStatus: StatusCustoDespachante = 'Pendente';
   apiFieldErrors: Record<string, string[]> = {};
 
   p1 = {
@@ -1012,21 +1069,27 @@ export class CustoDespachanteComponent implements OnInit {
     private modeloSvc: ModeloDespesaService,
     private despesaCadastroSvc: DespesaCadastroService,
     private solicitacaoSvc: SolicitacaoOrcamentoService,
-    private orcVendaSvc: OrcamentoVendaService,
     private route: ActivatedRoute,
     private toast: ToastService,
     private confirmDialog: ConfirmDialogService,) {}
 
   private todayStr(): string { return new Date().toISOString().slice(0, 10); }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     this.despachantes  = this.despachanteSvc.getAtivos();
     this.importadores  = this.importadorSvc.getAtivos();
     this.portosOrigem  = this.portoOrigemSvc.getAtivos();
     this.portosDestino = this.portoDestinoSvc.getAtivos();
     this.ncms          = this.ncmSvc.getAtivos();
     this.modelos       = this.modeloSvc.getAll().filter(m => m.ativo);
-    this.load();
+    await this.load();
+    // Reload catalogs after main data load (async catalog services have had time to populate)
+    this.despachantes  = this.despachanteSvc.getAtivos();
+    this.importadores  = this.importadorSvc.getAtivos();
+    this.portosOrigem  = this.portoOrigemSvc.getAtivos();
+    this.portosDestino = this.portoDestinoSvc.getAtivos();
+    this.ncms          = this.ncmSvc.getAtivos();
+    this.modelos       = this.modeloSvc.getAll().filter(m => m.ativo);
     // Pré-preencher wizard se vier de uma Solicitação de Orçamento
     const qp = this.route.snapshot.queryParams;
     if (qp['solicitacaoId']) {
@@ -1041,7 +1104,16 @@ export class CustoDespachanteComponent implements OnInit {
     }
   }
 
-  load(): void { this.custos = this.service.getAll(); }
+  async load(): Promise<void> {
+    await this.service.refresh();
+    this.syncCustosView();
+  }
+
+  syncCustosView(): void {
+    this.custos = this.showHistoricoVersoes
+      ? this.service.getAll()
+      : this.service.getAllCurrent();
+  }
 
   get filtered(): CustoDespachante[] {
     if (!this.q) return this.custos;
@@ -1092,15 +1164,20 @@ export class CustoDespachanteComponent implements OnInit {
   // ── Wizard navigation ─────────────────────────────────────────────────
 
   nextStep(): void {
+    if (this.modoVisualizacao) return;
     if (this.step === 1 && !this.validateP1()) return;
     this.showErr = false;
     this.completedSteps.add(this.step);
     this.step++;
   }
 
-  prevStep(): void { this.step--; }
+  prevStep(): void {
+    if (this.modoVisualizacao) return;
+    this.step--;
+  }
 
   goToStep(target: number): void {
+    if (this.modoVisualizacao) return;
     if (target === this.step) return;
     this.showErr = false;
     this.step = target;
@@ -1223,6 +1300,7 @@ export class CustoDespachanteComponent implements OnInit {
   // ── CRUD ──────────────────────────────────────────────────────────────
 
   openWizard(item?: CustoDespachante): void {
+    this.modoVisualizacao = false;
     this.editing = item ?? null;
     this.step = 1;
     this.completedSteps = new Set<number>();
@@ -1235,7 +1313,7 @@ export class CustoDespachanteComponent implements OnInit {
     this.cancelEditDespesa();
 
     if (item) {
-      this.wizardStatus = item.status ?? 'Rascunho';
+      this.wizardStatus = item.status ?? 'Pendente';
       this.p1 = {
         despachanteId: item.despachanteId,
         importadorId:  item.importadorId,
@@ -1272,7 +1350,7 @@ export class CustoDespachanteComponent implements OnInit {
       if (this.despesasForm.length > 0) this.completedSteps.add(3);
       if (this.ncvsForm.length > 0) this.completedSteps.add(4);
     } else {
-      this.wizardStatus = 'AguardandoCusto';
+      this.wizardStatus = 'Pendente';
       this.p1 = {
         despachanteId: '', importadorId: '', portoOrigemId: '', portoDestinoId: '',
         responsavel: '', data: this.todayStr(), tamContainer: '40', peso: 0,
@@ -1284,47 +1362,77 @@ export class CustoDespachanteComponent implements OnInit {
       this.despesasForm = [];
       this.ncvsForm = [];
     }
+
+    if (item && !this.isCustoEditavel(item)) {
+      this.modoVisualizacao = true;
+      this.step = 5;
+      this.completedSteps = new Set<number>([1, 2, 3, 4, 5]);
+    }
+
     this.liForm = { ncm: '', descricao: '', valor: 0, data: this.todayStr() };
     this.despesaForm = { descricao: '', valor: 0, data: this.todayStr(), entraBaseIcms: false };
     this.ncvForm = { ncmId: '', numeroNcm: '', descricao: '', aliIi: 0, aliIpi: 0, aliPis: 0, aliCofins: 0, aliIcms: 0, baseCalculo: 0 };
     this.showWizard = true;
   }
 
-  cancelWizard(): void { this.showWizard = false; this.editing = null; this.apiFieldErrors = {}; }
+  cancelWizard(): void { this.showWizard = false; this.editing = null; this.modoVisualizacao = false; this.apiFieldErrors = {}; }
 
-  salvarTudo(status: StatusCustoDespachante = 'AguardandoCusto'): void {
+  async salvarTudo(status: StatusCustoDespachante = 'EmAndamento'): Promise<void> {
+    if (this.modoVisualizacao) {
+      this.toast.info('Este custo está em modo somente leitura.');
+      return;
+    }
+
     const eraEdicao = !!this.editing;
     this.apiFieldErrors = {};
     if (!this.validateP1()) return;
-    const data = {
-      despachanteId:  this.p1.despachanteId,
-      importadorId:   this.p1.importadorId,
-      portoOrigemId:  this.p1.portoOrigemId,
-      portoDestinoId: this.p1.portoDestinoId,
-      responsavel:    this.p1.responsavel.trim(),
-      data:           this.p1.data,
-      tamContainer:   this.p1.tamContainer,
-      peso:           this.p1.peso || 0,
-      fobUsd:         this.p1.fobUsd || 0,
-      fobReais:       this.p1.fobReais || 0,
-      cifUsd:         this.p1.cifUsd || 0,
-      cifReais:       this.p1.cifReais || 0,
-      seguroUsd:      this.p1.seguroUsd || 0,
-      taxaUsd:        this.p1.taxaUsd || 0,
-      taxaUsdAgente:  this.p1.taxaUsdAgente,
-      observacao:     this.p1.observacao.trim() || undefined,
-      solicitacaoOrcamentoId: this.p1.solicitacaoOrcamentoId || undefined,
-      status
-    };
+
+    const today = new Date().toISOString().split('T')[0];
 
     let custoId: string;
+    let saved: CustoDespachante;
     try {
       if (this.editing) {
-        this.service.update({ ...this.editing, ...data });
+        saved = await this.service.update({
+          ...this.editing,
+          importadorId:   this.p1.importadorId,
+          portoOrigemId:  this.p1.portoOrigemId,
+          portoDestinoId: this.p1.portoDestinoId,
+          responsavel:    this.p1.responsavel.trim(),
+          data:           this.p1.data,
+          tamContainer:   this.p1.tamContainer,
+          peso:           this.p1.peso || 0,
+          fobUsd:         this.p1.fobUsd || 0,
+          fobReais:       this.p1.fobReais || 0,
+          cifUsd:         this.p1.cifUsd || 0,
+          cifReais:       this.p1.cifReais || 0,
+          seguroUsd:      this.p1.seguroUsd || 0,
+          taxaUsd:        this.p1.taxaUsd || 0,
+          taxaUsdAgente:  this.p1.taxaUsdAgente,
+          observacao:     this.p1.observacao.trim() || undefined,
+        });
         custoId = this.editing.id;
       } else {
-        const created = this.service.create(data);
-        custoId = created.id;
+        saved = await this.service.create({
+          despachanteId:          this.p1.despachanteId,
+          importadorId:           this.p1.importadorId,
+          portoOrigemId:          this.p1.portoOrigemId,
+          portoDestinoId:         this.p1.portoDestinoId,
+          responsavel:            this.p1.responsavel.trim(),
+          data:                   this.p1.data,
+          tamContainer:           this.p1.tamContainer,
+          peso:                   this.p1.peso || 0,
+          fobUsd:                 this.p1.fobUsd || 0,
+          fobReais:               this.p1.fobReais || 0,
+          cifUsd:                 this.p1.cifUsd || 0,
+          cifReais:               this.p1.cifReais || 0,
+          seguroUsd:              this.p1.seguroUsd || 0,
+          taxaUsd:                this.p1.taxaUsd || 0,
+          taxaUsdAgente:          this.p1.taxaUsdAgente,
+          observacao:             this.p1.observacao.trim() || undefined,
+          solicitacaoOrcamentoId: this.p1.solicitacaoOrcamentoId || undefined,
+        });
+        custoId = saved.id;
       }
     } catch (err: any) {
       this.apiFieldErrors = this.collectFieldErrors(err);
@@ -1334,69 +1442,55 @@ export class CustoDespachanteComponent implements OnInit {
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    try {
+      // Salva LIs, Despesas e NCMs (antes de finalizar, pois finalizar torna imutável)
+      await this.service.replaceLis(custoId, this.lisForm.map(li => ({
+        ncm: li.ncm, descricao: li.descricao, valor: li.valor, data: li.data || today
+      })));
 
-    // Salva LIs
-    this.service.replaceLis(custoId, this.lisForm.map(li => ({
-      ncm: li.ncm, descricao: li.descricao, valor: li.valor, data: li.data || today
-    })));
+      await this.service.replaceDespesas(custoId, this.despesasForm.map(d => ({
+        descricao: d.descricao, valor: d.valor, data: d.data || today, entraBaseIcms: d.entraBaseIcms
+      })));
 
-    // Salva Despesas
-    this.service.replaceDespesas(custoId, this.despesasForm.map(d => ({
-      descricao: d.descricao, valor: d.valor, data: d.data || today, entraBaseIcms: d.entraBaseIcms
-    })));
+      const ncvsSalvos = await this.service.replaceNcmsVinculados(custoId, this.ncvsForm.map(nv => ({
+        ncmId: nv.ncmId, numeroNcm: nv.numeroNcm, descricao: nv.descricao,
+        aliIi: nv.aliIi, aliIpi: nv.aliIpi, aliPis: nv.aliPis, aliCofins: nv.aliCofins,
+        aliIcms: nv.aliIcms, baseCalculo: nv.baseCalculo
+      })));
 
-    // Salva NCMs vinculados + calcula impostos
-    const ncvsSalvos = this.service.replaceNcmsVinculados(custoId, this.ncvsForm.map(nv => ({
-      ncmId: nv.ncmId, numeroNcm: nv.numeroNcm, descricao: nv.descricao,
-      aliIi: nv.aliIi, aliIpi: nv.aliIpi, aliPis: nv.aliPis, aliCofins: nv.aliCofins,
-      aliIcms: nv.aliIcms, baseCalculo: nv.baseCalculo
-    })));
-
-    ncvsSalvos.forEach(nv => {
-      const valor = this.calculator.calcularImpostos(nv);
-      this.service.saveValorImposto(valor);
-    });
-
-    this.wizardStatus = status;
-    // Mark all steps complete when saving
-    for (let i = 1; i <= 5; i++) this.completedSteps.add(i);
-
-    // Se finalizado e vinculado a uma solicitação, atualiza status do despachante
-    if (status === 'Finalizado' && this.p1.solicitacaoOrcamentoId) {
-      const solId = this.p1.solicitacaoOrcamentoId;
-      const despachantes = this.solicitacaoSvc.getDespachantes(solId);
-      const linked = despachantes.find(d => d.despachanteId === this.p1.despachanteId);
-      if (linked && linked.status !== 'FinalizadoDespachante') {
-        this.solicitacaoSvc.updateDespachante({ ...linked, status: 'FinalizadoDespachante' });
+      for (const nv of ncvsSalvos) {
+        const valor = this.calculator.calcularImpostos(nv);
+        await this.service.saveValorImposto(custoId, nv.id, valor);
       }
 
-      // Verifica se TODOS os despachantes da solicitação estão finalizados
-      const refreshed = this.solicitacaoSvc.getDespachantes(solId);
-      const todosFinalizados = refreshed.length > 0 &&
-        refreshed.every(d => d.status === 'FinalizadoDespachante');
+      // Transição de status
+      if (status === 'EmAndamento' && saved.status === 'Pendente') {
+        await this.service.iniciar(custoId);
+      } else if (status === 'Finalizado') {
+        let statusAtual = saved.status;
 
-      if (todosFinalizados) {
-        // Atualiza status da solicitação
-        const sol = this.solicitacaoSvc.getById(solId);
-        if (sol && sol.status !== 'AguardandoOrcamentoVenda') {
-          this.solicitacaoSvc.update({ ...sol, status: 'AguardandoOrcamentoVenda' });
+        if (statusAtual === 'Pendente') {
+          await this.service.iniciar(custoId);
+          statusAtual = 'EmAndamento';
         }
-        // Atualiza status do Orçamento de Venda vinculado
-        const ovs = this.orcVendaSvc.getBySolicitacao(solId);
-        ovs.forEach(ov => {
-          if (ov.status !== 'AguardandoOrcamentoVenda') {
-            this.orcVendaSvc.update({ ...ov, status: 'AguardandoOrcamentoVenda' });
-          }
-        });
-      }
-    }
 
-    this.cancelWizard();
-    this.load();
-    this.toast.success(status === 'Finalizado'
-      ? 'Custo finalizado com sucesso.'
-      : (eraEdicao ? 'Custo atualizado com sucesso.' : 'Custo criado com sucesso.'));
+        // Aceita Finalizar a partir de EmAndamento ou ReabertoPeloOV
+        if (statusAtual === 'EmAndamento' || statusAtual === 'ReabertoPeloOV') {
+          await this.service.finalizar(custoId);
+        }
+      }
+
+      this.wizardStatus = status;
+      for (let i = 1; i <= 5; i++) this.completedSteps.add(i);
+
+      this.cancelWizard();
+      this.syncCustosView();
+      this.toast.success(status === 'Finalizado'
+        ? 'Custo finalizado com sucesso.'
+        : (eraEdicao ? 'Custo atualizado com sucesso.' : 'Custo criado com sucesso.'));
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao salvar os dados do custo.');
+    }
   }
 
   hasApiFieldError(...keys: string[]): boolean {
@@ -1417,7 +1511,73 @@ export class CustoDespachanteComponent implements OnInit {
     return ApiErrorMapper.mapError(err).fieldErrors;
   }
 
+  canDelete(item: CustoDespachante): boolean {
+    return !item.imutavel && item.status !== 'Finalizado' && item.status !== 'CanceladoPeloOV';
+  }
+
+  isCustoEditavel(item: CustoDespachante): boolean {
+    return this.isCurrentVersion(item.id) && !item.imutavel && item.status !== 'Finalizado' && item.status !== 'CanceladoPeloOV';
+  }
+
+  canReabrir(item: CustoDespachante): boolean {
+    return item.status === 'Finalizado' && this.isCurrentVersion(item.id);
+  }
+
+  isCurrentVersion(custoId: string): boolean {
+    return this.service.isCurrentVersion(custoId);
+  }
+
+  versionCount(custoId: string): number {
+    return this.service.getVersionCount(custoId);
+  }
+
+  versionLevel(custoId: string, versao: number | undefined): number {
+    const total = this.versionCount(custoId);
+    return Math.max(total - (versao ?? 1), 0);
+  }
+
+  isVersionRoot(custoId: string, versao: number | undefined): boolean {
+    return (versao ?? 1) >= this.versionCount(custoId);
+  }
+
+  isVersionLeaf(versao: number | undefined): boolean {
+    return (versao ?? 1) <= 1;
+  }
+
+  abrirVersaoCorrente(custoId: string): void {
+    const corrente = this.service.getCurrentVersion(custoId);
+    if (!corrente) {
+      this.toast.error('Não foi possível localizar a versão corrente.');
+      return;
+    }
+    this.openWizard(corrente);
+  }
+
+  async reabrir(id: string): Promise<void> {
+    const ok = await this.confirmDialog.confirm({
+      title: 'Reabrir custo',
+      message: 'Reabrir este custo para edição? Ele ficará com status "Reaberto" e poderá ser editado novamente.',
+      confirmText: 'Reabrir',
+      cancelText: 'Cancelar',
+      danger: false
+    });
+    if (!ok) return;
+    try {
+      await this.service.reabrir(id);
+      this.syncCustosView();
+      this.toast.success('Custo reaberto com sucesso.');
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao reabrir custo.');
+    }
+  }
+
   async remove(id: string): Promise<void> {
+    const item = this.custos.find((c) => c.id === id);
+    if (item && !this.canDelete(item)) {
+      this.toast.error('Custos finalizados não podem ser excluídos.');
+      return;
+    }
+
     const ok = await this.confirmDialog.confirm({
       title: 'Excluir custo',
       message: 'Deseja excluir este custo e todos os seus dados vinculados?',
@@ -1427,9 +1587,13 @@ export class CustoDespachanteComponent implements OnInit {
     });
     if (!ok) return;
 
-    this.service.remove(id);
-    this.load();
-    this.toast.success('Custo removido com sucesso.');
+    try {
+      await this.service.remove(id);
+      this.syncCustosView();
+      this.toast.success('Custo removido com sucesso.');
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao excluir custo.');
+    }
   }
 
   openPreview(): void {
@@ -1510,7 +1674,7 @@ export class CustoDespachanteComponent implements OnInit {
       <span class="ref-cod">REF.: ${codigo}</span>${solCod ? `<span class="sol-cod">SOL.: ${solCod}</span>` : ''}
     </td>
     <td colspan="2" class="ref-row" style="text-align:right;font-size:8px;color:#555">
-      ${this.wizardStatus === 'Finalizado' ? '<span style="color:#166534;font-weight:700">&#10004; FINALIZADO</span>' : '<span style="color:#92400e;font-weight:700">&#8987; RASCUNHO</span>'}
+      ${this.wizardStatus === 'Finalizado' ? '<span style="color:#166534;font-weight:700">&#10004; FINALIZADO</span>' : '<span style="color:#92400e;font-weight:700">&#8987; EM ANDAMENTO</span>'}
       &nbsp; Gerado em: ${new Date().toLocaleDateString('pt-BR')}
     </td>
   </tr>

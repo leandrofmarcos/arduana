@@ -1,7 +1,10 @@
-export type StatusSolicitacao = 'Rascunho' | 'Aberta' | 'AguardandoCusto' | 'AguardandoOrcamentoVenda' | 'AguardandoAprovacaoCliente' | 'EmAnalise' | 'Aprovada' | 'Cancelada'
-  | 'EmbarquePrevisto' | 'EmbarqueAguardando' | 'EmbarqueAtracado' | 'EmbarqueRegistrado' | 'EmbarqueDesembaraçado' | 'EmbarqueEntregue' | 'EmbarqueFinalizado';
-export type StatusSolicitacaoDespachante = 'PendenteDespachante' | 'FinalizadoDespachante' | 'Respondido' | 'Recusado';
-
+export type StatusSolicitacao =
+  | 'AguardandoDespachante'
+  | 'AguardandoReabertura'
+  | 'AguardandoOrcamentoVenda'
+  | 'AguardandoAprovacaoCliente'
+  | 'Aprovada'
+  | 'Cancelada';
 export interface SolicitacaoOrcamento {
   id: string;
   codigoInterno: string;          // SOL-AAAA-NNN
@@ -21,7 +24,6 @@ export interface SolicitacaoOrcamentoDespachante {
   id: string;
   solicitacaoOrcamentoId: string;
   despachanteId: string;
-  status: StatusSolicitacaoDespachante;
   dataEnvio: string;              // ISO YYYY-MM-DD
 }
 

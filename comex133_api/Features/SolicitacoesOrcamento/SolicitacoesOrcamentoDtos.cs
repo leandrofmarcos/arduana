@@ -23,7 +23,6 @@ public record SolicitacaoOrcamentoDespachanteDto(
     int Id,
     int SolicitacaoOrcamentoId,
     int DespachanteId,
-    string Status,
     DateTime DataEnvio,
     DateTime CriadoEm,
     DateTime AtualizadoEm
@@ -49,7 +48,6 @@ public record CreateSolicitacaoOrcamentoRequest(
     string TamContainer,
     decimal Peso,
     string? Observacao,
-    string Status,
     DateTime Data
 );
 
@@ -62,7 +60,6 @@ public record UpdateSolicitacaoOrcamentoRequest(
     string TamContainer,
     decimal Peso,
     string? Observacao,
-    string Status,
     DateTime Data
 );
 
@@ -70,7 +67,6 @@ public record UpdateSolicitacaoOrcamentoStatusRequest(string Status);
 
 public record AddSolicitacaoDespachanteRequest(
     int DespachanteId,
-    string Status,
     DateTime DataEnvio
 );
 
