@@ -4,6 +4,8 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { CRUD_STYLES } from '../../../shared/styles/crud-page.styles';
+import { PaginationComponent } from '../../../../core/components/pagination/pagination.component';
+import { PagedResult, PaginationParams } from '../../../../core/api/models/api-response.model';
 import {
   CustoDespachante, CustoDespachanteLi, CustoDespachanteDespesa,
   NcmVinculadoOrcamento, ValorImposto, StatusCustoDespachante
@@ -29,15 +31,30 @@ import { ModeloDespesa } from '../../cadastros/modelos-despesa/models/modelo-des
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { ApiErrorMapper } from '../../../../core/api/error-handler/api-error.mapper';
+import { CurrencyMaskDirective } from '../../../../core/directives/currency-mask.directive';
 
 type LiForm = { ncm: string; descricao: string; valor: number; data: string };
 type DespesaForm = { descricao: string; valor: number; data: string; entraBaseIcms: boolean };
 type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; aliIi: number; aliIpi: number; aliPis: number; aliCofins: number; aliIcms: number; baseCalculo: number };
+type CustoGroupDespachante = {
+  despachanteId: string;
+  despachanteNome: string;
+  custos: CustoDespachante[];
+  totalCustos: number;
+  totalCorrentes: number;
+};
+type CustoGroupSolicitacao = {
+  solicitacaoId?: string;
+  solicitacaoCodigo: string;
+  hasSolicitacao: boolean;
+  totalCustos: number;
+  despachantes: CustoGroupDespachante[];
+};
 
 @Component({
   selector: 'app-custo-despachante',
   standalone: true,
-  imports: [CommonModule, FormsModule, CurrencyPipe],
+  imports: [CommonModule, FormsModule, CurrencyPipe, CurrencyMaskDirective, PaginationComponent],
   styles: [
     ...CRUD_STYLES,
     `
@@ -107,6 +124,21 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
     .packlist-obs { font-size: 12px; color: var(--color-text-muted); flex: 1; }
     .packlist-date { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; }
     .status-custo-badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:11px; font-weight:700; color:#fff; }
+    .view-toggle { display:flex; align-items:center; gap:8px; margin-left:auto; }
+    .grouped-wrap { display:grid; gap:14px; }
+    .solic-group { border:1.5px solid var(--color-border); border-radius:10px; background:var(--color-bg); overflow:hidden; }
+    .solic-group-head { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:#eef6ff; border-bottom:1px solid #dbeafe; }
+    .solic-group-title { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#1e3a8a; }
+    .solic-group-meta { font-size:12px; color:#334155; }
+    .desp-group { padding:10px 12px; border-top:1px solid var(--color-border); }
+    .desp-group:first-child { border-top:none; }
+    .desp-group-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+    .desp-name { font-size:13px; font-weight:700; color:var(--color-text); }
+    .desp-meta { font-size:12px; color:var(--color-text-muted); }
+    .mini-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .mini-table th { text-align:left; padding:7px 8px; background:var(--color-surface); border-bottom:1px solid var(--color-border); color:var(--color-text-muted); text-transform:uppercase; letter-spacing:.04em; font-size:10px; }
+    .mini-table td { padding:7px 8px; border-bottom:1px solid var(--color-border); }
+    .mini-table tr:last-child td { border-bottom:none; }
     .version-tree-row.historical { background: linear-gradient(90deg, #f8fafc 0%, rgba(248, 250, 252, 0) 58%); }
     .version-tree-row td:first-child { overflow: visible; }
     .version-tree {
@@ -208,13 +240,87 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
       <ng-container *ngIf="!showWizard">
         <div class="content-section">
           <div class="toolbar">
-            <input class="search" type="text" [(ngModel)]="q"
+            <input class="search" type="text" [(ngModel)]="q" (ngModelChange)="onFiltersChanged()"
               placeholder="🔎 Buscar por código, despachante ou importador" />
             <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-muted)">
-              <input type="checkbox" [(ngModel)]="showHistoricoVersoes" (ngModelChange)="syncCustosView()" />
+              <input type="checkbox" [(ngModel)]="showHistoricoVersoes" (ngModelChange)="onShowHistoricoChange()" />
               Mostrar versões anteriores
             </label>
+            <div class="view-toggle">
+              <button class="btn btn-secondary" (click)="toggleListView()">
+                {{ listViewMode === 'agrupado' ? 'Ver tabela clássica' : 'Ver agrupado por solicitação' }}
+              </button>
+            </div>
           </div>
+
+          <ng-container *ngIf="listViewMode === 'agrupado'; else tableView">
+            <div class="grouped-wrap" *ngIf="pagedGroupedFiltered.length > 0; else emptyGridGrouped">
+              <div class="solic-group" *ngFor="let sg of pagedGroupedFiltered">
+                <div class="solic-group-head">
+                  <div class="solic-group-title">
+                    <span>Solicitação</span>
+                    <span class="sol-badge" *ngIf="sg.hasSolicitacao">{{ sg.solicitacaoCodigo }}</span>
+                    <span class="badge" *ngIf="!sg.hasSolicitacao">Sem solicitação</span>
+                  </div>
+                  <div class="solic-group-meta">{{ sg.totalCustos }} custo(s)</div>
+                </div>
+
+                <div class="desp-group" *ngFor="let dg of sg.despachantes">
+                  <div class="desp-group-head">
+                    <div class="desp-name">{{ dg.despachanteNome }}</div>
+                    <div class="desp-meta">{{ dg.totalCustos }} custo(s) • {{ dg.totalCorrentes }} corrente(s)</div>
+                  </div>
+                  <table class="mini-table">
+                    <thead>
+                      <tr>
+                        <th>Código</th>
+                        <th>Importador</th>
+                        <th>Container</th>
+                        <th>Data</th>
+                        <th>Status</th>
+                        <th>Total Impostos</th>
+                        <th style="width:100px">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let c of dg.custos" class="version-tree-row" [class.historical]="showHistoricoVersoes && !isCurrentVersion(c.id)">
+                        <td>
+                          <div class="version-tree" [style.--level]="versionLevel(c.id, c.versao)" [class.node-root]="versionLevel(c.id, c.versao) === 0">
+                            <span class="version-node-dot" [class.current]="isCurrentVersion(c.id)"></span>
+                            <span class="cod-badge">{{ c.codigoInterno }}</span>
+                          </div>
+                          <span class="badge" style="margin-left:6px">v{{ c.versao }}</span>
+                          <span *ngIf="isCurrentVersion(c.id)" class="badge" style="margin-left:6px;background:#dcfce7;color:#166534;border-color:#86efac">corrente</span>
+                        </td>
+                        <td>{{ nomeImportadorById(c.importadorId) }}</td>
+                        <td><span class="badge">{{ c.tamContainer }}</span></td>
+                        <td>{{ c.data | date:'dd/MM/yyyy' }}</td>
+                        <td>
+                          <span class="status-custo-badge" [ngStyle]="{ background: c.status === 'Finalizado' ? '#22c55e' : c.status === 'Pendente' ? '#64748b' : c.status === 'CanceladoPeloOV' ? '#6b7280' : '#f59e0b' }">
+                            {{ c.status === 'Finalizado' ? 'Finalizado' : c.status === 'Pendente' ? 'Pendente' : c.status === 'CanceladoPeloOV' ? 'Cancelado pelo OV' : c.status === 'ReabertoPeloOV' ? 'Reaberto pelo OV' : 'Em Andamento' }}
+                          </span>
+                        </td>
+                        <td>{{ totalImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</td>
+                        <td>
+                          <div class="row-actions">
+                            <button class="btn-icon" [title]="isCustoEditavel(c) ? 'Editar' : 'Somente visualização'" (click)="openWizard(c)">{{ isCustoEditavel(c) ? '✏️' : '👁️' }}</button>
+                            <button class="btn-icon warning" *ngIf="canReabrir(c)" title="Reabrir custo para edição" (click)="reabrir(c.id)">🔓</button>
+                            <button class="btn-icon danger" [disabled]="!canDelete(c)" [title]="canDelete(c) ? 'Excluir' : 'Custos finalizados não podem ser excluídos'" (click)="remove(c.id)">🗑️</button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-template #emptyGridGrouped>
+            <div class="empty-state" style="padding:28px 10px">Nenhum custo cadastrado</div>
+          </ng-template>
+
+          <ng-template #tableView>
           <table class="data-table">
             <thead>
               <tr>
@@ -233,7 +339,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               <tr *ngIf="filtered.length === 0">
                 <td colspan="9" class="empty-state">Nenhum custo cadastrado</td>
               </tr>
-              <tr *ngFor="let c of filtered" class="version-tree-row" [class.historical]="showHistoricoVersoes && !isCurrentVersion(c.id)">
+              <tr *ngFor="let c of pagedFiltered" class="version-tree-row" [class.historical]="showHistoricoVersoes && !isCurrentVersion(c.id)">
                 <td>
                   <div class="version-tree" [style.--level]="versionLevel(c.id, c.versao)" [class.node-root]="versionLevel(c.id, c.versao) === 0">
                     <span class="version-branch"
@@ -276,6 +382,13 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               </tr>
             </tbody>
           </table>
+          </ng-template>
+
+          <app-pagination
+            *ngIf="pagedResult"
+            [pagedResult]="pagedResult"
+            (pageChanged)="onPageChange($event)"
+          />
         </div>
       </ng-container>
 
@@ -306,23 +419,22 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
           <div class="form-grid">
             <div class="field w2">
               <label>Despachante <span class="required">*</span></label>
-              <select [(ngModel)]="p1.despachanteId" [class.err]="showErr && (!p1.despachanteId || hasApiFieldError('despachanteId', 'despachante'))">
+              <select [(ngModel)]="p1.despachanteId" [disabled]="true" [class.err]="showErr && (!p1.despachanteId || hasApiFieldError('despachanteId', 'despachante'))">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let d of despachantes" [value]="d.id">{{ d.nome }}</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !p1.despachanteId">Obrigatório</span>
               <span class="err-msg" *ngIf="showErr && hasApiFieldError('despachanteId', 'despachante')">{{ firstApiFieldError('despachanteId', 'despachante') }}</span>
             </div>
-            <div class="field w2">
-              <label>Importador <span class="required">*</span></label>
-              <select [(ngModel)]="p1.importadorId" [class.err]="showErr && (!p1.importadorId || hasApiFieldError('importadorId', 'importador'))">
+            <div class="field">
+              <label>Importador</label>
+              <select [(ngModel)]="p1.importadorId" [class.err]="showErr && hasApiFieldError('importadorId', 'importador')">
                 <option value="">— Selecione —</option>
                 <option *ngFor="let im of importadores" [value]="im.id">{{ im.razaoSocial }}</option>
               </select>
-              <span class="err-msg" *ngIf="showErr && !p1.importadorId">Obrigatório</span>
               <span class="err-msg" *ngIf="showErr && hasApiFieldError('importadorId', 'importador')">{{ firstApiFieldError('importadorId', 'importador') }}</span>
             </div>
-            <div class="field w2">
+            <div class="field">
               <label>Porto Origem <span class="required">*</span></label>
               <select [(ngModel)]="p1.portoOrigemId" [class.err]="showErr && (!p1.portoOrigemId || hasApiFieldError('portoOrigemId', 'portoOrigem'))">
                 <option value="">— Selecione —</option>
@@ -331,7 +443,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               <span class="err-msg" *ngIf="showErr && !p1.portoOrigemId">Obrigatório</span>
               <span class="err-msg" *ngIf="showErr && hasApiFieldError('portoOrigemId', 'portoOrigem')">{{ firstApiFieldError('portoOrigemId', 'portoOrigem') }}</span>
             </div>
-            <div class="field w2">
+            <div class="field">
               <label>Porto Destino <span class="required">*</span></label>
               <select [(ngModel)]="p1.portoDestinoId" [class.err]="showErr && (!p1.portoDestinoId || hasApiFieldError('portoDestinoId', 'portoDestino'))">
                 <option value="">— Selecione —</option>
@@ -340,9 +452,9 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               <span class="err-msg" *ngIf="showErr && !p1.portoDestinoId">Obrigatório</span>
               <span class="err-msg" *ngIf="showErr && hasApiFieldError('portoDestinoId', 'portoDestino')">{{ firstApiFieldError('portoDestinoId', 'portoDestino') }}</span>
             </div>
-            <div class="field w2">
+            <div class="field">
               <label>Responsável <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="p1.responsavel" placeholder="Nome do responsável"
+              <input type="text" [(ngModel)]="p1.responsavel" [readonly]="true" placeholder="Nome do responsável"
                      [class.err]="showErr && (!p1.responsavel.trim() || hasApiFieldError('responsavel', 'responsável'))" />
               <span class="err-msg" *ngIf="showErr && !p1.responsavel.trim()">Obrigatório</span>
               <span class="err-msg" *ngIf="showErr && hasApiFieldError('responsavel', 'responsável')">{{ firstApiFieldError('responsavel', 'responsável') }}</span>
@@ -363,35 +475,42 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
             </div>
             <div class="field">
               <label>Peso (kg) <span class="required">*</span></label>
-              <input type="number" [(ngModel)]="p1.peso" min="0" placeholder="0" />
+              <input type="text" [(ngModel)]="p1.peso" appCurrencyMask="BRL" [currencyMaskMode]="'number'" [currencyMaskUnit]="'kg'" min="0" step="0.01" placeholder="0 kg" />
+            </div>
+            <div class="field">
+              <label>Taxa Dólar <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="p1.taxaUsd" (ngModelChange)="recalculateFinancials()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00"
+                     [class.err]="showErr && ((!p1.taxaUsd || p1.taxaUsd <= 0) || hasApiFieldError('taxaUsd'))" />
+              <span class="err-msg" *ngIf="showErr && (!p1.taxaUsd || p1.taxaUsd <= 0)">Obrigatório</span>
+              <span class="err-msg" *ngIf="showErr && hasApiFieldError('taxaUsd')">{{ firstApiFieldError('taxaUsd') }}</span>
             </div>
             <div class="field">
               <label>FOB (USD)</label>
-              <input type="number" [(ngModel)]="p1.fobUsd" min="0" step="0.01" placeholder="0.00" />
+              <input type="text" [(ngModel)]="p1.fobUsd" (ngModelChange)="recalculateFinancials()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" />
             </div>
             <div class="field">
               <label>FOB (R$)</label>
-              <input type="number" [(ngModel)]="p1.fobReais" min="0" step="0.01" placeholder="0.00" />
-            </div>
-            <div class="field">
-              <label>CIF (USD)</label>
-              <input type="number" [(ngModel)]="p1.cifUsd" min="0" step="0.01" placeholder="0.00" />
-            </div>
-            <div class="field">
-              <label>CIF (R$)</label>
-              <input type="number" [(ngModel)]="p1.cifReais" min="0" step="0.01" placeholder="0.00" />
+              <input type="text" [(ngModel)]="p1.fobReais" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" [readonly]="true" />
             </div>
             <div class="field">
               <label>Seguro (USD)</label>
-              <input type="number" [(ngModel)]="p1.seguroUsd" min="0" step="0.01" placeholder="0.00" />
+              <input type="text" [(ngModel)]="p1.seguroUsd" (ngModelChange)="recalculateFinancials()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" />
             </div>
             <div class="field">
-              <label>Taxa USD</label>
-              <input type="number" [(ngModel)]="p1.taxaUsd" min="0" step="0.0001" placeholder="0.00" />
+              <label>Frete Internacional (USD)</label>
+              <input type="text" [(ngModel)]="p1.freteInternacionalUsd" (ngModelChange)="recalculateFinancials()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" />
+            </div>
+            <div class="field">
+              <label>CIF (USD)</label>
+              <input type="text" [(ngModel)]="p1.cifUsd" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" [readonly]="true" />
+            </div>
+            <div class="field">
+              <label>CIF (R$)</label>
+              <input type="text" [(ngModel)]="p1.cifReais" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" [readonly]="true" />
             </div>
             <div class="field">
               <label>Taxa USD Agente</label>
-              <input type="number" [(ngModel)]="p1.taxaUsdAgente" min="0" step="0.0001" placeholder="Opcional" />
+              <input type="text" [(ngModel)]="p1.taxaUsdAgente" appCurrencyMask="USD" min="0" step="0.01" placeholder="Opcional" />
             </div>
             <div class="field w3">
               <label>Observação</label>
@@ -424,7 +543,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               </div>
               <div class="f" style="min-width:130px;max-width:160px">
                 <label>Valor (R$) <span class="required">*</span></label>
-                <input type="number" [(ngModel)]="liForm.valor" min="0" step="0.01" placeholder="0.00" />
+                <input type="text" [(ngModel)]="liForm.valor" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" />
               </div>
               <div class="f" style="min-width:130px;max-width:150px">
                 <label>Data</label>
@@ -519,7 +638,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               </div>
               <div class="f" style="min-width:130px;max-width:160px">
                 <label>Valor (R$) <span class="required">*</span></label>
-                <input type="number" [(ngModel)]="despesaForm.valor" min="0" step="0.01" placeholder="0.00" />
+                <input type="text" [(ngModel)]="despesaForm.valor" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" />
               </div>
               <div class="f" style="min-width:130px;max-width:150px">
                 <label>Data</label>
@@ -576,7 +695,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
                            style="width:100%;padding:5px 8px;border:1.5px solid var(--color-primary);border-radius:5px;font-size:13px" />
                   </td>
                   <td>
-                    <input type="number" [(ngModel)]="editingDespesaForm.valor" min="0" step="0.01"
+                    <input type="text" [(ngModel)]="editingDespesaForm.valor" appCurrencyMask="BRL" min="0" step="0.01"
                            style="width:110px;padding:5px 8px;border:1.5px solid var(--color-primary);border-radius:5px;font-size:13px;text-align:right" />
                   </td>
                   <td>
@@ -632,7 +751,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               </div>
               <div class="f" style="min-width:140px;max-width:180px">
                 <label>Base de Cálculo (R$) <span class="required">*</span></label>
-                <input type="number" [(ngModel)]="ncvForm.baseCalculo" min="0" step="0.01" placeholder="0.00" />
+                <input type="text" [(ngModel)]="ncvForm.baseCalculo" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" />
               </div>
             </div>
             <!-- Alíquotas pré-preenchidas (editáveis) -->
@@ -760,7 +879,7 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
               </div>
               <div class="resumo-dado">
                 <label>Peso</label>
-                <span>{{ p1.peso | number:'1.0-0' }} kg</span>
+                <span>{{ p1.peso | number:'1.0-2' }} kg</span>
               </div>
               <div class="resumo-dado" *ngIf="p1.observacao">
                 <label>Observação</label>
@@ -770,6 +889,10 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
 
             <!-- Valores financeiros -->
             <div style="margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+              <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">Taxa USD</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.taxaUsd | currency:'USD':'symbol':'1.2-2' }}</div>
+              </div>
               <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
                 <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">FOB USD</div>
                 <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.fobUsd | currency:'USD':'symbol':'1.2-2' }}</div>
@@ -791,12 +914,12 @@ type NcmVinculadoForm = { ncmId: string; numeroNcm: string; descricao: string; a
                 <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.seguroUsd | currency:'USD':'symbol':'1.2-2' }}</div>
               </div>
               <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
-                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">Taxa USD</div>
-                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.taxaUsd | number:'1.4-4' }}</div>
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">Frete USD</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.freteInternacionalUsd | currency:'USD':'symbol':'1.2-2' }}</div>
               </div>
               <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center" *ngIf="p1.taxaUsdAgente">
                 <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">Taxa USD Agente</div>
-                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.taxaUsdAgente | number:'1.4-4' }}</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.taxaUsdAgente | currency:'USD':'symbol':'1.2-2' }}</div>
               </div>
             </div>
           </div>
@@ -1006,6 +1129,10 @@ export class CustoDespachanteComponent implements OnInit {
   custos: CustoDespachante[] = [];
   q = '';
   showHistoricoVersoes = false;
+  listViewMode: 'agrupado' | 'tabela' = 'agrupado';
+  currentPage = 1;
+  pageSize = 20;
+  pagedResult: PagedResult<any> | null = null;
   showWizard = false;
   editing: CustoDespachante | null = null;
   modoVisualizacao = false;
@@ -1034,7 +1161,7 @@ export class CustoDespachanteComponent implements OnInit {
   p1 = {
     despachanteId: '', importadorId: '', portoOrigemId: '', portoDestinoId: '',
     responsavel: '', data: new Date().toISOString().slice(0, 10), tamContainer: '40' as '20' | '40' | 'LCL', peso: 0,
-    fobUsd: 0, fobReais: 0, cifUsd: 0, cifReais: 0, seguroUsd: 0,
+    fobUsd: 0, fobReais: 0, cifUsd: 0, cifReais: 0, seguroUsd: 0, freteInternacionalUsd: 0,
     taxaUsd: 0, taxaUsdAgente: undefined as number | undefined, observacao: '',
     solicitacaoOrcamentoId: undefined as string | undefined
   };
@@ -1090,18 +1217,32 @@ export class CustoDespachanteComponent implements OnInit {
     this.portosDestino = this.portoDestinoSvc.getAtivos();
     this.ncms          = this.ncmSvc.getAtivos();
     this.modelos       = this.modeloSvc.getAll().filter(m => m.ativo);
+    this.normalizeImportadorSelection();
     // Pré-preencher wizard se vier de uma Solicitação de Orçamento
     const qp = this.route.snapshot.queryParams;
     if (qp['solicitacaoId']) {
       this.p1.solicitacaoOrcamentoId = qp['solicitacaoId'];
+      this.p1.despachanteId = qp['despachanteId'] ?? '';
       this.p1.portoOrigemId  = qp['portoOrigemId']  ?? '';
       this.p1.portoDestinoId = qp['portoDestinoId'] ?? '';
-      this.p1.importadorId   = qp['importadorId']   ?? '';
+      this.p1.importadorId   = '';
       this.p1.tamContainer   = (['20','40','LCL'].includes(qp['tamContainer']) ? qp['tamContainer'] : '40') as '20'|'40'|'LCL';
       this.p1.peso           = Number(qp['peso']) || 0;
       this.p1.responsavel    = qp['responsavel']    ?? '';
+      this.normalizeImportadorSelection();
+      this.recalculateFinancials();
       this.showWizard = true;
     }
+  }
+
+  private normalizeImportadorSelection(): void {
+    const selectedId = this.p1.importadorId as string | null | undefined;
+    if (!selectedId) {
+      this.p1.importadorId = '';
+      return;
+    }
+    const exists = this.importadores.some(i => i.id === selectedId);
+    this.p1.importadorId = exists ? selectedId : '';
   }
 
   async load(): Promise<void> {
@@ -1110,19 +1251,185 @@ export class CustoDespachanteComponent implements OnInit {
   }
 
   syncCustosView(): void {
-    this.custos = this.showHistoricoVersoes
+    const base = this.showHistoricoVersoes
       ? this.service.getAll()
       : this.service.getAllCurrent();
+    this.custos = this.sortByVersionGroups(base);
+    this.updatePagedResult();
   }
 
   get filtered(): CustoDespachante[] {
     if (!this.q) return this.custos;
     const s = this.q.toLowerCase();
-    return this.custos.filter(c =>
+    const filtered = this.custos.filter(c =>
       c.codigoInterno.toLowerCase().includes(s) ||
       this.nomeDespachanteById(c.despachanteId).toLowerCase().includes(s) ||
       this.nomeImportadorById(c.importadorId).toLowerCase().includes(s)
     );
+    return this.sortByVersionGroups(filtered);
+  }
+
+  get pagedFiltered(): CustoDespachante[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filtered.slice(start, start + this.pageSize);
+  }
+
+  get groupedFiltered(): CustoGroupSolicitacao[] {
+    const solicitacaoMap = new Map<string, {
+      solicitacaoId?: string;
+      solicitacaoCodigo: string;
+      hasSolicitacao: boolean;
+      despMap: Map<string, CustoGroupDespachante>;
+    }>();
+
+    for (const custo of this.filtered) {
+      const hasSolicitacao = !!custo.solicitacaoOrcamentoId;
+      const solicitacaoId = custo.solicitacaoOrcamentoId;
+      const solicitacaoKey = solicitacaoId ?? '__SEM_SOLICITACAO__';
+      const solicitacaoCodigo = hasSolicitacao
+        ? this.codSolById(solicitacaoId)
+        : 'Sem solicitação';
+
+      let solicGroup = solicitacaoMap.get(solicitacaoKey);
+      if (!solicGroup) {
+        solicGroup = {
+          solicitacaoId,
+          solicitacaoCodigo,
+          hasSolicitacao,
+          despMap: new Map<string, CustoGroupDespachante>()
+        };
+        solicitacaoMap.set(solicitacaoKey, solicGroup);
+      }
+
+      const despKey = custo.despachanteId || '__SEM_DESPACHANTE__';
+      let despGroup = solicGroup.despMap.get(despKey);
+      if (!despGroup) {
+        despGroup = {
+          despachanteId: custo.despachanteId,
+          despachanteNome: this.nomeDespachanteById(custo.despachanteId),
+          custos: [],
+          totalCustos: 0,
+          totalCorrentes: 0
+        };
+        solicGroup.despMap.set(despKey, despGroup);
+      }
+
+      despGroup.custos.push(custo);
+      despGroup.totalCustos += 1;
+      if (this.isCurrentVersion(custo.id)) despGroup.totalCorrentes += 1;
+    }
+
+    const groups: CustoGroupSolicitacao[] = [];
+    solicitacaoMap.forEach((group) => {
+      const despachantes = Array.from(group.despMap.values())
+        .sort((a, b) => {
+          if (b.totalCustos !== a.totalCustos) return b.totalCustos - a.totalCustos;
+          return a.despachanteNome.localeCompare(b.despachanteNome, 'pt-BR');
+        });
+      const totalCustos = despachantes.reduce((sum, d) => sum + d.totalCustos, 0);
+      groups.push({
+        solicitacaoId: group.solicitacaoId,
+        solicitacaoCodigo: group.solicitacaoCodigo,
+        hasSolicitacao: group.hasSolicitacao,
+        totalCustos,
+        despachantes
+      });
+    });
+
+    return groups.sort((a, b) => {
+      if (b.totalCustos !== a.totalCustos) return b.totalCustos - a.totalCustos;
+      return a.solicitacaoCodigo.localeCompare(b.solicitacaoCodigo, 'pt-BR');
+    });
+  }
+
+  get pagedGroupedFiltered(): CustoGroupSolicitacao[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.groupedFiltered.slice(start, start + this.pageSize);
+  }
+
+  toggleListView(): void {
+    this.listViewMode = this.listViewMode === 'agrupado' ? 'tabela' : 'agrupado';
+    this.currentPage = 1;
+    this.updatePagedResult();
+  }
+
+  onShowHistoricoChange(): void {
+    this.currentPage = 1;
+    this.syncCustosView();
+  }
+
+  onFiltersChanged(): void {
+    this.currentPage = 1;
+    this.updatePagedResult();
+  }
+
+  onPageChange(params: PaginationParams): void {
+    this.currentPage = params.page ?? 1;
+    this.pageSize = params.pageSize ?? this.pageSize;
+    this.updatePagedResult();
+  }
+
+  private updatePagedResult(): void {
+    const totalCount = this.listViewMode === 'agrupado'
+      ? this.groupedFiltered.length
+      : this.filtered.length;
+    const safePageSize = this.pageSize > 0 ? this.pageSize : 20;
+    const totalPages = Math.max(1, Math.ceil(totalCount / safePageSize));
+    if (this.currentPage > totalPages) {
+      this.currentPage = totalPages;
+    }
+
+    this.pagedResult = {
+      items: this.listViewMode === 'agrupado' ? this.pagedGroupedFiltered : this.pagedFiltered,
+      totalCount,
+      page: this.currentPage,
+      pageSize: safePageSize,
+      totalPages,
+      hasNextPage: this.currentPage < totalPages,
+      hasPreviousPage: this.currentPage > 1
+    };
+  }
+
+  private sortByVersionGroups(items: CustoDespachante[]): CustoDespachante[] {
+    if (items.length <= 1) return items;
+
+    const byId = new Map(items.map(item => [item.id, item]));
+    const referencedPreviousIds = new Set(
+      items
+        .map(item => item.versaoAnteriorId != null ? String(item.versaoAnteriorId) : '')
+        .filter(Boolean)
+    );
+
+    const currentItems = items
+      .filter(item => !referencedPreviousIds.has(item.id))
+      .sort((a, b) => this.compareByRecency(a, b));
+
+    const ordered: CustoDespachante[] = [];
+    const seen = new Set<string>();
+
+    for (const current of currentItems) {
+      const chain = this.service.getVersionChain(current.id)
+        .filter(version => byId.has(version.id));
+      for (const version of chain) {
+        if (seen.has(version.id)) continue;
+        seen.add(version.id);
+        ordered.push(version);
+      }
+    }
+
+    const leftovers = items
+      .filter(item => !seen.has(item.id))
+      .sort((a, b) => this.compareByRecency(a, b));
+
+    return [...ordered, ...leftovers];
+  }
+
+  private compareByRecency(a: CustoDespachante, b: CustoDespachante): number {
+    const aTime = new Date(a.data).getTime();
+    const bTime = new Date(b.data).getTime();
+    if (bTime !== aTime) return bTime - aTime;
+    if ((b.versao ?? 0) !== (a.versao ?? 0)) return (b.versao ?? 0) - (a.versao ?? 0);
+    return Number(b.id) - Number(a.id);
   }
 
   // ── Lookup helpers ────────────────────────────────────────────────────
@@ -1185,9 +1492,9 @@ export class CustoDespachanteComponent implements OnInit {
 
   validateP1(): boolean {
     this.showErr = true;
-    return !!(this.p1.despachanteId && this.p1.importadorId &&
+    return !!(this.p1.despachanteId &&
               this.p1.portoOrigemId && this.p1.portoDestinoId &&
-              this.p1.responsavel.trim() && this.p1.data);
+              this.p1.responsavel.trim() && this.p1.data && (this.p1.taxaUsd || 0) > 0);
   }
 
   // ── LI ────────────────────────────────────────────────────────────────
@@ -1297,6 +1604,21 @@ export class CustoDespachanteComponent implements OnInit {
            (this.p1.cifReais || 0);
   }
 
+  recalculateFinancials(): void {
+    const taxa = Number(this.p1.taxaUsd) || 0;
+    const fobUsd = Number(this.p1.fobUsd) || 0;
+    const seguroUsd = Number(this.p1.seguroUsd) || 0;
+    const freteInternacionalUsd = Number(this.p1.freteInternacionalUsd) || 0;
+
+    this.p1.fobReais = this.roundCurrency(fobUsd * taxa);
+    this.p1.cifUsd = this.roundCurrency(fobUsd + seguroUsd + freteInternacionalUsd);
+    this.p1.cifReais = this.roundCurrency(this.p1.cifUsd * taxa);
+  }
+
+  private roundCurrency(value: number): number {
+    return Math.round((Number(value) || 0) * 100) / 100;
+  }
+
   // ── CRUD ──────────────────────────────────────────────────────────────
 
   openWizard(item?: CustoDespachante): void {
@@ -1316,7 +1638,7 @@ export class CustoDespachanteComponent implements OnInit {
       this.wizardStatus = item.status ?? 'Pendente';
       this.p1 = {
         despachanteId: item.despachanteId,
-        importadorId:  item.importadorId,
+        importadorId:  item.importadorId ?? '',
         portoOrigemId: item.portoOrigemId,
         portoDestinoId: item.portoDestinoId,
         responsavel:   item.responsavel,
@@ -1329,6 +1651,7 @@ export class CustoDespachanteComponent implements OnInit {
         cifUsd:        item.cifUsd,
         cifReais:      item.cifReais,
         seguroUsd:     item.seguroUsd,
+        freteInternacionalUsd: item.freteInternacionalUsd,
         taxaUsd:       item.taxaUsd,
         taxaUsdAgente: item.taxaUsdAgente,
         observacao:    item.observacao ?? ''
@@ -1349,15 +1672,19 @@ export class CustoDespachanteComponent implements OnInit {
       if (this.lisForm.length > 0) this.completedSteps.add(2);
       if (this.despesasForm.length > 0) this.completedSteps.add(3);
       if (this.ncvsForm.length > 0) this.completedSteps.add(4);
+      this.normalizeImportadorSelection();
+      this.recalculateFinancials();
     } else {
       this.wizardStatus = 'Pendente';
       this.p1 = {
         despachanteId: '', importadorId: '', portoOrigemId: '', portoDestinoId: '',
         responsavel: '', data: this.todayStr(), tamContainer: '40', peso: 0,
-        fobUsd: 0, fobReais: 0, cifUsd: 0, cifReais: 0, seguroUsd: 0,
+        fobUsd: 0, fobReais: 0, cifUsd: 0, cifReais: 0, seguroUsd: 0, freteInternacionalUsd: 0,
         taxaUsd: 0, taxaUsdAgente: undefined, observacao: '',
         solicitacaoOrcamentoId: undefined
       };
+      this.normalizeImportadorSelection();
+      this.recalculateFinancials();
       this.lisForm = [];
       this.despesasForm = [];
       this.ncvsForm = [];
@@ -1407,6 +1734,7 @@ export class CustoDespachanteComponent implements OnInit {
           cifUsd:         this.p1.cifUsd || 0,
           cifReais:       this.p1.cifReais || 0,
           seguroUsd:      this.p1.seguroUsd || 0,
+          freteInternacionalUsd: this.p1.freteInternacionalUsd || 0,
           taxaUsd:        this.p1.taxaUsd || 0,
           taxaUsdAgente:  this.p1.taxaUsdAgente,
           observacao:     this.p1.observacao.trim() || undefined,
@@ -1427,6 +1755,7 @@ export class CustoDespachanteComponent implements OnInit {
           cifUsd:                 this.p1.cifUsd || 0,
           cifReais:               this.p1.cifReais || 0,
           seguroUsd:              this.p1.seguroUsd || 0,
+          freteInternacionalUsd:  this.p1.freteInternacionalUsd || 0,
           taxaUsd:                this.p1.taxaUsd || 0,
           taxaUsdAgente:          this.p1.taxaUsdAgente,
           observacao:             this.p1.observacao.trim() || undefined,
@@ -1516,7 +1845,7 @@ export class CustoDespachanteComponent implements OnInit {
   }
 
   isCustoEditavel(item: CustoDespachante): boolean {
-    return this.isCurrentVersion(item.id) && !item.imutavel && item.status !== 'Finalizado' && item.status !== 'CanceladoPeloOV';
+    return !item.imutavel && item.status !== 'Finalizado' && item.status !== 'CanceladoPeloOV';
   }
 
   canReabrir(item: CustoDespachante): boolean {
@@ -1616,6 +1945,7 @@ export class CustoDespachanteComponent implements OnInit {
     const fmtBRL  = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const fmtUSD  = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     const fmtNum  = (v: number, dec = 2) => v.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+    const fmtKg   = (v: number) => `${v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} kg`;
     const fmtPct  = (v: number) => fmtNum(v, 2) + '%';
     const fmtDate = (s: string | undefined) => {
       if (!s) return '—';
@@ -1691,9 +2021,10 @@ export class CustoDespachanteComponent implements OnInit {
         <tr><th style="text-align:left">Item</th><th>USD</th><th>R$</th></tr>
         <tr><td>FOB</td><td class="val-r">${fmtUSD(this.p1.fobUsd||0)}</td><td class="val-r">${fmtBRL(this.p1.fobReais||0)}</td></tr>
         <tr><td>CIF</td><td class="val-r">${fmtUSD(this.p1.cifUsd||0)}</td><td class="val-r">${fmtBRL(this.p1.cifReais||0)}</td></tr>
+        <tr><td>Taxa USD</td><td colspan="2" class="val-r">${fmtUSD(this.p1.taxaUsd||0)}</td></tr>
         <tr><td>Seguro</td><td class="val-r">${fmtUSD(this.p1.seguroUsd||0)}</td><td>&mdash;</td></tr>
-        <tr><td>Taxa USD</td><td colspan="2" class="val-r">${fmtNum(this.p1.taxaUsd||0,4)}</td></tr>
-        ${this.p1.taxaUsdAgente!=null ? `<tr><td>Taxa USD Agente</td><td colspan="2" class="val-r">${fmtNum(this.p1.taxaUsdAgente,4)}</td></tr>` : ''}
+        <tr><td>Frete Internacional</td><td class="val-r">${fmtUSD(this.p1.freteInternacionalUsd||0)}</td><td>&mdash;</td></tr>
+        ${this.p1.taxaUsdAgente!=null ? `<tr><td>Taxa USD Agente</td><td colspan="2" class="val-r">${fmtUSD(this.p1.taxaUsdAgente)}</td></tr>` : ''}
       </table>
     </td>
     <td colspan="2" style="vertical-align:top;padding:0">
@@ -1702,7 +2033,7 @@ export class CustoDespachanteComponent implements OnInit {
         <tr><td class="lbl">Porto Origem</td><td class="val-r val-b">${portoOrg}</td></tr>
         <tr><td class="lbl">Porto Destino</td><td class="val-r val-b">${portoDst}</td></tr>
         <tr><td class="lbl">Container</td><td class="val-r val-b">${this.p1.tamContainer}</td></tr>
-        <tr><td class="lbl">Peso</td><td class="val-r val-b">${fmtNum(this.p1.peso||0,0)} kg</td></tr>
+        <tr><td class="lbl">Peso</td><td class="val-r val-b">${fmtKg(this.p1.peso||0)}</td></tr>
         <tr><td class="lbl">Responsavel</td><td class="val-r val-b">${this.p1.responsavel||'&mdash;'}</td></tr>
         ${this.p1.observacao ? `<tr><td class="lbl">Obs.</td><td style="font-size:8px">${this.p1.observacao}</td></tr>` : ''}
       </table>

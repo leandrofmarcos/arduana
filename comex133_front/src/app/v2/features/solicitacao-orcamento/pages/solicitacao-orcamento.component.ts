@@ -757,7 +757,6 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
       this.onFiltersChanged();
       this.toast.success(eraCriacao ? 'Solicitacao criada com sucesso.' : 'Solicitacao atualizada com sucesso.');
     } catch (err: any) {
-      this.showErr = true;
       this.apiFieldErrors = this.collectFieldErrors(err);
       if (!Object.keys(this.apiFieldErrors).length && err?.message) {
         this.toast.error(err.message);
@@ -768,18 +767,21 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   async remover(id: string): Promise<void> {
     const ok = await this.confirmDialog.confirm({
       title: 'Excluir solicitacao',
-      message: 'Excluir esta solicitacao e todos os seus despachantes e documentos?',
-      confirmText: 'Excluir',
+      message: 'Esta exclusao remove toda a arvore da solicitacao: custos, orcamento de venda, embarques vinculados, despachantes e documentos. Deseja continuar?',
+      confirmText: 'Excluir tudo',
       cancelText: 'Cancelar',
       danger: true
     });
     if (!ok) return;
 
     try {
+      const embarquesRelacionados = this.embarqueSvc.getAll().filter((e) => e.solicitacaoOrcamentoId === id);
+      embarquesRelacionados.forEach((e) => this.embarqueSvc.remove(e.id));
+
       await this.svc.remove(id);
       await this.carregar();
       this.onFiltersChanged();
-      this.toast.success('Solicitacao removida com sucesso.');
+      this.toast.success('Solicitacao e toda a arvore vinculada removidas com sucesso.');
     } catch (err: any) {
       this.toast.error(err?.message ?? 'Erro ao remover solicitacao.');
     }
@@ -894,6 +896,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
           cifUsd:                 0,
           cifReais:               0,
           seguroUsd:              0,
+          freteInternacionalUsd:  0,
           taxaUsd:                0,
           data:                   today,
           observacao:             this.form.observacao,

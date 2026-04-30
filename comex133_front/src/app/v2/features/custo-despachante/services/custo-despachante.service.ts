@@ -24,6 +24,7 @@ interface CustoDespachanteApiDto {
   cifUsd: number;
   cifReais: number;
   seguroUsd: number;
+  freteInternacionalUsd: number;
   taxaUsd: number;
   taxaUsdAgente?: number | null;
   observacao?: string | null;
@@ -236,7 +237,7 @@ export class CustoDespachanteService {
     despachanteId: string; importadorId?: string; portoOrigemId: string;
     portoDestinoId: string; responsavel: string; tamContainer: string; peso: number;
     fobUsd: number; fobReais: number; cifUsd: number; cifReais: number;
-    seguroUsd: number; taxaUsd: number; taxaUsdAgente?: number; observacao?: string;
+    seguroUsd: number; freteInternacionalUsd: number; taxaUsd: number; taxaUsdAgente?: number; observacao?: string;
     data: string; solicitacaoOrcamentoId?: string;
   }): Promise<CustoDespachante> {
     const dto = await firstValueFrom(
@@ -254,6 +255,7 @@ export class CustoDespachanteService {
         cifUsd: data.cifUsd,
         cifReais: data.cifReais,
         seguroUsd: data.seguroUsd,
+        freteInternacionalUsd: data.freteInternacionalUsd,
         taxaUsd: data.taxaUsd,
         taxaUsdAgente: data.taxaUsdAgente ?? null,
         observacao: data.observacao ?? null,
@@ -280,6 +282,7 @@ export class CustoDespachanteService {
         cifUsd: item.cifUsd,
         cifReais: item.cifReais,
         seguroUsd: item.seguroUsd,
+        freteInternacionalUsd: item.freteInternacionalUsd,
         taxaUsd: item.taxaUsd,
         taxaUsdAgente: item.taxaUsdAgente ?? null,
         observacao: item.observacao ?? null,
@@ -464,6 +467,7 @@ export class CustoDespachanteService {
       cifUsd: dto.cifUsd,
       cifReais: dto.cifReais,
       seguroUsd: dto.seguroUsd,
+      freteInternacionalUsd: dto.freteInternacionalUsd,
       taxaUsd: dto.taxaUsd,
       taxaUsdAgente: dto.taxaUsdAgente ?? undefined,
       observacao: dto.observacao ?? undefined,

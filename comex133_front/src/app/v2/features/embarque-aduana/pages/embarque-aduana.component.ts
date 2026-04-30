@@ -27,13 +27,14 @@ import { ActivatedRoute }                  from '@angular/router';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { ApiErrorMapper } from '../../../../core/api/error-handler/api-error.mapper';
+import { CurrencyMaskDirective } from '../../../../core/directives/currency-mask.directive';
 
 type Mode = 'list' | 'form' | 'detail' | 'acompanhamento';
 
 @Component({
   selector: 'app-embarque-aduana',
   standalone: true,
-  imports: [CommonModule, FormsModule, CurrencyPipe, DatePipe, EmbarqueAcompanhamentoComponent, EmbarqueNavioVinculoFormComponent],
+  imports: [CommonModule, FormsModule, CurrencyPipe, DatePipe, EmbarqueAcompanhamentoComponent, EmbarqueNavioVinculoFormComponent, CurrencyMaskDirective],
   styles: [
     ...CRUD_STYLES,
     `
@@ -602,7 +603,7 @@ type Mode = 'list' | 'form' | 'detail' | 'acompanhamento';
               </div>
               <div class="field">
                 <label>Valor (R$) <span class="required">*</span></label>
-                <input type="number" [(ngModel)]="pgForm.valor" min="0" step="0.01" />
+                <input type="text" [(ngModel)]="pgForm.valor" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" />
               </div>
               <div class="field">
                 <label>Data Prevista <span class="required">*</span></label>

@@ -24,13 +24,14 @@ import { DespesaCadastroService } from '../../cadastros/despesas-cadastro/servic
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { ApiErrorMapper } from '../../../../core/api/error-handler/api-error.mapper';
+import { CurrencyMaskDirective } from '../../../../core/directives/currency-mask.directive';
 
 type LinhaForm = { descricao: string; valor: number };
 
 @Component({
   selector: 'app-orcamento-venda',
   standalone: true,
-  imports: [CommonModule, FormsModule, CurrencyPipe, DatePipe],
+  imports: [CommonModule, FormsModule, CurrencyPipe, DatePipe, CurrencyMaskDirective],
   styles: [
     ...CRUD_STYLES,
     `
@@ -547,27 +548,27 @@ type LinhaForm = { descricao: string; valor: number };
                 <div class="form-grid">
                   <div class="field">
                     <label>CIF (R$)</label>
-                    <input type="number" [(ngModel)]="form.cifReais" min="0" step="0.01" />
+                    <input type="text" [(ngModel)]="form.cifReais" appCurrencyMask="BRL" min="0" step="0.01" />
                   </div>
                   <div class="field">
                     <label>CIF (USD)</label>
-                    <input type="number" [(ngModel)]="form.cifUsd" min="0" step="0.01" />
+                    <input type="text" [(ngModel)]="form.cifUsd" appCurrencyMask="USD" min="0" step="0.01" />
                   </div>
                   <div class="field">
                     <label>FOB (R$)</label>
-                    <input type="number" [(ngModel)]="form.fobReais" min="0" step="0.01" />
+                    <input type="text" [(ngModel)]="form.fobReais" appCurrencyMask="BRL" min="0" step="0.01" />
                   </div>
                   <div class="field">
                     <label>FOB (USD)</label>
-                    <input type="number" [(ngModel)]="form.fobUsd" min="0" step="0.01" />
+                    <input type="text" [(ngModel)]="form.fobUsd" appCurrencyMask="USD" min="0" step="0.01" />
                   </div>
                   <div class="field">
                     <label>Taxa USD</label>
-                    <input type="number" [(ngModel)]="form.taxaUsd" min="0" step="0.0001" />
+                    <input type="text" [(ngModel)]="form.taxaUsd" appCurrencyMask="USD" [currencyMaskDecimals]="4" min="0" step="0.0001" />
                   </div>
                   <div class="field">
                     <label>Total Impostos (R$)</label>
-                    <input type="number" [(ngModel)]="form.totalImpostos" min="0" step="0.01" />
+                    <input type="text" [(ngModel)]="form.totalImpostos" appCurrencyMask="BRL" min="0" step="0.01" />
                   </div>
                 </div>
               </div>
@@ -578,11 +579,11 @@ type LinhaForm = { descricao: string; valor: number };
                 <div class="form-grid">
                   <div class="field">
                     <label>Frete Internacional (R$)</label>
-                    <input type="number" [(ngModel)]="form.freteInternacional" min="0" step="0.01" placeholder="0.00" />
+                    <input type="text" [(ngModel)]="form.freteInternacional" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" />
                   </div>
                   <div class="field">
                     <label>Honorários (R$)</label>
-                    <input type="number" [(ngModel)]="form.honorarios" min="0" step="0.01" placeholder="0.00" />
+                    <input type="text" [(ngModel)]="form.honorarios" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" />
                   </div>
                 </div>
               </div>
@@ -610,7 +611,7 @@ type LinhaForm = { descricao: string; valor: number };
                   </div>
                   <div class="f" style="max-width:130px">
                     <label>Valor (R$)</label>
-                    <input type="number" [(ngModel)]="despesaForm.valor" min="0" step="0.01" placeholder="0.00" />
+                    <input type="text" [(ngModel)]="despesaForm.valor" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" />
                   </div>
                   <button class="btn btn-secondary" style="flex-shrink:0" (click)="addDespesa()">+ Add</button>
                 </div>
@@ -637,7 +638,7 @@ type LinhaForm = { descricao: string; valor: number };
                   </div>
                   <div class="f" style="max-width:130px">
                     <label>Valor (R$)</label>
-                    <input type="number" [(ngModel)]="extraForm.valor" min="0" step="0.01" placeholder="0.00" />
+                    <input type="text" [(ngModel)]="extraForm.valor" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" />
                   </div>
                   <button class="btn btn-secondary" style="flex-shrink:0" (click)="addExtra()">+ Add</button>
                 </div>

@@ -135,46 +135,54 @@ public class SolicitacoesOrcamentoService
 
     public async Task DeleteAsync(int id)
     {
-        var entity = await FindSolicitacaoOrThrowAsync(id);
+        var strategy = _db.Database.CreateExecutionStrategy();
 
-        // Remove dependências com FK Restrict para evitar conflito ao excluir a solicitação.
-        var embarqueVinculos = await _db.EmbarqueNavioVinculos
-            .Where(x => x.EmbarqueAduanaId == id)
-            .ToListAsync();
-        if (embarqueVinculos.Count > 0)
-            _db.RemoveRange(embarqueVinculos);
+        await strategy.ExecuteAsync(async () =>
+        {
+            var entity = await FindSolicitacaoOrThrowAsync(id);
 
-        var orcamentoIds = await _db.OrcamentosVenda
-            .Where(x => x.SolicitacaoOrcamentoId == id)
-            .Select(x => x.Id)
-            .ToListAsync();
+            await using var tx = await _db.Database.BeginTransactionAsync();
 
-        var custoIds = await _db.CustosDespachante
-            .Where(x => x.SolicitacaoOrcamentoId == id)
-            .Select(x => x.Id)
-            .ToListAsync();
+            // Remove dependências com FK Restrict para garantir exclusão total da árvore.
+            var embarqueVinculos = await _db.EmbarqueNavioVinculos
+                .Where(x => x.EmbarqueAduanaId == id)
+                .ToListAsync();
+            if (embarqueVinculos.Count > 0)
+                _db.RemoveRange(embarqueVinculos);
 
-        // Remove vínculos OrcamentosVendaCustos antes de excluir orçamentos e custos
-        var ovCustos = await _db.OrcamentosVendaCustos
-            .Where(x => orcamentoIds.Contains(x.OrcamentoVendaId) || custoIds.Contains(x.CustoDespachanteId))
-            .ToListAsync();
-        if (ovCustos.Count > 0)
-            _db.RemoveRange(ovCustos);
+            var orcamentoIds = await _db.OrcamentosVenda
+                .Where(x => x.SolicitacaoOrcamentoId == id)
+                .Select(x => x.Id)
+                .ToListAsync();
 
-        var orcamentos = await _db.OrcamentosVenda
-            .Where(x => orcamentoIds.Contains(x.Id))
-            .ToListAsync();
-        if (orcamentos.Count > 0)
-            _db.RemoveRange(orcamentos);
+            var custoIds = await _db.CustosDespachante
+                .Where(x => x.SolicitacaoOrcamentoId == id)
+                .Select(x => x.Id)
+                .ToListAsync();
 
-        var custos = await _db.CustosDespachante
-            .Where(x => custoIds.Contains(x.Id))
-            .ToListAsync();
-        if (custos.Count > 0)
-            _db.RemoveRange(custos);
+            // Remove vínculos cruzados antes de excluir os registros pai.
+            var ovCustos = await _db.OrcamentosVendaCustos
+                .Where(x => orcamentoIds.Contains(x.OrcamentoVendaId) || custoIds.Contains(x.CustoDespachanteId))
+                .ToListAsync();
+            if (ovCustos.Count > 0)
+                _db.RemoveRange(ovCustos);
 
-        _db.Remove(entity);
-        await _db.SaveChangesAsync();
+            var orcamentos = await _db.OrcamentosVenda
+                .Where(x => orcamentoIds.Contains(x.Id))
+                .ToListAsync();
+            if (orcamentos.Count > 0)
+                _db.RemoveRange(orcamentos);
+
+            var custos = await _db.CustosDespachante
+                .Where(x => custoIds.Contains(x.Id))
+                .ToListAsync();
+            if (custos.Count > 0)
+                _db.RemoveRange(custos);
+
+            _db.Remove(entity);
+            await _db.SaveChangesAsync();
+            await tx.CommitAsync();
+        });
     }
 
     public async Task<IReadOnlyList<SolicitacaoOrcamentoDespachanteDto>> GetDespachantesAsync(int solicitacaoId)

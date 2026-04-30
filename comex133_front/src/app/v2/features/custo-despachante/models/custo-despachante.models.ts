@@ -19,6 +19,7 @@ export interface CustoDespachante {
   cifUsd: number;
   cifReais: number;
   seguroUsd: number;
+  freteInternacionalUsd: number;
   taxaUsd: number;
   taxaUsdAgente?: number;
   tamContainer: '20' | '40' | 'LCL';

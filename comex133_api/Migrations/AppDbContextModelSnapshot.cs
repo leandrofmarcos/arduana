@@ -221,6 +221,9 @@ namespace Comex133Api.Migrations
                     b.Property<decimal>("FobUsd")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<decimal>("FreteInternacionalUsd")
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<int?>("ImportadorId")
                         .HasColumnType("int");
 

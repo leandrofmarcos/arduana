@@ -56,6 +56,9 @@ public class CustoDespachante : IHasTimestamps
     public decimal SeguroUsd { get; set; }
 
     [Column(TypeName = "decimal(18,4)")]
+    public decimal FreteInternacionalUsd { get; set; }
+
+    [Column(TypeName = "decimal(18,4)")]
     public decimal TaxaUsd { get; set; }
 
     [Column(TypeName = "decimal(18,4)")]

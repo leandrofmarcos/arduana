@@ -84,6 +84,7 @@ public class CustosDespachanteService
             CifUsd             = request.CifUsd,
             CifReais           = request.CifReais,
             SeguroUsd          = request.SeguroUsd,
+            FreteInternacionalUsd = request.FreteInternacionalUsd,
             TaxaUsd            = request.TaxaUsd,
             TaxaUsdAgente      = request.TaxaUsdAgente,
             Observacao         = request.Observacao?.Trim(),
@@ -120,6 +121,7 @@ public class CustosDespachanteService
         entity.CifUsd        = request.CifUsd;
         entity.CifReais      = request.CifReais;
         entity.SeguroUsd     = request.SeguroUsd;
+        entity.FreteInternacionalUsd = request.FreteInternacionalUsd;
         entity.TaxaUsd       = request.TaxaUsd;
         entity.TaxaUsdAgente = request.TaxaUsdAgente;
         entity.Observacao    = request.Observacao?.Trim();
@@ -217,6 +219,7 @@ public class CustosDespachanteService
             CifUsd                 = entity.CifUsd,
             CifReais               = entity.CifReais,
             SeguroUsd              = entity.SeguroUsd,
+            FreteInternacionalUsd  = entity.FreteInternacionalUsd,
             TaxaUsd                = entity.TaxaUsd,
             TaxaUsdAgente          = entity.TaxaUsdAgente,
             Observacao             = entity.Observacao,
@@ -774,14 +777,14 @@ public class CustosDespachanteService
     private static CustoDespachanteListDto ToListDto(Domain.Entities.CustoDespachante x) =>
         new(x.Id, x.CodigoInterno, x.SolicitacaoOrcamentoId, x.DespachanteId, x.ImportadorId,
             x.PortoOrigemId, x.PortoDestinoId, x.Responsavel, x.TamContainer,
-            x.Peso, x.FobUsd, x.FobReais, x.CifUsd, x.CifReais, x.SeguroUsd,
+            x.Peso, x.FobUsd, x.FobReais, x.CifUsd, x.CifReais, x.SeguroUsd, x.FreteInternacionalUsd,
             x.TaxaUsd, x.TaxaUsdAgente, x.Observacao, x.Data, x.Status,
             x.Versao, x.VersaoAnteriorId, x.Imutavel, x.CriadoEm, x.AtualizadoEm);
 
     private static CustoDespachanteDto ToDto(Domain.Entities.CustoDespachante x) =>
         new(x.Id, x.CodigoInterno, x.SolicitacaoOrcamentoId, x.DespachanteId, x.ImportadorId,
             x.PortoOrigemId, x.PortoDestinoId, x.Responsavel, x.TamContainer,
-            x.Peso, x.FobUsd, x.FobReais, x.CifUsd, x.CifReais, x.SeguroUsd,
+            x.Peso, x.FobUsd, x.FobReais, x.CifUsd, x.CifReais, x.SeguroUsd, x.FreteInternacionalUsd,
             x.TaxaUsd, x.TaxaUsdAgente, x.Observacao, x.Data, x.Status,
             x.Versao, x.VersaoAnteriorId, x.Imutavel, x.CriadoEm, x.AtualizadoEm,
             x.Lis.Select(l => ToLiDto(l)).ToList(),
