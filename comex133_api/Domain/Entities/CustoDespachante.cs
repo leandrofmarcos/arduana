@@ -62,7 +62,14 @@ public class CustoDespachante : IHasTimestamps
     public decimal TaxaUsd { get; set; }
 
     [Column(TypeName = "decimal(18,4)")]
+    public decimal ParametroUsd { get; set; }
+
+    [Column(TypeName = "decimal(18,4)")]
     public decimal? TaxaUsdAgente { get; set; }
+
+    /// <summary>Total Geral informado manualmente pelo usuário ao finalizar sem preencher todos os campos financeiros.</summary>
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? TotalGeralManual { get; set; }
 
     [MaxLength(1000)]
     public string? Observacao { get; set; }

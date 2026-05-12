@@ -7,13 +7,13 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Comex133Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260428193000_AddFreteInternacionalUsdToCustoDespachante")]
-    public partial class AddFreteInternacionalUsdToCustoDespachante : Migration
+    [Migration("20260430223000_AddParametroUsdToCustoDespachante")]
+    public partial class AddParametroUsdToCustoDespachante : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<decimal>(
-                name: "FreteInternacionalUsd",
+                name: "ParametroUsd",
                 table: "CustosDespachante",
                 type: "decimal(18,4)",
                 nullable: false,
@@ -23,7 +23,7 @@ namespace Comex133Api.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "FreteInternacionalUsd",
+                name: "ParametroUsd",
                 table: "CustosDespachante");
         }
     }

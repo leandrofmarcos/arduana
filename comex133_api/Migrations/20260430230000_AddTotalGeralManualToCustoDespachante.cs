@@ -7,23 +7,22 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Comex133Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260428193000_AddFreteInternacionalUsdToCustoDespachante")]
-    public partial class AddFreteInternacionalUsdToCustoDespachante : Migration
+    [Migration("20260430230000_AddTotalGeralManualToCustoDespachante")]
+    public partial class AddTotalGeralManualToCustoDespachante : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<decimal>(
-                name: "FreteInternacionalUsd",
+                name: "TotalGeralManual",
                 table: "CustosDespachante",
-                type: "decimal(18,4)",
-                nullable: false,
-                defaultValue: 0m);
+                type: "decimal(18,2)",
+                nullable: true);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "FreteInternacionalUsd",
+                name: "TotalGeralManual",
                 table: "CustosDespachante");
         }
     }

@@ -898,6 +898,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
           seguroUsd:              0,
           freteInternacionalUsd:  0,
           taxaUsd:                0,
+          parametroUsd:           0,
           data:                   today,
           observacao:             this.form.observacao,
           solicitacaoOrcamentoId: this.form.id,

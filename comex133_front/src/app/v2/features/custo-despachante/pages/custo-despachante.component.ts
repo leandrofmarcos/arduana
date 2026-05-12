@@ -474,23 +474,27 @@ type CustoGroupSolicitacao = {
               </select>
             </div>
             <div class="field">
+              <label>FOB (USD)</label>
+              <input type="text" [(ngModel)]="p1.fobUsd" (ngModelChange)="onFobUsdChange()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" />
+            </div>
+            <div class="field">
+              <label>FOB (R$)</label>
+              <input type="text" [(ngModel)]="p1.fobReais" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" [readonly]="true" />
+            </div>
+            <div class="field">
               <label>Peso (kg) <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="p1.peso" appCurrencyMask="BRL" [currencyMaskMode]="'number'" [currencyMaskUnit]="'kg'" min="0" step="0.01" placeholder="0 kg" />
+              <input type="text" [(ngModel)]="p1.peso" (ngModelChange)="onPesoChange()" appCurrencyMask="BRL" [currencyMaskMode]="'number'" [currencyMaskUnit]="'kg'" min="0" step="0.01" placeholder="0 kg" />
             </div>
             <div class="field">
               <label>Taxa Dólar <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="p1.taxaUsd" (ngModelChange)="recalculateFinancials()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00"
+              <input type="text" [(ngModel)]="p1.taxaUsd" (ngModelChange)="onTaxaUsdChange()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00"
                      [class.err]="showErr && ((!p1.taxaUsd || p1.taxaUsd <= 0) || hasApiFieldError('taxaUsd'))" />
               <span class="err-msg" *ngIf="showErr && (!p1.taxaUsd || p1.taxaUsd <= 0)">Obrigatório</span>
               <span class="err-msg" *ngIf="showErr && hasApiFieldError('taxaUsd')">{{ firstApiFieldError('taxaUsd') }}</span>
             </div>
             <div class="field">
-              <label>FOB (USD)</label>
-              <input type="text" [(ngModel)]="p1.fobUsd" (ngModelChange)="recalculateFinancials()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" />
-            </div>
-            <div class="field">
-              <label>FOB (R$)</label>
-              <input type="text" [(ngModel)]="p1.fobReais" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" [readonly]="true" />
+              <label>Parâmetro (USD)</label>
+              <input type="text" [(ngModel)]="p1.parametroUsd" (ngModelChange)="onParametroUsdChange()" appCurrencyMask="USD" [currencyMaskDecimals]="8" min="0" step="0.00000001" placeholder="$0.00" />
             </div>
             <div class="field">
               <label>Seguro (USD)</label>
@@ -520,14 +524,56 @@ type CustoGroupSolicitacao = {
 
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
+            <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
             <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
-            <button class="btn btn-secondary" (click)="cancelWizard()">Cancelar</button>
+            <button class="btn btn-secondary" (click)="tentarFinalizar()">✅ Finalizar</button>
+            <button class="btn btn-secondary" (click)="prevStep()" [disabled]="step === 1">← Voltar</button>
+            <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
         </div>
 
-        <!-- ─ PASSO 2 — LI ─ -->
+        <!-- ─ PASSO 2 — Packlist ─ -->
         <div class="card" *ngIf="step === 2">
+          <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:16px">
+            Packlist vinculado a solicitacao de orcamento. Neste passo, o usuario pode apenas baixar os arquivos.
+          </p>
+
+          <ng-container *ngIf="p1.solicitacaoOrcamentoId; else semSolicitacaoPacklist">
+            <div class="packlist-box" style="margin-top:0">
+              <h4>📦 Packlist da Solicitação</h4>
+              <ng-container *ngIf="packlistDocs(p1.solicitacaoOrcamentoId).length > 0; else semDocsPacklistStep">
+                <div class="packlist-row" *ngFor="let doc of packlistDocs(p1.solicitacaoOrcamentoId)">
+                  <span class="packlist-name">{{ doc.nomeArquivo }}</span>
+                  <span class="packlist-obs">{{ doc.observacao || '' }}</span>
+                  <span class="packlist-date">{{ doc.dataUpload | date:'dd/MM/yyyy' }}</span>
+                  <button class="btn-icon" title="Baixar / Ver arquivo"
+                    (click)="downloadPacklist(doc.linkDocumento, doc.nomeArquivo)">⬇️</button>
+                </div>
+              </ng-container>
+              <ng-template #semDocsPacklistStep>
+                <p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhum arquivo cadastrado nesta solicitacao.</p>
+              </ng-template>
+            </div>
+          </ng-container>
+          <ng-template #semSolicitacaoPacklist>
+            <div class="packlist-box" style="margin-top:0">
+              <h4>📦 Packlist da Solicitação</h4>
+              <p style="font-size:12px;color:var(--color-text-muted);margin:0">Este custo nao esta vinculado a uma solicitacao de orcamento.</p>
+            </div>
+          </ng-template>
+
+          <div class="actions">
+            <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
+            <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
+            <button class="btn btn-secondary" (click)="tentarFinalizar()">✅ Finalizar</button>
+            <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
+            <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
+          </div>
+        </div>
+
+        <!-- ─ PASSO 3 — LI ─ -->
+        <div class="card" *ngIf="step === 3">
           <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:16px">
             Adicione os itens da Licença de Importação com NCM e valores.
           </p>
@@ -584,36 +630,18 @@ type CustoGroupSolicitacao = {
           </table>
           <p *ngIf="lisForm.length === 0" style="font-size:13px;color:var(--color-text-muted);margin-top:8px">Nenhum item adicionado.</p>
 
-          <!-- Packlist da Solicitação (somente leitura) -->
-          <ng-container *ngIf="p1.solicitacaoOrcamentoId">
-            <div class="packlist-box" style="margin-top:20px">
-              <h4>📦 Packlist da Solicitação</h4>
-              <ng-container *ngIf="packlistDocs(p1.solicitacaoOrcamentoId).length > 0; else semDocs">
-                <div class="packlist-row" *ngFor="let doc of packlistDocs(p1.solicitacaoOrcamentoId)">
-                  <span class="packlist-name">{{ doc.nomeArquivo }}</span>
-                  <span class="packlist-obs">{{ doc.observacao || '' }}</span>
-                  <span class="packlist-date">{{ doc.dataUpload | date:'dd/MM/yyyy' }}</span>
-                  <button class="btn-icon" title="Baixar / Ver arquivo"
-                    (click)="downloadPacklist(doc.linkDocumento, doc.nomeArquivo)">⬇️</button>
-                </div>
-              </ng-container>
-              <ng-template #semDocs>
-                <p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhum arquivo cadastrado nesta solicitação.</p>
-              </ng-template>
-            </div>
-          </ng-container>
-
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
+            <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
             <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
+            <button class="btn btn-secondary" (click)="tentarFinalizar()">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
         </div>
 
-        <!-- ─ PASSO 3 — Despesas ─ -->
-        <div class="card" *ngIf="step === 3">
+        <!-- ─ PASSO 4 — Despesas ─ -->
+        <div class="card" *ngIf="step === 4">
           <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:16px">
             Registre as despesas do despachante. Marque se entra na base de cálculo do ICMS.
           </p>
@@ -728,15 +756,16 @@ type CustoGroupSolicitacao = {
 
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
+            <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
             <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
+            <button class="btn btn-secondary" (click)="tentarFinalizar()">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
         </div>
 
-        <!-- ─ PASSO 4 — NCM / Impostos ─ -->
-        <div class="card" *ngIf="step === 4">
+        <!-- ─ PASSO 5 — NCM / Impostos ─ -->
+        <div class="card" *ngIf="step === 5">
           <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:16px">
             Vincule NCMs cadastrados. As alíquotas são pré-preenchidas e o sistema calcula os impostos automaticamente.
           </p>
@@ -817,15 +846,16 @@ type CustoGroupSolicitacao = {
 
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
+            <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
             <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
+            <button class="btn btn-secondary" (click)="tentarFinalizar()">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
         </div>
 
-        <!-- ─ PASSO 5 — Resumo Consolidado ─ -->
-        <div class="card" *ngIf="step === 5">
+        <!-- ─ PASSO 6 — Resumo Consolidado ─ -->
+        <div class="card" *ngIf="step === 6">
 
           <!-- Cabeçalho do resumo -->
           <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;padding-bottom:16px;border-bottom:2px solid var(--color-border)">
@@ -892,6 +922,10 @@ type CustoGroupSolicitacao = {
               <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
                 <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">Taxa USD</div>
                 <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.taxaUsd | currency:'USD':'symbol':'1.2-2' }}</div>
+              </div>
+              <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">Parâmetro USD</div>
+                <div style="font-size:14px;font-weight:700;margin-top:2px">{{ p1.parametroUsd | currency:'USD':'symbol':'1.2-2' }}</div>
               </div>
               <div style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:8px;padding:10px 12px;text-align:center">
                 <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted)">FOB USD</div>
@@ -1070,8 +1104,8 @@ type CustoGroupSolicitacao = {
               </div>
             </div>
             <div class="total-geral-box">
-              <span class="label">TOTAL GERAL</span>
-              <span class="valor">{{ totalGeral() | currency:'BRL':'symbol':'1.2-2' }}</span>
+              <span class="label">TOTAL GERAL{{ p1.totalGeralManual ? ' (Manual)' : '' }}</span>
+              <span class="valor">{{ (p1.totalGeralManual ?? totalGeral()) | currency:'BRL':'symbol':'1.2-2' }}</span>
             </div>
           </div>
 
@@ -1092,10 +1126,10 @@ type CustoGroupSolicitacao = {
           </ng-container>
 
           <div class="actions" style="margin-top:24px">
+            <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
             <button class="btn btn-secondary" *ngIf="!modoVisualizacao" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
-            <button class="btn btn-primary" *ngIf="!modoVisualizacao" (click)="salvarTudo('Finalizado')">✅ Finalizar</button>
+            <button class="btn btn-primary" *ngIf="!modoVisualizacao" (click)="tentarFinalizar()">✅ Finalizar</button>
             <button class="btn btn-secondary" *ngIf="!modoVisualizacao" (click)="prevStep()">← Voltar</button>
-            <button class="btn btn-outline" (click)="openPreview()">👁 Preview</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
         </div>
@@ -1118,12 +1152,43 @@ type CustoGroupSolicitacao = {
         </div>
       </div>
 
+
+      <!-- FINALIZAR MODAL -->
+      <div class="preview-overlay" *ngIf="showFinalizarModal" (click)="fecharFinalizarModal()">
+        <div style="background:#fff;border-radius:12px;width:96%;max-width:480px;padding:28px 28px 24px;box-shadow:0 24px 72px rgba(0,0,0,.4)" (click)="$event.stopPropagation()">
+          <ng-container *ngIf="!showTotalGeralInput">
+            <h3 style="margin:0 0 10px;font-size:16px;font-weight:800;color:#1e293b">⚠️ Campos obrigatórios incompletos</h3>
+            <p style="font-size:13px;color:#475569;margin:0 0 12px">Para finalizar com cálculos completos, corrija os campos abaixo. Ou finalize informando apenas o Custo Total.</p>
+            <ul style="font-size:12px;color:#dc2626;margin:0 0 20px;padding-left:18px">
+              <li *ngFor="let e of finalizarModalErros">{{ e }}</li>
+            </ul>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <button class="btn btn-secondary" (click)="fecharFinalizarModal()">← Voltar e preencher</button>
+              <button class="btn btn-primary" (click)="mostrarInputTotalGeral()">💰 Finalizar com Custo Total →</button>
+            </div>
+          </ng-container>
+          <ng-container *ngIf="showTotalGeralInput">
+            <h3 style="margin:0 0 10px;font-size:16px;font-weight:800;color:#1e293b">💰 Informe o Total Geral</h3>
+            <p style="font-size:13px;color:#475569;margin:0 0 16px">Informe o valor total do custo. Este valor será salvo sem cálculos detalhados.</p>
+            <div style="margin-bottom:16px">
+              <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--color-text-muted);display:block;margin-bottom:6px">Total Geral (R$) *</label>
+              <input type="text" [(ngModel)]="totalGeralManualInput" appCurrencyMask="BRL" placeholder="R$ 0,00"
+                style="width:100%;padding:10px 12px;border:1.5px solid var(--color-border);border-radius:8px;font-size:16px;font-weight:700;box-sizing:border-box" />
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-secondary" (click)="showTotalGeralInput=false">← Voltar</button>
+              <button class="btn btn-primary" style="flex:1" (click)="finalizarComTotalGeral()">✅ Finalizar</button>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
     </div>
   `
 })
 export class CustoDespachanteComponent implements OnInit {
 
-  readonly stepLabels = ['Dados Básicos', 'LI', 'Despesas', 'NCM/Impostos', 'Resumo'];
+  readonly stepLabels = ['Dados Básicos', 'Packlist', 'LI', 'Despesas', 'NCM/Impostos', 'Resumo'];
 
   // ── List ──────────────────────────────────────────────────────────────
   custos: CustoDespachante[] = [];
@@ -1151,18 +1216,26 @@ export class CustoDespachanteComponent implements OnInit {
   previewMaximized = false;
   previewSrcdoc: SafeHtml = '';
 
+  // ── Finalizar modal state ─────────────────────────────────────────────
+  showFinalizarModal = false;
+  finalizarModalErros: string[] = [];
+  totalGeralManualInput: number = 0;
+  showTotalGeralInput = false;
+
   // ── Wizard state ──────────────────────────────────────────────────────
   step = 1;
   completedSteps = new Set<number>();
   showErr = false;
   wizardStatus: StatusCustoDespachante = 'Pendente';
   apiFieldErrors: Record<string, string[]> = {};
+  private fobCalcSource: 'fob' | 'parametro' = 'parametro';
 
   p1 = {
     despachanteId: '', importadorId: '', portoOrigemId: '', portoDestinoId: '',
     responsavel: '', data: new Date().toISOString().slice(0, 10), tamContainer: '40' as '20' | '40' | 'LCL', peso: 0,
     fobUsd: 0, fobReais: 0, cifUsd: 0, cifReais: 0, seguroUsd: 0, freteInternacionalUsd: 0,
-    taxaUsd: 0, taxaUsdAgente: undefined as number | undefined, observacao: '',
+    taxaUsd: 0, parametroUsd: 0, taxaUsdAgente: undefined as number | undefined, observacao: '',
+    totalGeralManual: null as number | null,
     solicitacaoOrcamentoId: undefined as string | undefined
   };
 
@@ -1604,12 +1677,40 @@ export class CustoDespachanteComponent implements OnInit {
            (this.p1.cifReais || 0);
   }
 
+  onFobUsdChange(): void {
+    this.fobCalcSource = 'fob';
+    this.recalculateFinancials();
+  }
+
+  onParametroUsdChange(): void {
+    this.fobCalcSource = 'parametro';
+    this.recalculateFinancials();
+  }
+
+  onPesoChange(): void {
+    this.recalculateFinancials();
+  }
+
+  onTaxaUsdChange(): void {
+    this.recalculateFinancials();
+  }
+
   recalculateFinancials(): void {
     const taxa = Number(this.p1.taxaUsd) || 0;
-    const fobUsd = Number(this.p1.fobUsd) || 0;
+    const peso = Number(this.p1.peso) || 0;
+    let parametroUsd = Number(this.p1.parametroUsd) || 0;
+    let fobUsd = Number(this.p1.fobUsd) || 0;
     const seguroUsd = Number(this.p1.seguroUsd) || 0;
     const freteInternacionalUsd = Number(this.p1.freteInternacionalUsd) || 0;
 
+    if (this.fobCalcSource === 'fob') {
+      parametroUsd = peso > 0 ? this.roundRate(fobUsd / peso) : 0;
+    } else {
+      fobUsd = this.roundCurrency(peso * parametroUsd);
+    }
+
+    this.p1.parametroUsd = parametroUsd;
+    this.p1.fobUsd = fobUsd;
     this.p1.fobReais = this.roundCurrency(fobUsd * taxa);
     this.p1.cifUsd = this.roundCurrency(fobUsd + seguroUsd + freteInternacionalUsd);
     this.p1.cifReais = this.roundCurrency(this.p1.cifUsd * taxa);
@@ -1617,6 +1718,10 @@ export class CustoDespachanteComponent implements OnInit {
 
   private roundCurrency(value: number): number {
     return Math.round((Number(value) || 0) * 100) / 100;
+  }
+
+  private roundRate(value: number): number {
+    return Math.round((Number(value) || 0) * 100000000) / 100000000;
   }
 
   // ── CRUD ──────────────────────────────────────────────────────────────
@@ -1653,7 +1758,9 @@ export class CustoDespachanteComponent implements OnInit {
         seguroUsd:     item.seguroUsd,
         freteInternacionalUsd: item.freteInternacionalUsd,
         taxaUsd:       item.taxaUsd,
+        parametroUsd:  item.parametroUsd,
         taxaUsdAgente: item.taxaUsdAgente,
+        totalGeralManual: item.totalGeralManual ?? null,
         observacao:    item.observacao ?? ''
       };
       this.lisForm = this.service.getLis(item.id).map(li => ({
@@ -1669,9 +1776,10 @@ export class CustoDespachanteComponent implements OnInit {
       }));
       // Mark all data-bearing steps as complete when editing an existing record
       this.completedSteps.add(1);
-      if (this.lisForm.length > 0) this.completedSteps.add(2);
-      if (this.despesasForm.length > 0) this.completedSteps.add(3);
-      if (this.ncvsForm.length > 0) this.completedSteps.add(4);
+      this.completedSteps.add(2);
+      if (this.lisForm.length > 0) this.completedSteps.add(3);
+      if (this.despesasForm.length > 0) this.completedSteps.add(4);
+      if (this.ncvsForm.length > 0) this.completedSteps.add(5);
       this.normalizeImportadorSelection();
       this.recalculateFinancials();
     } else {
@@ -1680,7 +1788,8 @@ export class CustoDespachanteComponent implements OnInit {
         despachanteId: '', importadorId: '', portoOrigemId: '', portoDestinoId: '',
         responsavel: '', data: this.todayStr(), tamContainer: '40', peso: 0,
         fobUsd: 0, fobReais: 0, cifUsd: 0, cifReais: 0, seguroUsd: 0, freteInternacionalUsd: 0,
-        taxaUsd: 0, taxaUsdAgente: undefined, observacao: '',
+        taxaUsd: 0, parametroUsd: 0, taxaUsdAgente: undefined, observacao: '',
+        totalGeralManual: null,
         solicitacaoOrcamentoId: undefined
       };
       this.normalizeImportadorSelection();
@@ -1692,8 +1801,8 @@ export class CustoDespachanteComponent implements OnInit {
 
     if (item && !this.isCustoEditavel(item)) {
       this.modoVisualizacao = true;
-      this.step = 5;
-      this.completedSteps = new Set<number>([1, 2, 3, 4, 5]);
+      this.step = 6;
+      this.completedSteps = new Set<number>([1, 2, 3, 4, 5, 6]);
     }
 
     this.liForm = { ncm: '', descricao: '', valor: 0, data: this.todayStr() };
@@ -1712,9 +1821,14 @@ export class CustoDespachanteComponent implements OnInit {
 
     const eraEdicao = !!this.editing;
     this.apiFieldErrors = {};
-    if (!this.validateP1()) return;
 
-    const today = new Date().toISOString().split('T')[0];
+    // Salvar (EmAndamento) nunca valida — permite rascunho parcial
+    // Finalizar sempre valida (chamado via tentarFinalizar)
+    if (status !== 'EmAndamento' && !this.validateP1()) return;
+      // Garante que fobReais, cifUsd, cifReais estão recalculados antes de enviar
+      this.recalculateFinancials();
+
+      const today = new Date().toISOString().split('T')[0];
 
     let custoId: string;
     let saved: CustoDespachante;
@@ -1736,7 +1850,9 @@ export class CustoDespachanteComponent implements OnInit {
           seguroUsd:      this.p1.seguroUsd || 0,
           freteInternacionalUsd: this.p1.freteInternacionalUsd || 0,
           taxaUsd:        this.p1.taxaUsd || 0,
+          parametroUsd:   this.p1.parametroUsd || 0,
           taxaUsdAgente:  this.p1.taxaUsdAgente,
+          totalGeralManual: this.p1.totalGeralManual ?? null,
           observacao:     this.p1.observacao.trim() || undefined,
         });
         custoId = this.editing.id;
@@ -1757,7 +1873,9 @@ export class CustoDespachanteComponent implements OnInit {
           seguroUsd:              this.p1.seguroUsd || 0,
           freteInternacionalUsd:  this.p1.freteInternacionalUsd || 0,
           taxaUsd:                this.p1.taxaUsd || 0,
+          parametroUsd:           this.p1.parametroUsd || 0,
           taxaUsdAgente:          this.p1.taxaUsdAgente,
+          totalGeralManual:       this.p1.totalGeralManual ?? null,
           observacao:             this.p1.observacao.trim() || undefined,
           solicitacaoOrcamentoId: this.p1.solicitacaoOrcamentoId || undefined,
         });
@@ -1767,7 +1885,9 @@ export class CustoDespachanteComponent implements OnInit {
       this.apiFieldErrors = this.collectFieldErrors(err);
       if (!Object.keys(this.apiFieldErrors).length) {
         this.toast.error(err?.message ?? 'Erro ao salvar custo despachante.');
-      }
+        } else {
+          this.toast.error('Verifique os campos obrigatórios e tente novamente.');
+        }
       return;
     }
 
@@ -1810,7 +1930,7 @@ export class CustoDespachanteComponent implements OnInit {
       }
 
       this.wizardStatus = status;
-      for (let i = 1; i <= 5; i++) this.completedSteps.add(i);
+      for (let i = 1; i <= 6; i++) this.completedSteps.add(i);
 
       this.cancelWizard();
       this.syncCustosView();
@@ -1820,6 +1940,56 @@ export class CustoDespachanteComponent implements OnInit {
     } catch (err: any) {
       this.toast.error(err?.message ?? 'Erro ao salvar os dados do custo.');
     }
+  }
+
+  // ── Finalizar com validação + modal fallback ───────────────────────────────
+
+  tentarFinalizar(): void {
+    if (this.modoVisualizacao) return;
+
+    const erros: string[] = [];
+    if (!this.p1.despachanteId) erros.push('Despachante é obrigatório');
+    if (!this.p1.portoOrigemId) erros.push('Porto de Origem é obrigatório');
+    if (!this.p1.portoDestinoId) erros.push('Porto de Destino é obrigatório');
+    if (!this.p1.responsavel?.trim()) erros.push('Responsável é obrigatório');
+    if (!this.p1.data) erros.push('Data é obrigatória');
+    if (!this.p1.taxaUsd || this.p1.taxaUsd <= 0) erros.push('Taxa Dólar deve ser maior que zero');
+    if ((!this.p1.fobUsd || this.p1.fobUsd <= 0) && (!this.p1.parametroUsd || this.p1.parametroUsd <= 0))
+      erros.push('FOB (USD) ou Parâmetro (USD) devem ser informados');
+    if (!this.p1.peso || this.p1.peso <= 0) erros.push('Peso deve ser maior que zero');
+
+    if (erros.length === 0) {
+      // Tudo preenchido: finaliza normalmente
+      this.salvarTudo('Finalizado');
+    } else {
+      // Campos financeiros incompletos: mostra modal
+      this.finalizarModalErros = erros;
+      this.showTotalGeralInput = false;
+      this.totalGeralManualInput = 0;
+      this.showFinalizarModal = true;
+    }
+  }
+
+  fecharFinalizarModal(): void {
+    this.showFinalizarModal = false;
+    this.showTotalGeralInput = false;
+    this.totalGeralManualInput = 0;
+    this.finalizarModalErros = [];
+  }
+
+  mostrarInputTotalGeral(): void {
+    this.showTotalGeralInput = true;
+  }
+
+  async finalizarComTotalGeral(): Promise<void> {
+    if (!this.totalGeralManualInput || this.totalGeralManualInput <= 0) {
+      this.toast.error('Informe um valor de Total Geral maior que zero.');
+      return;
+    }
+    this.p1.totalGeralManual = this.totalGeralManualInput;
+    this.showFinalizarModal = false;
+    this.showTotalGeralInput = false;
+    await this.salvarTudo('Finalizado');
   }
 
   hasApiFieldError(...keys: string[]): boolean {
@@ -2022,6 +2192,7 @@ export class CustoDespachanteComponent implements OnInit {
         <tr><td>FOB</td><td class="val-r">${fmtUSD(this.p1.fobUsd||0)}</td><td class="val-r">${fmtBRL(this.p1.fobReais||0)}</td></tr>
         <tr><td>CIF</td><td class="val-r">${fmtUSD(this.p1.cifUsd||0)}</td><td class="val-r">${fmtBRL(this.p1.cifReais||0)}</td></tr>
         <tr><td>Taxa USD</td><td colspan="2" class="val-r">${fmtUSD(this.p1.taxaUsd||0)}</td></tr>
+        <tr><td>Parâmetro USD</td><td colspan="2" class="val-r">${fmtUSD(this.p1.parametroUsd||0)}</td></tr>
         <tr><td>Seguro</td><td class="val-r">${fmtUSD(this.p1.seguroUsd||0)}</td><td>&mdash;</td></tr>
         <tr><td>Frete Internacional</td><td class="val-r">${fmtUSD(this.p1.freteInternacionalUsd||0)}</td><td>&mdash;</td></tr>
         ${this.p1.taxaUsdAgente!=null ? `<tr><td>Taxa USD Agente</td><td colspan="2" class="val-r">${fmtUSD(this.p1.taxaUsdAgente)}</td></tr>` : ''}
@@ -2093,3 +2264,4 @@ export class CustoDespachanteComponent implements OnInit {
     return html;
   }
 }
+

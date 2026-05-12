@@ -20,7 +20,9 @@ public record CustoDespachanteListDto(
     decimal SeguroUsd,
     decimal FreteInternacionalUsd,
     decimal TaxaUsd,
+    decimal ParametroUsd,
     decimal? TaxaUsdAgente,
+    decimal? TotalGeralManual,
     string? Observacao,
     DateTime Data,
     string Status,
@@ -51,7 +53,9 @@ public record CustoDespachanteDto(
     decimal SeguroUsd,
     decimal FreteInternacionalUsd,
     decimal TaxaUsd,
+    decimal ParametroUsd,
     decimal? TaxaUsdAgente,
+    decimal? TotalGeralManual,
     string? Observacao,
     DateTime Data,
     string Status,
@@ -142,7 +146,9 @@ public record CreateCustoDespachanteRequest(
     decimal SeguroUsd,
     decimal FreteInternacionalUsd,
     decimal TaxaUsd,
+    decimal ParametroUsd,
     decimal? TaxaUsdAgente,
+    decimal? TotalGeralManual,
     string? Observacao,
     DateTime Data
 );
@@ -161,7 +167,9 @@ public record UpdateCustoDespachanteRequest(
     decimal SeguroUsd,
     decimal FreteInternacionalUsd,
     decimal TaxaUsd,
+    decimal ParametroUsd,
     decimal? TaxaUsdAgente,
+    decimal? TotalGeralManual,
     string? Observacao,
     DateTime Data
 );

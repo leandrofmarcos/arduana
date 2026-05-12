@@ -237,6 +237,12 @@ namespace Comex133Api.Migrations
                     b.Property<decimal>("Peso")
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<decimal>("ParametroUsd")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal?>("TotalGeralManual")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("PortoDestinoId")
                         .HasColumnType("int");
 

@@ -18,7 +18,9 @@ public class CreateCustoDespachanteValidator : AbstractValidator<CreateCustoDesp
         RuleFor(x => x.CifReais).GreaterThanOrEqualTo(0);
         RuleFor(x => x.SeguroUsd).GreaterThanOrEqualTo(0);
         RuleFor(x => x.FreteInternacionalUsd).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.TaxaUsd).GreaterThan(0).WithMessage("Taxa USD deve ser maior que zero.");
+        RuleFor(x => x.TaxaUsd).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.ParametroUsd).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.TotalGeralManual).GreaterThan(0).When(x => x.TotalGeralManual.HasValue).WithMessage("Total Geral Manual deve ser maior que zero quando informado.");
         RuleFor(x => x.Observacao).MaximumLength(1000).When(x => x.Observacao is not null);
         RuleFor(x => x.Data).NotEmpty();
     }
@@ -39,7 +41,9 @@ public class UpdateCustoDespachanteValidator : AbstractValidator<UpdateCustoDesp
         RuleFor(x => x.CifReais).GreaterThanOrEqualTo(0);
         RuleFor(x => x.SeguroUsd).GreaterThanOrEqualTo(0);
         RuleFor(x => x.FreteInternacionalUsd).GreaterThanOrEqualTo(0);
-        RuleFor(x => x.TaxaUsd).GreaterThan(0).WithMessage("Taxa USD deve ser maior que zero.");
+        RuleFor(x => x.TaxaUsd).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.ParametroUsd).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.TotalGeralManual).GreaterThan(0).When(x => x.TotalGeralManual.HasValue).WithMessage("Total Geral Manual deve ser maior que zero quando informado.");
         RuleFor(x => x.Observacao).MaximumLength(1000).When(x => x.Observacao is not null);
         RuleFor(x => x.Data).NotEmpty();
     }

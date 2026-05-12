@@ -86,7 +86,9 @@ public class CustosDespachanteService
             SeguroUsd          = request.SeguroUsd,
             FreteInternacionalUsd = request.FreteInternacionalUsd,
             TaxaUsd            = request.TaxaUsd,
+            ParametroUsd       = request.ParametroUsd,
             TaxaUsdAgente      = request.TaxaUsdAgente,
+            TotalGeralManual   = request.TotalGeralManual,
             Observacao         = request.Observacao?.Trim(),
             Data               = request.Data,
             Status             = "Pendente",
@@ -122,10 +124,12 @@ public class CustosDespachanteService
         entity.CifReais      = request.CifReais;
         entity.SeguroUsd     = request.SeguroUsd;
         entity.FreteInternacionalUsd = request.FreteInternacionalUsd;
-        entity.TaxaUsd       = request.TaxaUsd;
-        entity.TaxaUsdAgente = request.TaxaUsdAgente;
-        entity.Observacao    = request.Observacao?.Trim();
-        entity.Data          = request.Data;
+        entity.TaxaUsd           = request.TaxaUsd;
+        entity.ParametroUsd      = request.ParametroUsd;
+        entity.TaxaUsdAgente     = request.TaxaUsdAgente;
+        entity.TotalGeralManual  = request.TotalGeralManual;
+        entity.Observacao        = request.Observacao?.Trim();
+        entity.Data              = request.Data;
 
         await _db.SaveChangesAsync();
         return ToDto(entity);
@@ -221,7 +225,9 @@ public class CustosDespachanteService
             SeguroUsd              = entity.SeguroUsd,
             FreteInternacionalUsd  = entity.FreteInternacionalUsd,
             TaxaUsd                = entity.TaxaUsd,
+            ParametroUsd           = entity.ParametroUsd,
             TaxaUsdAgente          = entity.TaxaUsdAgente,
+            TotalGeralManual       = entity.TotalGeralManual,
             Observacao             = entity.Observacao,
             Data                   = entity.Data,
             Status                 = "ReabertoPeloOV",
@@ -778,14 +784,14 @@ public class CustosDespachanteService
         new(x.Id, x.CodigoInterno, x.SolicitacaoOrcamentoId, x.DespachanteId, x.ImportadorId,
             x.PortoOrigemId, x.PortoDestinoId, x.Responsavel, x.TamContainer,
             x.Peso, x.FobUsd, x.FobReais, x.CifUsd, x.CifReais, x.SeguroUsd, x.FreteInternacionalUsd,
-            x.TaxaUsd, x.TaxaUsdAgente, x.Observacao, x.Data, x.Status,
+            x.TaxaUsd, x.ParametroUsd, x.TaxaUsdAgente, x.TotalGeralManual, x.Observacao, x.Data, x.Status,
             x.Versao, x.VersaoAnteriorId, x.Imutavel, x.CriadoEm, x.AtualizadoEm);
 
     private static CustoDespachanteDto ToDto(Domain.Entities.CustoDespachante x) =>
         new(x.Id, x.CodigoInterno, x.SolicitacaoOrcamentoId, x.DespachanteId, x.ImportadorId,
             x.PortoOrigemId, x.PortoDestinoId, x.Responsavel, x.TamContainer,
             x.Peso, x.FobUsd, x.FobReais, x.CifUsd, x.CifReais, x.SeguroUsd, x.FreteInternacionalUsd,
-            x.TaxaUsd, x.TaxaUsdAgente, x.Observacao, x.Data, x.Status,
+            x.TaxaUsd, x.ParametroUsd, x.TaxaUsdAgente, x.TotalGeralManual, x.Observacao, x.Data, x.Status,
             x.Versao, x.VersaoAnteriorId, x.Imutavel, x.CriadoEm, x.AtualizadoEm,
             x.Lis.Select(l => ToLiDto(l)).ToList(),
             x.Despesas.Select(d => ToDespesaDto(d)).ToList(),

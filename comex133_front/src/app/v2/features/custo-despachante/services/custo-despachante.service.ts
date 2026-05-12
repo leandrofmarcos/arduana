@@ -26,7 +26,9 @@ interface CustoDespachanteApiDto {
   seguroUsd: number;
   freteInternacionalUsd: number;
   taxaUsd: number;
+  parametroUsd: number;
   taxaUsdAgente?: number | null;
+  totalGeralManual?: number | null;
   observacao?: string | null;
   data: string;
   status: string;
@@ -237,7 +239,9 @@ export class CustoDespachanteService {
     despachanteId: string; importadorId?: string; portoOrigemId: string;
     portoDestinoId: string; responsavel: string; tamContainer: string; peso: number;
     fobUsd: number; fobReais: number; cifUsd: number; cifReais: number;
-    seguroUsd: number; freteInternacionalUsd: number; taxaUsd: number; taxaUsdAgente?: number; observacao?: string;
+    seguroUsd: number; freteInternacionalUsd: number; taxaUsd: number; parametroUsd: number; taxaUsdAgente?: number;
+    totalGeralManual?: number | null;
+    observacao?: string;
     data: string; solicitacaoOrcamentoId?: string;
   }): Promise<CustoDespachante> {
     const dto = await firstValueFrom(
@@ -257,7 +261,9 @@ export class CustoDespachanteService {
         seguroUsd: data.seguroUsd,
         freteInternacionalUsd: data.freteInternacionalUsd,
         taxaUsd: data.taxaUsd,
+        parametroUsd: data.parametroUsd,
         taxaUsdAgente: data.taxaUsdAgente ?? null,
+        totalGeralManual: data.totalGeralManual ?? null,
         observacao: data.observacao ?? null,
         data: data.data
       })
@@ -284,7 +290,9 @@ export class CustoDespachanteService {
         seguroUsd: item.seguroUsd,
         freteInternacionalUsd: item.freteInternacionalUsd,
         taxaUsd: item.taxaUsd,
+        parametroUsd: item.parametroUsd,
         taxaUsdAgente: item.taxaUsdAgente ?? null,
+        totalGeralManual: item.totalGeralManual ?? null,
         observacao: item.observacao ?? null,
         data: item.data
       })
@@ -469,7 +477,9 @@ export class CustoDespachanteService {
       seguroUsd: dto.seguroUsd,
       freteInternacionalUsd: dto.freteInternacionalUsd,
       taxaUsd: dto.taxaUsd,
+      parametroUsd: dto.parametroUsd,
       taxaUsdAgente: dto.taxaUsdAgente ?? undefined,
+      totalGeralManual: dto.totalGeralManual ?? undefined,
       observacao: dto.observacao ?? undefined,
       data: typeof dto.data === 'string' ? dto.data.slice(0, 10) : new Date(dto.data).toISOString().slice(0, 10),
       status: dto.status as StatusCustoDespachante,

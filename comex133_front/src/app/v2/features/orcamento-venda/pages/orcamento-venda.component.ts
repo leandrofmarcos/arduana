@@ -370,7 +370,7 @@ type LinhaForm = { descricao: string; valor: number };
                     <div class="acc-dado"><label>Porto Destino</label><span>{{ nomePDById(c.portoDestinoId) }}</span></div>
                     <div class="acc-dado"><label>Data</label><span>{{ c.data | date:'dd/MM/yyyy' }}</span></div>
                     <div class="acc-dado"><label>Container</label><span>{{ c.tamContainer }}</span></div>
-                    <div class="acc-dado"><label>Peso</label><span>{{ c.peso | number:'1.0-0' }} kg</span></div>
+                    <div class="acc-dado"><label>Peso</label><span>{{ c.peso | number:'1.0-2' }} kg</span></div>
                     <div class="acc-dado" *ngIf="c.observacao"><label>Observação</label><span>{{ c.observacao }}</span></div>
                   </div>
                   <div class="acc-fin-grid">
@@ -379,7 +379,8 @@ type LinhaForm = { descricao: string; valor: number };
                     <div class="acc-fin-card"><div class="lbl">CIF USD</div><div class="val">{{ c.cifUsd | currency:'USD':'symbol':'1.2-2' }}</div></div>
                     <div class="acc-fin-card"><div class="lbl">CIF R$</div><div class="val">{{ c.cifReais | currency:'BRL':'symbol':'1.2-2' }}</div></div>
                     <div class="acc-fin-card"><div class="lbl">Seguro USD</div><div class="val">{{ c.seguroUsd | currency:'USD':'symbol':'1.2-2' }}</div></div>
-                    <div class="acc-fin-card"><div class="lbl">Taxa USD</div><div class="val">{{ c.taxaUsd | number:'1.4-4' }}</div></div>
+                    <div class="acc-fin-card"><div class="lbl">Taxa USD</div><div class="val">{{ c.taxaUsd | currency:'USD':'symbol':'1.2-2' }}</div></div>
+                    <div class="acc-fin-card"><div class="lbl">Parâmetro USD</div><div class="val">{{ c.parametroUsd | currency:'USD':'symbol':'1.2-2' }}</div></div>
                   </div>
                 </div>
 
@@ -529,11 +530,11 @@ type LinhaForm = { descricao: string; valor: number };
                   </div>
                   <div class="field">
                     <label>Peso Bruto (kg)</label>
-                    <input type="number" [(ngModel)]="form.pesoBruto" min="0" step="0.01" placeholder="0.00" />
+                    <input type="text" [(ngModel)]="form.pesoBruto" appCurrencyMask="BRL" [currencyMaskMode]="'number'" [currencyMaskUnit]="'kg'" min="0" step="0.01" placeholder="0 kg" />
                   </div>
                   <div class="field">
                     <label>Peso Líquido (kg)</label>
-                    <input type="number" [(ngModel)]="form.pesoLiquido" min="0" step="0.01" placeholder="0.00" />
+                    <input type="text" [(ngModel)]="form.pesoLiquido" appCurrencyMask="BRL" [currencyMaskMode]="'number'" [currencyMaskUnit]="'kg'" min="0" step="0.01" placeholder="0 kg" />
                   </div>
                   <div class="field w3">
                     <label>Observação</label>
@@ -564,7 +565,11 @@ type LinhaForm = { descricao: string; valor: number };
                   </div>
                   <div class="field">
                     <label>Taxa USD</label>
-                    <input type="text" [(ngModel)]="form.taxaUsd" appCurrencyMask="USD" [currencyMaskDecimals]="4" min="0" step="0.0001" />
+                    <input type="text" [(ngModel)]="form.taxaUsd" appCurrencyMask="USD" min="0" step="0.01" />
+                  </div>
+                  <div class="field">
+                    <label>Parâmetro USD</label>
+                    <input type="text" [ngModel]="custoBase?.parametroUsd || 0" appCurrencyMask="USD" min="0" step="0.01" [readonly]="true" />
                   </div>
                   <div class="field">
                     <label>Total Impostos (R$)</label>
@@ -1403,6 +1408,9 @@ export class OrcamentoVendaComponent implements OnInit {
 
     const fmtN = (v: number) =>
       v ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+    const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const fmtUSD = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    const fmtKg = (v: number | undefined) => `${(v ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} kg`;
     const fmtDate = (s: string) => {
       if (!s) return '';
       const [y, m, d] = s.split('-');
@@ -1520,35 +1528,35 @@ ${autoPrint ? '<script>window.onload=function(){window.print();}<\/script>' : ''
   <table style="margin-bottom:2px;">
     <tr><td colspan="5" style="${HDR}">1 - Base de calculo</td></tr>
     <tr>
-      <td style="padding:3px 8px;font-size:12px;">Taxa Usd &nbsp; <strong>${fmtN(o.taxaUsd)}</strong></td>
+      <td style="padding:3px 8px;font-size:12px;">Taxa Usd &nbsp; <strong>${fmtUSD(o.taxaUsd)}</strong></td>
       <td style="padding:3px 8px;font-size:12px;">USD</td>
       <td style="padding:3px 8px;font-size:12px;">BRL</td>
       <td style="padding:3px 8px;font-size:12px;">Peso Bruto</td>
-      <td style="padding:3px 8px;font-size:12px;"></td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtKg(o.pesoBruto)}</td>
     </tr>
     <tr>
       <td style="padding:3px 8px;font-size:12px;">FOB</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtN(o.fobUsd)}</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;">R$ ${fmtN(o.fobReais)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtUSD(o.fobUsd)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtBRL(o.fobReais)}</td>
       <td style="padding:3px 8px;font-size:12px;">Peso Liquido</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;">${o.pesoLiquido ? fmtN(o.pesoLiquido) : ''}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtKg(o.pesoLiquido)}</td>
     </tr>
     <tr>
       <td style="padding:3px 8px;font-size:12px;">Frete Internacional</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtN(freteUsd)}</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;">R$ ${fmtN(o.freteInternacional)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtUSD(freteUsd)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtBRL(o.freteInternacional)}</td>
       <td colspan="2"></td>
     </tr>
     <tr>
       <td style="padding:3px 8px;font-size:12px;">Seguro</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;">${seguroUsd ? fmtN(seguroUsd) : '-'}</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;">R$ ${fmtN(seguroReais)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${seguroUsd ? fmtUSD(seguroUsd) : '-'}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtBRL(seguroReais)}</td>
       <td colspan="2"></td>
     </tr>
     <tr>
       <td style="padding:3px 8px;font-size:12px;font-weight:700;">CIF</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;font-weight:700;">${fmtN(o.cifUsd)}</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;font-weight:700;">R$ ${fmtN(o.cifReais)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;font-weight:700;">${fmtUSD(o.cifUsd)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;font-weight:700;">${fmtBRL(o.cifReais)}</td>
       <td colspan="2"></td>
     </tr>
   </table>

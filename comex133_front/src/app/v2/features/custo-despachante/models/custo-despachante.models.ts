@@ -21,7 +21,9 @@ export interface CustoDespachante {
   seguroUsd: number;
   freteInternacionalUsd: number;
   taxaUsd: number;
+  parametroUsd: number;
   taxaUsdAgente?: number;
+  totalGeralManual?: number | null;
   tamContainer: '20' | '40' | 'LCL';
   data: string;                   // ISO YYYY-MM-DD
   observacao?: string;
