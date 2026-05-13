@@ -249,7 +249,13 @@ type LinhaForm = { descricao: string; valor: number };
                   </span>
                 </td>
                 <td>{{ nomeClienteById(o.clienteId) }}</td>
-                <td>{{ codigosCustosDaOrc(o.id) || codCustoById(o.custoDespachanteId) }}</td>
+                <td>
+                  {{ codigosCustosDaOrc(o.id) || codCustoById(o.custoDespachanteId) }}
+                  <span *ngIf="o.custoInternoCodigoInterno"
+                    style="display:block;font-size:10px;margin-top:2px;color:#166534;font-weight:700">
+                    ✓ Aprovado: {{ o.custoInternoCodigoInterno }}
+                  </span>
+                </td>
                 <td>{{ o.data | date:'dd/MM/yyyy' }}</td>
                 <td><span class="badge">{{ o.tamContainer }}</span></td>
                 <td style="text-align:right;font-weight:700">{{ o.totalGeral | currency:'BRL':'symbol':'1.2-2' }}</td>
@@ -349,8 +355,13 @@ type LinhaForm = { descricao: string; valor: number };
                         </div>
                       </div>
                       <div style="text-align:right;flex-shrink:0;margin-left:12px">
-                        <div style="font-size:10px;color:var(--color-text-muted)">Total Est.</div>
-                        <div class="custo-total-est">{{ (c.cifReais + calcImpostosCusto(c.id)) | currency:'BRL':'symbol':'1.2-2' }}</div>
+                        <div style="font-size:10px;color:var(--color-text-muted)">
+                          Total Est.<ng-container *ngIf="c.totalGeralManual"> <span style="background:#f59e0b;color:#fff;padding:1px 5px;border-radius:4px;font-size:9px">Manual</span></ng-container>
+                        </div>
+                        <div class="custo-total-est">
+                          <ng-container *ngIf="c.totalGeralManual">{{ c.totalGeralManual | currency:'BRL':'symbol':'1.2-2' }}</ng-container>
+                          <ng-container *ngIf="!c.totalGeralManual">{{ (c.cifReais + calcImpostosCusto(c.id)) | currency:'BRL':'symbol':'1.2-2' }}</ng-container>
+                        </div>
                       </div>
                     </div>
                     <div class="custo-comp-values">
@@ -468,11 +479,17 @@ type LinhaForm = { descricao: string; valor: number };
                 <div class="acc-section" style="margin-bottom:4px">
                   <div class="acc-section-title">💰 Totalizador</div>
                   <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);color:#fff;border-radius:8px;padding:12px 16px">
-                    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>CIF (R$)</span><span>{{ c.cifReais | currency:'BRL':'symbol':'1.2-2' }}</span></div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>Total LI</span><span>{{ totalLisCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>Total Despesas</span><span>{{ totalDespesasCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>Total Impostos</span><span>{{ calcImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
-                    <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;padding:10px 0 4px;border-top:1.5px solid rgba(255,255,255,.3);margin-top:4px"><span>TOTAL GERAL</span><span>{{ c.cifReais + totalLisCusto(c.id) + totalDespesasCusto(c.id) + calcImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                    <ng-container *ngIf="c.totalGeralManual">
+                      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15);opacity:.8"><span>⚠️ Modalidade B — total informado manualmente pelo despachante</span></div>
+                      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;padding:10px 0 4px;border-top:1.5px solid rgba(255,255,255,.3);margin-top:4px"><span>TOTAL MANUAL</span><span>{{ c.totalGeralManual | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                    </ng-container>
+                    <ng-container *ngIf="!c.totalGeralManual">
+                      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>CIF (R$)</span><span>{{ c.cifReais | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>Total LI</span><span>{{ totalLisCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>Total Despesas</span><span>{{ totalDespesasCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)"><span>Total Impostos</span><span>{{ calcImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;padding:10px 0 4px;border-top:1.5px solid rgba(255,255,255,.3);margin-top:4px"><span>TOTAL GERAL</span><span>{{ c.cifReais + totalLisCusto(c.id) + totalDespesasCusto(c.id) + calcImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                    </ng-container>
                   </div>
                 </div>
 
@@ -497,6 +514,9 @@ type LinhaForm = { descricao: string; valor: number };
 
             <div *ngIf="custosSelecionados.length === 0 && showErr" style="padding:10px 16px;background:#fef3c7;border-top:1px solid #fde68a;font-size:12px;color:#92400e">
               ⚠️ Selecione um custo como base para o orçamento
+            </div>
+            <div *ngIf="custoBaseUsouTotalManual" style="padding:10px 16px;background:#fef3c7;border-top:1px solid #fde68a;font-size:12px;color:#92400e">
+              ⚠️ <strong>Modalidade B:</strong> O despachante forneceu apenas um total geral (sem discriminação de CIF/FOB/Impostos). Preencha os campos de valores manualmente no formulário ao lado ou use o total como referência.
             </div>
           </div>
 
@@ -592,7 +612,7 @@ type LinhaForm = { descricao: string; valor: number };
                 <p class="form-section-title">Acréscimos</p>
                 <div class="form-grid">
                   <div class="field">
-                    <label>Frete Internacional (R$)</label>
+                    <label>Frete Nacional / Porto a Destino (R$)</label>
                     <input type="text" [(ngModel)]="form.freteInternacional" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" />
                   </div>
                   <div class="field">
@@ -672,7 +692,7 @@ type LinhaForm = { descricao: string; valor: number };
               <!-- Totalizador -->
               <div class="total-panel">
                 <div class="total-line"><span>CIF (R$)</span><span>{{ form.cifReais | currency:'BRL':'symbol':'1.2-2' }}</span></div>
-                <div class="total-line"><span>Frete Internacional</span><span>{{ form.freteInternacional | currency:'BRL':'symbol':'1.2-2' }}</span></div>
+                <div class="total-line"><span>Frete Nacional</span><span>{{ form.freteInternacional | currency:'BRL':'symbol':'1.2-2' }}</span></div>
                 <div class="total-line"><span>Total Impostos</span><span>{{ form.totalImpostos | currency:'BRL':'symbol':'1.2-2' }}</span></div>
                 <div class="total-line"><span>Despesas ({{ despesasForm.length }})</span><span>{{ somaDespesas() | currency:'BRL':'symbol':'1.2-2' }}</span></div>
                 <div class="total-line"><span>Extras ({{ extrasForm.length }})</span><span>{{ somaExtras() | currency:'BRL':'symbol':'1.2-2' }}</span></div>
@@ -797,6 +817,9 @@ export class OrcamentoVendaComponent implements OnInit {
   // ── Custo interno ─────────────────────────────────────────────────────
   custoInternoSelectId = '';
 
+  // ── Fase 1: Modalidade B (despachante usou total manual) ──────────────
+  custoBaseUsouTotalManual = false;
+
   constructor(
     private sanitizer: DomSanitizer,
     private service: OrcamentoVendaService,
@@ -838,11 +861,13 @@ export class OrcamentoVendaComponent implements OnInit {
     this.portoOrigemSvc.getAll().forEach(p => this._portosOrigem[p.id] = p.nome);
     this.portoDestinoSvc.getAll().forEach(p => this._portosDestino[p.id] = p.nome);
     this.modelos = this.modeloSvc.getAll().filter(m => m.ativo);
-    // Abrir OV diretamente via query param ?editId=xxx (ex: navegação da tela de solicitações)
+    // Abrir OV diretamente via query param ?editId=xxx ou criar novo vinculado via ?novoParaSolicitacao=xxx
     this.route.queryParams.subscribe(params => {
       if (params['editId']) {
         const ov = this.service.getById(params['editId']);
         if (ov) this.openForm(ov);
+      } else if (params['novoParaSolicitacao']) {
+        this.openForm(undefined, params['novoParaSolicitacao']);
       }
     });
   }
@@ -1056,12 +1081,16 @@ export class OrcamentoVendaComponent implements OnInit {
     if (this.custosSelecionados[0] === c.id) {
       this.custosSelecionados = [];
       this.custoBase = null;
+      this.custoBaseUsouTotalManual = false;
       this.form.custoDespachanteId = '';
       return;
     }
     this.custosSelecionados = [c.id];
     this.custoBase = c;
     this.form.custoDespachanteId = c.id;
+
+    // ── Fase 1: Detectar Modalidade B (total manual sem discriminação de campos) ──
+    this.custoBaseUsouTotalManual = !!c.totalGeralManual;
 
     // ── Valores financeiros do custo ──
     this.form.tamContainer   = c.tamContainer;
@@ -1071,6 +1100,7 @@ export class OrcamentoVendaComponent implements OnInit {
     this.form.fobUsd         = c.fobUsd;
     this.form.taxaUsd        = c.taxaUsd;
     this.form.pesoBruto      = c.peso;
+    // CustoDespachante tem apenas `peso` (bruto); pesoLiquido fica em branco para preenchimento manual
     this.form.data           = c.data;
     if (!this.form.observacao) this.form.observacao = c.observacao ?? '';
 
@@ -1167,7 +1197,7 @@ export class OrcamentoVendaComponent implements OnInit {
 
   // ── CRUD ──────────────────────────────────────────────────────────────
 
-  openForm(item?: OrcamentoVenda): void {
+  openForm(item?: OrcamentoVenda, solicitacaoId?: string): void {
     this.modoVisualizacao = !!item && !this.isOrcamentoEditavel(item);
     if (this.modoVisualizacao) {
       this.toast.info('Esta versão está em modo somente leitura.');
@@ -1180,6 +1210,7 @@ export class OrcamentoVendaComponent implements OnInit {
     this.extraErro   = '';
 
     if (item) {
+      this.custoBaseUsouTotalManual = false;
       this.solicitacaoAtualId = item.solicitacaoOrcamentoId;
       const existingLinks = this.service.getOrcCustos(item.id);
       this.custosSelecionados = existingLinks.map(oc => oc.custoDespachanteId);
@@ -1210,8 +1241,9 @@ export class OrcamentoVendaComponent implements OnInit {
       this.despesasForm = this.service.getDespesas(item.id).map(d => ({ descricao: d.descricao, valor: d.valor }));
       this.extrasForm   = this.service.getExtras(item.id).map(e => ({ descricao: e.descricao, valor: e.valor }));
     } else {
-      this.solicitacaoAtualId = undefined;
+      this.solicitacaoAtualId = solicitacaoId;
       this.custoBase = null;
+      this.custoBaseUsouTotalManual = false;
       this.custoQuery = '';
       this.custosSelecionados = [];
       this.form = this.emptyForm();
@@ -1510,7 +1542,13 @@ export class OrcamentoVendaComponent implements OnInit {
     const nomeImportador = primCusto?.importadorId ? (this._importadores[primCusto.importadorId] ?? '') : '';
     const seguroUsd    = primCusto?.seguroUsd ?? 0;
     const seguroReais  = o.taxaUsd ? seguroUsd * o.taxaUsd : 0;
-    const freteUsd     = (o.taxaUsd && o.freteInternacional) ? o.freteInternacional / o.taxaUsd : 0;
+    // Frete Internacional = componente do CIF (vem do custo despachante)
+    const freteIntlUsd  = primCusto?.freteInternacionalUsd ?? 0;
+    const freteIntlReais = o.taxaUsd ? freteIntlUsd * o.taxaUsd : 0;
+    // Frete Nacional = porto de destino até o cliente (campo freteInternacional do OV — renomeado em tela)
+    const freteNacReais  = o.freteInternacional ?? 0;
+    const freteNacUsd   = (o.taxaUsd && freteNacReais) ? freteNacReais / o.taxaUsd : 0;
+    const codigoSol     = o.solicitacaoOrcamentoId ? this.codigoSolicitacao(o.solicitacaoOrcamentoId) : '';
 
     // ── Imposto breakdown de todos os custos vinculados ──
     let totalIi = 0, totalIpi = 0, totalPis = 0, totalCofins = 0, totalIcms = 0;
@@ -1537,7 +1575,7 @@ export class OrcamentoVendaComponent implements OnInit {
     const totalDesp    = despesas.reduce((a, d) => a + d.valor, 0);
     const totalExtras  = extras.reduce((a, e) => a + e.valor, 0);
     const totalServico = o.honorarios + totalExtras;
-    const totalGeral   = o.cifReais + totalImpostosCalc + totalDesp + o.honorarios + totalExtras;
+    const totalGeral   = o.cifReais + freteNacReais + totalImpostosCalc + totalDesp + o.honorarios + totalExtras;
     const totalUsd     = o.taxaUsd ? totalGeral / o.taxaUsd : 0;
 
     // ── Linhas de despesas ──
@@ -1588,7 +1626,8 @@ ${autoPrint ? '<script>window.onload=function(){window.print();}<\/script>' : ''
     <tr>
       <td style="padding:3px 8px;font-size:12px;width:130px;"><strong>Data:</strong></td>
       <td style="padding:3px 8px;font-size:12px;">${fmtDate(o.data)}</td>
-      <td style="padding:3px 8px;font-size:12px;" colspan="2"></td>
+      <td style="padding:3px 8px;font-size:12px;width:130px;"><strong>Orçamento:</strong></td>
+      <td style="padding:3px 8px;font-size:12px;">${o.codigoInterno}</td>
     </tr>
     <tr>
       <td style="padding:3px 8px;font-size:12px;"><strong>Cliente :</strong></td>
@@ -1596,6 +1635,14 @@ ${autoPrint ? '<script>window.onload=function(){window.print();}<\/script>' : ''
       <td style="padding:3px 8px;font-size:12px;"><strong>Import:</strong></td>
       <td style="padding:3px 8px;font-size:12px;">${nomeImportador}</td>
     </tr>
+    ${codigoSol ? `<tr>
+      <td style="padding:3px 8px;font-size:12px;"><strong>Solicitação:</strong></td>
+      <td style="padding:3px 8px;font-size:12px;" colspan="3">${codigoSol}</td>
+    </tr>` : ''}
+    ${o.custoInternoCodigoInterno ? `<tr>
+      <td style="padding:3px 8px;font-size:12px;"><strong>Custo Aprovado:</strong></td>
+      <td style="padding:3px 8px;font-size:12px;" colspan="3">${o.custoInternoCodigoInterno}</td>
+    </tr>` : ''}
     <tr>
       <td style="padding:3px 8px;font-size:12px;"><strong>Tipo de produto</strong></td>
       <td style="padding:3px 8px;font-size:12px;" colspan="3">${o.observacao ?? ''}</td>
@@ -1625,8 +1672,8 @@ ${autoPrint ? '<script>window.onload=function(){window.print();}<\/script>' : ''
     </tr>
     <tr>
       <td style="padding:3px 8px;font-size:12px;">Frete Internacional</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtUSD(freteUsd)}</td>
-      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtBRL(o.freteInternacional)}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${freteIntlUsd ? fmtUSD(freteIntlUsd) : '-'}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtBRL(freteIntlReais)}</td>
       <td colspan="2"></td>
     </tr>
     <tr>
@@ -1641,6 +1688,12 @@ ${autoPrint ? '<script>window.onload=function(){window.print();}<\/script>' : ''
       <td style="padding:3px 8px;font-size:12px;text-align:right;font-weight:700;">${fmtBRL(o.cifReais)}</td>
       <td colspan="2"></td>
     </tr>
+    ${freteNacReais > 0 ? `<tr>
+      <td style="padding:3px 8px;font-size:12px;">Frete Nacional / Porto a Destino</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${freteNacUsd ? fmtUSD(freteNacUsd) : '-'}</td>
+      <td style="padding:3px 8px;font-size:12px;text-align:right;">${fmtBRL(freteNacReais)}</td>
+      <td colspan="2"></td>
+    </tr>` : ''}
   </table>
 
   <!-- Seção 2 - Impostos -->
