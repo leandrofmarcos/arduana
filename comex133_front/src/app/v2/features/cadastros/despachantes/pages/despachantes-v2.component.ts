@@ -114,7 +114,7 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
               <div class="prefix-input-wrap">
                 <div style="display:flex;flex-direction:column;gap:4px">
                   <input type="text" class="prefix-input" [(ngModel)]="form.prefixoReferencia"
-                         (ngModelChange)="form.prefixoReferencia = $event.toUpperCase().replace(/[^A-Z]/g, '').slice(0,3)"
+                         (ngModelChange)="onPrefixoChange($event)"
                          maxlength="3"
                          placeholder="ORC"
                          [class.err]="showErrors && hasApiFieldError('prefixoreferencia')" />
@@ -202,6 +202,10 @@ export class DespachantesV2Component implements OnInit {
   cancel(): void {
     this.showForm = false;
     this.editing = null;
+  }
+
+  onPrefixoChange(value: string): void {
+    this.form.prefixoReferencia = value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
   }
 
   onNomeChange(nome: string): void {
