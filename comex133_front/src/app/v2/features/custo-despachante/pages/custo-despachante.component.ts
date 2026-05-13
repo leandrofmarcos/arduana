@@ -286,6 +286,7 @@ type CustoGroupSolicitacao = {
                         <th>Data</th>
                         <th>Status</th>
                         <th>Total Impostos</th>
+                        <th style="text-align:right">Total Geral</th>
                         <th style="width:100px">Ações</th>
                       </tr>
                     </thead>
@@ -308,6 +309,15 @@ type CustoGroupSolicitacao = {
                           </span>
                         </td>
                         <td>{{ totalImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</td>
+                        <td style="text-align:right;font-weight:700">
+                          <ng-container *ngIf="c.totalGeralManual">
+                            {{ c.totalGeralManual | currency:'BRL':'symbol':'1.2-2' }}
+                            <span style="display:block;font-size:9px;font-weight:400;color:#f59e0b">Manual</span>
+                          </ng-container>
+                          <ng-container *ngIf="!c.totalGeralManual">
+                            {{ totalGeralCusto(c) | currency:'BRL':'symbol':'1.2-2' }}
+                          </ng-container>
+                        </td>
                         <td>
                           <div class="row-actions">
                             <button class="btn-icon" [title]="isCustoEditavel(c) ? 'Editar' : 'Somente visualização'" (click)="openWizard(c)">{{ isCustoEditavel(c) ? '✏️' : '👁️' }}</button>
@@ -339,12 +349,13 @@ type CustoGroupSolicitacao = {
                 <th>Data</th>
                 <th>Status</th>
                 <th>Total Impostos</th>
+                <th style="text-align:right">Total Geral</th>
                 <th style="width:100px">Ações</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngIf="filtered.length === 0">
-                <td colspan="9" class="empty-state">Nenhum custo cadastrado</td>
+                <td colspan="10" class="empty-state">Nenhum custo cadastrado</td>
               </tr>
               <tr *ngFor="let c of pagedFiltered" class="version-tree-row" [class.historical]="showHistoricoVersoes && !isCurrentVersion(c.id)">
                 <td>
@@ -371,6 +382,15 @@ type CustoGroupSolicitacao = {
                   </span>
                 </td>
                 <td>{{ totalImpostosCusto(c.id) | currency:'BRL':'symbol':'1.2-2' }}</td>
+                <td style="text-align:right;font-weight:700">
+                  <ng-container *ngIf="c.totalGeralManual">
+                    {{ c.totalGeralManual | currency:'BRL':'symbol':'1.2-2' }}
+                    <span style="display:block;font-size:9px;font-weight:400;color:#f59e0b">Manual</span>
+                  </ng-container>
+                  <ng-container *ngIf="!c.totalGeralManual">
+                    {{ totalGeralCusto(c) | currency:'BRL':'symbol':'1.2-2' }}
+                  </ng-container>
+                </td>
                 <td>
                   <div class="row-actions">
                     <button class="btn-icon" [title]="isCustoEditavel(c) ? 'Editar' : 'Somente visualização'" (click)="openWizard(c)">{{ isCustoEditavel(c) ? '✏️' : '👁️' }}</button>
@@ -1561,6 +1581,14 @@ export class CustoDespachanteComponent implements OnInit {
     a.target = '_blank';
     a.rel = 'noopener';
     a.click();
+  }
+
+  totalGeralCusto(c: CustoDespachante): number {
+    if (c.totalGeralManual) return c.totalGeralManual;
+    const impostos = this.totalImpostosCusto(c.id);
+    const despesas = this.service.getDespesas(c.id).reduce((a, d) => a + d.valor, 0);
+    const lis      = this.service.getLis(c.id).reduce((a, li) => a + li.valor, 0);
+    return (c.cifReais || 0) + impostos + despesas + lis;
   }
 
   totalImpostosCusto(custoId: string): number {
