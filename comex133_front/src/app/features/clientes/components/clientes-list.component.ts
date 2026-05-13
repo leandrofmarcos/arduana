@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { take } from 'rxjs/operators';
 import { ClientesService } from '../services/clientes.service';
 import { Cliente } from '../models/cliente.models';
 import { ClienteDetailComponent } from './cliente-detail.component';
@@ -52,7 +53,9 @@ export class ClientesListComponent implements OnInit {
   }
 
   loadTemplates(): void {
-    this.templates = this.templatesService.getAll();
+    this.templatesService.list$().pipe(take(1)).subscribe(templates => {
+      this.templates = templates;
+    });
   }
 
   getTemplateName(templateId: string): string {

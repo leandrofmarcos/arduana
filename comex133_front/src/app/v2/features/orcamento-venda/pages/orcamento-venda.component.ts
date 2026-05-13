@@ -23,15 +23,18 @@ import { ModeloDespesa } from '../../cadastros/modelos-despesa/models/modelo-des
 import { DespesaCadastroService } from '../../cadastros/despesas-cadastro/services/despesa-cadastro.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { ParametroSistemaService } from '../../../../core/services/parametro-sistema.service';
 import { ApiErrorMapper } from '../../../../core/api/error-handler/api-error.mapper';
 import { CurrencyMaskDirective } from '../../../../core/directives/currency-mask.directive';
+import { SkeletonListComponent } from '../../../../core/components/skeleton-list/skeleton-list.component';
+import { LoadingButtonDirective } from '../../../../core/directives/loading-button.directive';
 
 type LinhaForm = { descricao: string; valor: number };
 
 @Component({
   selector: 'app-orcamento-venda',
   standalone: true,
-  imports: [CommonModule, FormsModule, CurrencyPipe, DatePipe, CurrencyMaskDirective],
+  imports: [CommonModule, FormsModule, CurrencyPipe, DatePipe, CurrencyMaskDirective, SkeletonListComponent, LoadingButtonDirective],
   styles: [
     ...CRUD_STYLES,
     `
@@ -183,7 +186,12 @@ type LinhaForm = { descricao: string; valor: number };
           <h1>💼 Orçamentos de Venda</h1>
           <p class="subtitle">Propostas comerciais baseadas em custo interno</p>
         </div>
-        <button class="btn btn-primary" disabled title="Feature desabilitada" style="opacity:.45;cursor:not-allowed">+ Novo Orçamento (desabilitado)</button>
+        <button class="btn btn-primary" *ngIf="!isDespachante"
+          [disabled]="!podeNovoOrcamento"
+          [style.opacity]="!podeNovoOrcamento ? '.45' : '1'"
+          [style.cursor]="!podeNovoOrcamento ? 'not-allowed' : 'pointer'"
+          [title]="!podeNovoOrcamento ? 'Aguardando ao menos um custo despachante finalizado' : 'Criar novo orçamento'"
+          (click)="openForm()">+ Novo Orçamento</button>
       </div>
 
       <!-- ── LISTAGEM ── -->
@@ -197,7 +205,8 @@ type LinhaForm = { descricao: string; valor: number };
               Mostrar versões anteriores
             </label>
           </div>
-          <table class="data-table">
+          <app-skeleton-list *ngIf="loadingList" [rowCount]="5" [cols]="4"></app-skeleton-list>
+          <table class="data-table" *ngIf="!loadingList">
             <thead>
               <tr>
                 <th>Código</th>
@@ -272,8 +281,8 @@ type LinhaForm = { descricao: string; valor: number };
             </p>
           </div>
           <div style="margin-left:auto;display:flex;gap:8px">
-            <button class="btn btn-primary" *ngIf="!modoVisualizacao" (click)="salvar()">&#128190; Salvar</button>
-            <button class="btn" *ngIf="!modoVisualizacao" style="background:#22c55e;color:#fff" (click)="finalizar()">&#10003; Finalizar Orçamento</button>
+            <button class="btn btn-primary" *ngIf="!modoVisualizacao" (click)="salvar()" [appLoadingBtn]="isSaving">💾 Salvar</button>
+            <button class="btn" *ngIf="!modoVisualizacao" style="background:#22c55e;color:#fff" (click)="finalizar()" [appLoadingBtn]="isSaving">✓ Finalizar Orçamento</button>
             <button class="btn btn-secondary" (click)="abrirPreview(null)">&#128065;️ Preview</button>
             <button class="btn btn-secondary" (click)="cancelForm()">Cancelar</button>
           </div>
@@ -673,6 +682,26 @@ type LinhaForm = { descricao: string; valor: number };
 
               </fieldset>
 
+              <!-- Custo Interno (pós-aprovação) -->
+              <ng-container *ngIf="editing?.status === 'Finalizado'">
+                <fieldset style="margin-top:16px;padding:12px 16px;border:1px solid #e2e8f0;border-radius:8px">
+                  <legend style="font-size:13px;font-weight:600;color:#64748b;padding:0 6px">Custo Interno (pós-aprovação)</legend>
+                  <div *ngIf="editing?.custoInternoCodigoInterno" style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+                    <span style="font-size:13px">Vinculado: <strong>{{ editing?.custoInternoCodigoInterno }}</strong></span>
+                    <button class="btn btn-secondary" style="font-size:12px;padding:3px 10px" (click)="removerCustoInterno()">Remover</button>
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <select class="input" style="flex:1;font-size:13px" [(ngModel)]="custoInternoSelectId">
+                      <option value="">-- Selecione um custo finalizado --</option>
+                      <option *ngFor="let c of custosFinalizadosDisponiveis" [value]="c.id">{{ c.codigoInterno }}</option>
+                    </select>
+                    <button class="btn btn-primary" style="font-size:13px;white-space:nowrap"
+                      [disabled]="!custoInternoSelectId"
+                      (click)="vincularCustoInterno()">Vincular</button>
+                  </div>
+                </fieldset>
+              </ng-container>
+
               <!-- Botões inferiores -->
               <div class="actions" style="margin-top:16px">
                 <button class="btn btn-primary" *ngIf="!modoVisualizacao" (click)="salvar()">💾 Salvar</button>
@@ -717,6 +746,8 @@ export class OrcamentoVendaComponent implements OnInit {
   q = '';
   showHistoricoVersoesOv = false;
   showForm = false;
+  loadingList = false;
+  isSaving = false;
   modoVisualizacao = false;
   editing: OrcamentoVenda | null = null;
   showErr = false;
@@ -760,6 +791,12 @@ export class OrcamentoVendaComponent implements OnInit {
   // ── Accordion ─────────────────────────────────────────────────────────
   expandedCustoId: string | null = null;
 
+  // ── Parâmetros de sistema ─────────────────────────────────────────────
+  nomeEmpresa = 'Ominium S/A';
+
+  // ── Custo interno ─────────────────────────────────────────────────────
+  custoInternoSelectId = '';
+
   constructor(
     private sanitizer: DomSanitizer,
     private service: OrcamentoVendaService,
@@ -777,7 +814,8 @@ export class OrcamentoVendaComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService,) {}
+    private confirmDialog: ConfirmDialogService,
+    private parametroSvc: ParametroSistemaService) {}
 
   async ngOnInit(): Promise<void> {
     this.isDespachante = this.auth.hasRole('despachante');
@@ -788,6 +826,7 @@ export class OrcamentoVendaComponent implements OnInit {
     this.portoOrigemSvc.getAll().forEach(p => this._portosOrigem[p.id] = p.nome);
     this.portoDestinoSvc.getAll().forEach(p => this._portosDestino[p.id] = p.nome);
     this.modelos = this.modeloSvc.getAll().filter(m => m.ativo);
+    this.nomeEmpresa = await this.parametroSvc.getValor('empresa.nomeExibicao', 'Ominium S/A');
     await this.custoSvc.ensureLoaded();
     this.syncCustosDisponiveis();
     await this.load();
@@ -809,8 +848,13 @@ export class OrcamentoVendaComponent implements OnInit {
   }
 
   async load(): Promise<void> {
-    await this.service.refresh();
-    this.syncOrcamentosView();
+    this.loadingList = true;
+    try {
+      await this.service.refresh();
+      this.syncOrcamentosView();
+    } finally {
+      this.loadingList = false;
+    }
   }
 
   syncOrcamentosView(): void {
@@ -913,6 +957,14 @@ export class OrcamentoVendaComponent implements OnInit {
       : this.custoSvc.getAllCurrent();
   }
 
+  get podeNovoOrcamento(): boolean {
+    return this.custos.some(c => c.status === 'Finalizado');
+  }
+
+  get custosFinalizadosDisponiveis(): CustoDespachante[] {
+    return this.custos.filter(c => c.status === 'Finalizado' && this.custoSvc.isCurrentVersion(c.id));
+  }
+
   isCurrentVersion(custoId: string): boolean {
     return this.custoSvc.isCurrentVersion(custoId);
   }
@@ -940,7 +992,7 @@ export class OrcamentoVendaComponent implements OnInit {
 
   nomeDespachanteById(id: string): string { return this._despachantes[id] ?? id; }
   nomeImportadorById(id: string): string  { return id; } // simplificado — lookup via service se necessário
-  nomeImpById(id: string): string  { return this._importadores[id] ?? id; }
+  nomeImpById(id: string | null): string  { return id ? (this._importadores[id] ?? id) : '—'; }
   nomePOById(id: string): string   { return this._portosOrigem[id] ?? id; }
   nomePDById(id: string): string   { return this._portosDestino[id] ?? id; }
 
@@ -1086,6 +1138,33 @@ export class OrcamentoVendaComponent implements OnInit {
     this.extrasForm.splice(i, 1);
   }
 
+  // ── Custo Interno ─────────────────────────────────────────────────────
+
+  async vincularCustoInterno(): Promise<void> {
+    if (!this.editing || !this.custoInternoSelectId) return;
+    try {
+      const updated = await this.service.setCustoInterno(this.editing.id, this.custoInternoSelectId);
+      this.editing = updated;
+      this.custoInternoSelectId = '';
+      this.toast.success('Custo interno vinculado com sucesso.');
+      await this.load();
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao vincular custo interno.');
+    }
+  }
+
+  async removerCustoInterno(): Promise<void> {
+    if (!this.editing) return;
+    try {
+      const updated = await this.service.setCustoInterno(this.editing.id, null);
+      this.editing = updated;
+      this.toast.success('Custo interno removido.');
+      await this.load();
+    } catch (err: any) {
+      this.toast.error(err?.message ?? 'Erro ao remover custo interno.');
+    }
+  }
+
   // ── CRUD ──────────────────────────────────────────────────────────────
 
   openForm(item?: OrcamentoVenda): void {
@@ -1163,6 +1242,7 @@ export class OrcamentoVendaComponent implements OnInit {
     this.apiFieldErrors = {};
     if (!this.form.clienteId || !this.form.data) return;
 
+    this.isSaving = true;
     const totalDespesas = this.somaDespesas();
     const totalExtras   = this.somaExtras();
     const totalGeral    = this.calcTotalGeral();
@@ -1237,6 +1317,8 @@ export class OrcamentoVendaComponent implements OnInit {
       this.toast.success(status === 'Finalizado' ? 'Orçamento finalizado com sucesso.' : (eraEdicao ? 'Orçamento atualizado com sucesso.' : 'Orçamento criado com sucesso.'));
     } catch (err: any) {
       this.toast.error(err?.message ?? 'Erro ao salvar os dados do orçamento.');
+    } finally {
+      this.isSaving = false;
     }
   }
 
@@ -1493,7 +1575,7 @@ ${autoPrint ? '<script>window.onload=function(){window.print();}<\/script>' : ''
 
   <!-- Cabeçalho empresa -->
   <div style="text-align:center;padding:8px 0 4px;">
-    <div style="font-size:28px;font-weight:700;font-family:Georgia,serif;letter-spacing:2px;">Ominium S/A</div>
+    <div style="font-size:28px;font-weight:700;font-family:Georgia,serif;letter-spacing:2px;">${this.nomeEmpresa}</div>
   </div>
 
   <!-- Título do documento -->

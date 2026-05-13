@@ -9,7 +9,7 @@ export interface CustoDespachante {
   id: string;
   codigoInterno: string;          // CD-AAAA-NNN
   despachanteId: string;
-  importadorId: string;
+  importadorId: string | null;
   portoOrigemId: string;
   portoDestinoId: string;
   responsavel: string;            // nome livre até Users ser implementado

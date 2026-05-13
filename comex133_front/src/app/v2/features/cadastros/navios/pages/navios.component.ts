@@ -8,11 +8,12 @@ import { NaviosCadastroService } from '../services/navios-cadastro.service';
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
+import { SkeletonListComponent } from '../../../../../core/components/skeleton-list/skeleton-list.component';
 
 @Component({
   selector: 'app-navios-cadastro',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SkeletonListComponent],
   styles: CRUD_STYLES,
   template: `
     <div class="container-standard">
@@ -31,7 +32,7 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
             <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome, IMO ou armador" />
           </div>
 
-          <div class="empty-state" *ngIf="loading">Carregando navios...</div>
+          <app-skeleton-list *ngIf="loading" [rowCount]="5" [cols]="3"></app-skeleton-list>
 
           <div class="empty-state" *ngIf="!loading && hasLoadError" style="color:#b91c1c">
             {{ loadErrorMessage }}

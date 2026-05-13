@@ -31,6 +31,11 @@ import { Importador } from '../../cadastros/importadores/models/importador.model
 import { DespachanteV2 } from '../../cadastros/despachantes/models/despachante-v2.models';
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
+import { ApiClientService } from '../../../../core/api/client/api-client.service';
+import { firstValueFrom } from 'rxjs';
+import { SkeletonListComponent } from '../../../../core/components/skeleton-list/skeleton-list.component';
+import { EmptyLoadingComponent } from '../../../../core/components/empty-loading/empty-loading.component';
+import { LoadingButtonDirective } from '../../../../core/directives/loading-button.directive';
 
 
 interface DespaForm {
@@ -72,7 +77,7 @@ const OV_STATUS_COLORS: Record<string, string> = {
 @Component({
   selector: 'app-solicitacao-orcamento',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, CurrencyPipe, PaginationComponent],
+  imports: [CommonModule, FormsModule, DatePipe, CurrencyPipe, PaginationComponent, SkeletonListComponent, EmptyLoadingComponent, LoadingButtonDirective],
   styles: [
     ...CRUD_STYLES,
     `
@@ -105,6 +110,20 @@ const OV_STATUS_COLORS: Record<string, string> = {
       .section-card h3 { font-size:11px; }
       .sol-link { font-size:10px; }
     }
+    /* ── Preview modal ── */
+    .sol-preview-overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:1000; display:flex; align-items:flex-start; justify-content:flex-end; }
+    .sol-preview-panel { background:var(--color-surface,#fff); width:min(560px,95vw); height:100vh; overflow-y:auto; display:flex; flex-direction:column; box-shadow:-4px 0 32px rgba(0,0,0,.22); }
+    .sol-preview-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1.5px solid var(--color-border); position:sticky; top:0; background:var(--color-surface,#fff); z-index:1; }
+    .btn-close { background:none; border:1.5px solid var(--color-border); border-radius:6px; padding:4px 10px; font-size:15px; cursor:pointer; color:var(--color-text-muted); line-height:1; }
+    .btn-close:hover { background:var(--color-bg); }
+    .sol-preview-body { padding:20px; flex:1; }
+    .sol-preview-section { margin-top:20px; }
+    .sol-preview-section h4 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--color-text-muted); margin:0 0 10px; padding-bottom:8px; border-bottom:1px solid var(--color-border); }
+    .sol-info-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px 16px; }
+    .sol-info-item { display:flex; flex-direction:column; gap:2px; }
+    .sol-info-item.sol-info-full { grid-column:1/-1; }
+    .sol-info-item label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--color-text-muted); }
+    .sol-info-item span { font-size:13px; font-weight:500; }
     `
   ],
   template: `
@@ -136,7 +155,7 @@ const OV_STATUS_COLORS: Record<string, string> = {
             </select>
           </div>
 
-          <div class="empty-state" *ngIf="loading">Carregando solicitações...</div>
+          <app-skeleton-list *ngIf="loading" [rowCount]="6" [cols]="4"></app-skeleton-list>
 
           <div class="empty-state" *ngIf="!loading && hasLoadError" style="color:#b91c1c">
             {{ loadErrorMessage }}
@@ -189,6 +208,7 @@ const OV_STATUS_COLORS: Record<string, string> = {
                 </td>
                 <td>
                   <div class="row-actions">
+                    <button class="btn-icon" (click)="abrirPreviewSolicitacao(s)" title="Visualizar">👁️</button>
                     <button class="btn-icon" *ngIf="!isDespachante" (click)="openForm(s)" title="Editar">✏️</button>
                     <button class="btn-icon danger" *ngIf="!isDespachante" (click)="remover(s.id)" title="Excluir">🗑️</button>
                   </div>
@@ -339,8 +359,8 @@ const OV_STATUS_COLORS: Record<string, string> = {
                     </td>
                     <td>
                       <ng-container *ngIf="custoPorDespachante(d.despachanteId) as custo">
-                        <span class="status-badge" [ngStyle]="{ background: custo.status === 'Finalizado' ? '#22c55e' : '#f59e0b' }">
-                          {{ custo.status }}
+                        <span class="status-badge" [ngStyle]="{ background: custoStatusColor(custo.status) }">
+                          {{ custoStatusLabel(custo.status) }}
                         </span>
                       </ng-container>
                     </td>
@@ -410,12 +430,14 @@ const OV_STATUS_COLORS: Record<string, string> = {
               <div class="f" style="flex:2">
                 <label>Arquivo</label>
                 <div style="display:flex;gap:6px;align-items:center">
-                  <input #fileInput type="file" style="display:none" (change)="onFileSelected($event)" />
-                  <input type="text" [value]="docForm.linkDocumento" readonly
+                  <input #fileInput type="file" style="display:none" (change)="onFileSelected($event)" [disabled]="uploading" />
+                  <input type="text" [value]="uploading ? '⏳ Enviando...' : (docForm.linkDocumento || '')" readonly
                     placeholder="Clique em Buscar para selecionar..."
                     style="flex:1;cursor:pointer;background:var(--color-bg);padding:8px 10px;border:2px solid var(--color-border);border-radius:8px;font-size:13px;color:var(--color-text)"
-                    (click)="fileInput.click()" />
-                  <button class="btn btn-secondary" type="button" style="white-space:nowrap" (click)="fileInput.click()">📂 Buscar</button>
+                    (click)="!uploading && fileInput.click()" />
+                  <button class="btn btn-secondary" type="button" style="white-space:nowrap"
+                    [disabled]="uploading"
+                    (click)="fileInput.click()">{{ uploading ? '⏳ Enviando...' : '📂 Buscar' }}</button>
                 </div>
               </div>
               <div class="f" style="max-width:145px">
@@ -466,13 +488,82 @@ const OV_STATUS_COLORS: Record<string, string> = {
 
           <!-- Ações do form -->
           <div class="actions">
-            <button class="btn btn-primary" (click)="salvar()">{{ editando ? 'Salvar' : 'Criar' }}</button>
+            <button class="btn btn-primary" (click)="salvar()" [appLoadingBtn]="isSaving">{{ editando ? 'Salvar' : 'Criar' }}</button>
             <button class="btn" *ngIf="canDecidirSolicitacao()" style="background:#22c55e;color:#fff" (click)="aprovarSolicitacao()">✅ Aprovado Cliente</button>
             <button class="btn" *ngIf="canDecidirSolicitacao()" style="background:#ef4444;color:#fff" (click)="cancelarSolicitacao()">⛔ Cancelado</button>
             <button class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
           </div>
         </div>
       </ng-container>
+
+      <!-- ── PREVIEW LATERAL DE SOLICITAÇÃO ── -->
+      <div *ngIf="showSolPreview && previewSol" class="sol-preview-overlay" (click)="fecharPreviewSolicitacao()">
+        <div class="sol-preview-panel" (click)="$event.stopPropagation()">
+          <div class="sol-preview-header">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <span class="sol-link" style="font-size:14px">{{ previewSol.codigoInterno }}</span>
+              <span class="status-badge" [ngStyle]="{ background: statusColor(previewSol.status) }">{{ statusLabel(previewSol.status) }}</span>
+            </div>
+            <button class="btn-close" (click)="fecharPreviewSolicitacao()">✕</button>
+          </div>
+          <div class="sol-preview-body">
+            <div class="sol-info-grid">
+              <div class="sol-info-item"><label>Responsável</label><span>{{ previewSol.responsavel }}</span></div>
+              <div class="sol-info-item"><label>Porto Origem</label><span>{{ nomePortoOrigem(previewSol.portoOrigemId) }}</span></div>
+              <div class="sol-info-item"><label>Porto Destino</label><span>{{ nomePortoDestino(previewSol.portoDestinoId) }}</span></div>
+              <div class="sol-info-item"><label>Container</label><span>{{ previewSol.tamContainer }}</span></div>
+              <div class="sol-info-item"><label>Data</label><span>{{ previewSol.data | date:'dd/MM/yyyy' }}</span></div>
+              <div class="sol-info-item"><label>Peso (kg)</label><span>{{ previewSol.peso || '—' }}</span></div>
+              <div class="sol-info-item sol-info-full" *ngIf="previewSol.observacao"><label>Observação</label><span>{{ previewSol.observacao }}</span></div>
+            </div>
+
+            <div class="sol-preview-section">
+              <h4>🧭 Despachantes</h4>
+              <table class="sub-table" *ngIf="previewSolDespas.length > 0">
+                <thead><tr><th>Despachante</th><th>Enviado em</th><th>Custo</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let d of previewSolDespas">
+                    <td>{{ nomeDespachanteById(d.despachanteId) }}</td>
+                    <td>{{ d.dataEnvio | date:'dd/MM/yyyy' }}</td>
+                    <td>
+                      <ng-container *ngIf="custoDaSolPorDespachante(previewSol.id, d.despachanteId) as custo">
+                        <span class="sol-link">{{ custo.codigoInterno }}</span>
+                      </ng-container>
+                      <span *ngIf="!custoDaSolPorDespachante(previewSol.id, d.despachanteId)" style="color:var(--color-text-muted);font-size:12px">— Não gerado</span>
+                    </td>
+                    <td>
+                      <ng-container *ngIf="custoDaSolPorDespachante(previewSol.id, d.despachanteId) as custo">
+                        <span class="status-badge" [ngStyle]="{ background: custoStatusColor(custo.status) }">{{ custoStatusLabel(custo.status) }}</span>
+                      </ng-container>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <p *ngIf="previewSolDespas.length === 0" style="font-size:13px;color:var(--color-text-muted);margin:0">Nenhum despachante vinculado.</p>
+            </div>
+
+            <div class="sol-preview-section">
+              <h4>📦 Packlist / Documentos</h4>
+              <table class="sub-table" *ngIf="previewSolDocs.length > 0">
+                <thead><tr><th>Nome</th><th>Arquivo / Link</th><th>Data</th><th>Obs.</th></tr></thead>
+                <tbody>
+                  <tr *ngFor="let d of previewSolDocs">
+                    <td>{{ d.nomeArquivo }}</td>
+                    <td>
+                      <a *ngIf="isUrl(d.linkDocumento)" [href]="d.linkDocumento" target="_blank"
+                        style="color:var(--color-primary,#3b82f6);font-size:12px">{{ truncateLink(d.linkDocumento) }}</a>
+                      <span *ngIf="!isUrl(d.linkDocumento)" style="font-size:12px;font-family:monospace;color:var(--color-text-muted)">{{ d.linkDocumento || '—' }}</span>
+                    </td>
+                    <td>{{ d.dataUpload | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ d.observacao || '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p *ngIf="previewSolDocs.length === 0" style="font-size:13px;color:var(--color-text-muted);margin:0">Nenhum documento adicionado.</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
     </div>
   `
@@ -493,6 +584,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   showErr = false;
   apiFieldErrors: Record<string, string[]> = {};
   loading = false;
+  isSaving = false;
   isDespachante = false;
   hasLoadError = false;
   loadErrorMessage = '';
@@ -509,8 +601,15 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   depachantesForm: DespaForm[] = [];
   documentosForm: DocForm[] = [];
 
+  // ── Preview lateral ───────────────────────────────────────────────────
+  showSolPreview = false;
+  previewSol: SolicitacaoOrcamento | null = null;
+  previewSolDespas: DespaForm[] = [];
+  previewSolDocs: DocForm[] = [];
+
   despaForm: DespaForm = this.emptyDespaForm();
   docForm: DocForm = this.emptyDocForm();
+  uploading = false;
 
   constructor(
     private svc: SolicitacaoOrcamentoService,
@@ -526,7 +625,8 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     private auth: AuthService,
     private router: Router,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService
+    private confirmDialog: ConfirmDialogService,
+    private apiClient: ApiClientService
   ) {
     this.form = this.emptyForm();
   }
@@ -688,6 +788,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
       return;
     }
 
+    this.isSaving = true;
     try {
       if (this.editando) {
         await this.svc.update(this.form);
@@ -761,6 +862,8 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
       if (!Object.keys(this.apiFieldErrors).length && err?.message) {
         this.toast.error(err.message);
       }
+    } finally {
+      this.isSaving = false;
     }
   }
 
@@ -863,14 +966,31 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     }
   }
 
-  onFileSelected(event: Event): void {
+  async onFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      this.docForm.linkDocumento = file.name;
-      if (!this.docForm.nomeArquivo) {
-        this.docForm.nomeArquivo = file.name;
-      }
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!this.docForm.nomeArquivo) {
+      this.docForm.nomeArquivo = file.name;
+    }
+
+    this.uploading = true;
+    this.docForm.linkDocumento = '';
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await firstValueFrom(
+        this.apiClient.uploadFile<{ url: string; originalName: string }>('uploads?subfolder=packlist', formData)
+      );
+      this.docForm.linkDocumento = result.url;
+      this.toast.success('Arquivo enviado com sucesso.');
+    } catch (err: any) {
+      this.docForm.linkDocumento = '';
+      this.toast.error(err?.message ?? 'Erro ao fazer upload do arquivo.');
+    } finally {
+      this.uploading = false;
+      input.value = ''; // reset para permitir re-upload do mesmo arquivo
     }
   }
 
@@ -965,6 +1085,30 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     this.router.navigate(['/orcamentos-venda'], { queryParams: { editId: ovId } });
   }
 
+  async abrirPreviewSolicitacao(s: SolicitacaoOrcamento): Promise<void> {
+    this.previewSol = s;
+    this.previewSolDespas = [];
+    this.previewSolDocs = [];
+    this.showSolPreview = true;
+    const despas = await this.svc.loadDespachantes(s.id);
+    this.previewSolDespas = despas.map(d => ({ despachanteId: d.despachanteId, dataEnvio: d.dataEnvio }));
+    const docs = await this.svc.loadDocumentos(s.id);
+    this.previewSolDocs = docs.map(d => ({ nomeArquivo: d.nomeArquivo, linkDocumento: d.linkDocumento, dataUpload: d.dataUpload, observacao: d.observacao ?? '' }));
+  }
+
+  fecharPreviewSolicitacao(): void {
+    this.showSolPreview = false;
+    this.previewSol = null;
+  }
+
+  custoDaSolPorDespachante(solId: string, despachanteId: string): CustoDespachante | undefined {
+    return this.custos.find(c => c.solicitacaoOrcamentoId === solId && c.despachanteId === despachanteId);
+  }
+
+  isUrl(s: string): boolean {
+    return s.startsWith('http://') || s.startsWith('https://');
+  }
+
   statusColor(status: StatusSolicitacao): string {
     return STATUS_COLORS[status] ?? '#6b7280';
   }
@@ -973,9 +1117,25 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     return STATUS_LABELS[status] ?? status;
   }
 
-  despStatusColor(_status: string): string { return ''; }
+  custoStatusLabel(status: string): string {
+    const map: Record<string, string> = {
+      Pendente:       'Pendente',
+      EmAndamento:    'Em Andamento',
+      Finalizado:     'Finalizado',
+      ReabertoPeloOV: 'Reaberto',
+    };
+    return map[status] ?? status;
+  }
 
-  despStatusLabel(_status: string): string { return ''; }
+  custoStatusColor(status: string): string {
+    const map: Record<string, string> = {
+      Pendente:       '#f59e0b',
+      EmAndamento:    '#3b82f6',
+      Finalizado:     '#22c55e',
+      ReabertoPeloOV: '#f97316',
+    };
+    return map[status] ?? '#6b7280';
+  }
 
   truncateLink(link: string): string {
     return link.length > 40 ? link.slice(0, 40) + '...' : link;

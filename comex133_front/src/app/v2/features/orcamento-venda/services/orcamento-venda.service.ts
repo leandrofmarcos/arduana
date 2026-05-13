@@ -21,6 +21,7 @@ interface OrcamentoVendaListApiDto {
   versao: number;
   versaoAnteriorId?: number | null;
   imutavel: boolean;
+  custoInternoId?: number | null;
   criadoEm: string;
   atualizadoEm: string;
 }
@@ -37,6 +38,7 @@ interface OrcamentoVendaApiDto extends OrcamentoVendaListApiDto {
   totalDespesas: number;
   totalExtras: number;
   observacao: string | null;
+  custoInternoCodigoInterno?: string | null;
   despesas: OrcamentoVendaDespesaApiDto[];
   extras: OrcamentoVendaDespesaApiDto[];
   custos: OrcamentoVendaCustoApiDto[];
@@ -283,6 +285,16 @@ export class OrcamentoVendaService {
     return this.getById(String(dto.id))!;
   }
 
+  async setCustoInterno(ovId: string, custoDespachanteId: string | null): Promise<OrcamentoVenda> {
+    const dto = await firstValueFrom(
+      this.apiClient.patch<OrcamentoVendaApiDto>(`orcamentos-venda/${Number(ovId)}/custo-interno`, {
+        custoDespachanteId: custoDespachanteId ? Number(custoDespachanteId) : null,
+      })
+    );
+    await this._loadDetail(dto.id);
+    return this.getById(String(dto.id))!;
+  }
+
   async remove(id: string): Promise<void> {
     await firstValueFrom(this.apiClient.delete<void>(`orcamentos-venda/${Number(id)}`));
     this.orcamentos = this.orcamentos.filter(o => o.id !== id);
@@ -380,35 +392,38 @@ export class OrcamentoVendaService {
       versao:                 dto.versao,
       versaoAnteriorId:       dto.versaoAnteriorId ?? undefined,
       imutavel:               dto.imutavel,
+      custoInternoId:         dto.custoInternoId ? String(dto.custoInternoId) : null,
     };
   }
 
   private _mapOrcamentoFull(dto: OrcamentoVendaApiDto): OrcamentoVenda {
     return {
-      id:                     String(dto.id),
-      codigoInterno:          dto.codigoInterno,
-      clienteId:              dto.clienteId ? String(dto.clienteId) : '',
-      solicitacaoOrcamentoId: dto.solicitacaoOrcamentoId ? String(dto.solicitacaoOrcamentoId) : undefined,
-      data:                   typeof dto.data === 'string' ? dto.data.split('T')[0] : dto.data,
-      tamContainer:           dto.tamContainer,
-      pesoBruto:              dto.pesoBruto,
-      pesoLiquido:            dto.pesoLiquido,
-      freteInternacional:     dto.freteInternacional,
-      cifReais:               dto.cifReais,
-      cifUsd:                 dto.cifUsd,
-      fobReais:               dto.fobReais,
-      fobUsd:                 dto.fobUsd,
-      taxaUsd:                dto.taxaUsd,
-      honorarios:             dto.honorarios,
-      totalImpostos:          dto.totalImpostos,
-      totalDespesas:          dto.totalDespesas,
-      totalExtras:            dto.totalExtras,
-      totalGeral:             dto.totalGeral,
-      observacao:             dto.observacao ?? undefined,
-      status:                 (dto.status as any),
-      versao:                 dto.versao,
-      versaoAnteriorId:       dto.versaoAnteriorId ?? undefined,
-      imutavel:               dto.imutavel,
+      id:                          String(dto.id),
+      codigoInterno:               dto.codigoInterno,
+      clienteId:                   dto.clienteId ? String(dto.clienteId) : '',
+      solicitacaoOrcamentoId:      dto.solicitacaoOrcamentoId ? String(dto.solicitacaoOrcamentoId) : undefined,
+      data:                        typeof dto.data === 'string' ? dto.data.split('T')[0] : dto.data,
+      tamContainer:                dto.tamContainer,
+      pesoBruto:                   dto.pesoBruto,
+      pesoLiquido:                 dto.pesoLiquido,
+      freteInternacional:          dto.freteInternacional,
+      cifReais:                    dto.cifReais,
+      cifUsd:                      dto.cifUsd,
+      fobReais:                    dto.fobReais,
+      fobUsd:                      dto.fobUsd,
+      taxaUsd:                     dto.taxaUsd,
+      honorarios:                  dto.honorarios,
+      totalImpostos:               dto.totalImpostos,
+      totalDespesas:               dto.totalDespesas,
+      totalExtras:                 dto.totalExtras,
+      totalGeral:                  dto.totalGeral,
+      observacao:                  dto.observacao ?? undefined,
+      status:                      (dto.status as any),
+      versao:                      dto.versao,
+      versaoAnteriorId:            dto.versaoAnteriorId ?? undefined,
+      imutavel:                    dto.imutavel,
+      custoInternoId:              dto.custoInternoId ? String(dto.custoInternoId) : null,
+      custoInternoCodigoInterno:   dto.custoInternoCodigoInterno ?? null,
     };
   }
 

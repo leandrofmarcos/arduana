@@ -116,6 +116,16 @@ public class OrcamentosVendaController : ControllerBase
         return Ok(ApiResponse.Ok(await _service.SolicitarReaberturaCustoAsync(id, custoId, request)));
     }
 
+    // ── Custo interno alternativo ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Define ou remove o custo interno da OV (pós-aprovação, sem nova versão ao cliente).
+    /// Envie { custoDespachanteId: null } para remover.
+    /// </summary>
+    [HttpPatch("{id:int}/custo-interno")]
+    public async Task<IActionResult> SetCustoInterno(int id, [FromBody] SetCustoInternoRequest request) =>
+        Ok(ApiResponse.Ok(await _service.SetCustoInternoAsync(id, request)));
+
     // ── Despesas ──────────────────────────────────────────────────────────────
 
     [HttpPost("{id:int}/despesas")]

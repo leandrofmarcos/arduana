@@ -12,6 +12,10 @@ var builder = WebApplication.CreateBuilder(args);
 if (builder.Environment.IsDevelopment())
     builder.WebHost.UseUrls("http://localhost:5001");
 
+// Limite de upload — 50 MB (Kestrel)
+builder.WebHost.ConfigureKestrel(k =>
+    k.Limits.MaxRequestBodySize = 52_428_800);
+
 // Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -149,6 +153,7 @@ app.MapGet("/", (HttpContext ctx) =>
     return Task.CompletedTask;
 });
 
+app.UseStaticFiles(); // serve wwwroot/uploads/...
 app.UseCors("AllowAngular");
 app.UseAuthentication();
 app.UseAuthorization();

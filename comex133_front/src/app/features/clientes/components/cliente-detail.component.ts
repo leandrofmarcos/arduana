@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { take } from 'rxjs/operators';
 import { Cliente } from '../models/cliente.models';
 import { ClientesService } from '../services/clientes.service';
 import { TemplatesPacklistService } from '../../templates-packlist/services/templates-packlist.service';
@@ -51,8 +52,10 @@ export class ClienteDetailComponent implements OnInit {
 
   loadTemplates(): void {
     console.log('🔄 ClienteDetailComponent.loadTemplates() - Carregando templates...');
-    this.templates = this.templatesService.getAll();
-    console.log('📋 Templates carregados no componente:', this.templates.length, this.templates);
+    this.templatesService.list$().pipe(take(1)).subscribe(templates => {
+      this.templates = templates;
+      console.log('📋 Templates carregados no componente:', this.templates.length, this.templates);
+    });
   }
 
   save(): void {

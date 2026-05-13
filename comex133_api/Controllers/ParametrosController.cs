@@ -36,6 +36,15 @@ public class ParametrosController : ControllerBase
         return Ok(ApiResponse.Ok(items));
     }
 
+    /// <summary>Busca um parâmetro pela chave — acessível a todos os usuários autenticados.</summary>
+    [HttpGet("chave/{chave}")]
+    [Authorize]
+    public async Task<IActionResult> GetByChave(string chave)
+    {
+        var item = await _service.GetByChaveAsync(chave);
+        return Ok(ApiResponse.Ok(item));
+    }
+
     /// <summary>Busca um parâmetro pelo ID.</summary>
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)

@@ -660,6 +660,49 @@ body {
   color: var(--color-primary-ink);
 }
 
+/* ===== LOADING OVERLAY ===== */
+.loading-overlay-host {
+  position: relative;
+}
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(1px);
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: all;
+}
+
+/* ===== BUTTON LOADING STATE (appLoadingBtn directive) ===== */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+  opacity: 0.85;
+}
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  top: 50%;
+  left: 50%;
+  margin: -7.5px 0 0 -7.5px;
+  border: 2px solid transparent;
+  border-top-color: var(--btn-spinner-color, #fff);
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+}
+.btn-secondary.btn-loading::after,
+.btn-icon.btn-loading::after {
+  --btn-spinner-color: var(--color-primary, #667eea);
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
 /* ===== TOAST ===== */
 .toast {
   position: fixed;

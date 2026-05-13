@@ -108,6 +108,19 @@ export class ApiClientService {
   }
 
   /**
+   * Upload multipart/form-data — não define Content-Type; o browser injeta o boundary correto.
+   */
+  uploadFile<T>(endpoint: string, formData: FormData): Observable<T> {
+    const url = this.buildUrl(endpoint);
+    const token = this.authService.getAccessToken();
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+    return this.http.post<ApiResponse<T>>(url, formData, { headers }).pipe(
+      map(response => this.unwrapResponse<T>(response)),
+      catchError(error => this.handleError(endpoint, error))
+    );
+  }
+
+  /**
    * DELETE
    */
   delete<T = void>(endpoint: string): Observable<T> {

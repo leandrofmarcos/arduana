@@ -24,6 +24,8 @@ export interface OrcamentoVenda {
   versao: number;
   versaoAnteriorId?: number;
   imutavel: boolean;
+  custoInternoId?: string | null;
+  custoInternoCodigoInterno?: string | null;
 }
 
 export interface OrcamentoVendaDespesa {

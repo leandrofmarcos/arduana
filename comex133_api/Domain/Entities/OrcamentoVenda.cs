@@ -69,6 +69,11 @@ public class OrcamentoVenda : IHasTimestamps
     [Required, MaxLength(60)]
     public string Status { get; set; } = "Aguardando";
 
+    // ── Custo interno alternativo (pós-aprovação, sem nova versão cliente) ────
+    // Despachante tardio entregou custo melhor? Aponte aqui — o cliente nunca vê esta referência.
+    public int? CustoInternoId { get; set; }
+    public Domain.Entities.CustoDespachante? CustoInterno { get; set; }
+
     // ── Versionamento (reabertura) ─────────────────────────────────────
     public int Versao { get; set; } = 1;
 

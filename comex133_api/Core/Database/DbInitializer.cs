@@ -55,6 +55,18 @@ public static class DbInitializer
             await context.SaveChangesAsync();
             logger.LogInformation("Seed: Usuário 'admin@comex133.com.br' criado com role 'Administrador'.");
         }
+
+        if (!await context.ParametrosSistema.AnyAsync(p => p.Chave == "empresa.nomeExibicao"))
+        {
+            context.ParametrosSistema.Add(new ParametroSistema
+            {
+                Chave = "empresa.nomeExibicao",
+                Valor = "Ominium S/A",
+                Descricao = "Nome da empresa exibido nos documentos gerados"
+            });
+            await context.SaveChangesAsync();
+            logger.LogInformation("Seed: Parâmetro 'empresa.nomeExibicao' criado.");
+        }
     }
 }
 

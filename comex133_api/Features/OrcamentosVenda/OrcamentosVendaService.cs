@@ -38,7 +38,8 @@ public class OrcamentosVendaService
             .Select(x => new OrcamentoVendaListDto(
                 x.Id, x.CodigoInterno, x.ClienteId, x.SolicitacaoOrcamentoId,
                 x.Data, x.TamContainer, x.PesoBruto, x.PesoLiquido,
-                x.TotalGeral, x.Status, x.Versao, x.VersaoAnteriorId, x.Imutavel, x.CriadoEm, x.AtualizadoEm))
+                x.TotalGeral, x.Status, x.Versao, x.VersaoAnteriorId, x.Imutavel,
+                x.CustoInternoId, x.CriadoEm, x.AtualizadoEm))
             .ToPagedResultAsync(pagination);
     }
 
@@ -571,6 +572,32 @@ public class OrcamentosVendaService
         await _db.SaveChangesAsync();
     }
 
+    // ── Custo interno alternativo ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Vincula (ou remove) um CustoDespachante como custo interno da OV após aprovação.
+    /// Não altera o que foi enviado ao cliente — apenas adiciona referência interna.
+    /// </summary>
+    public async Task<OrcamentoVendaDto> SetCustoInternoAsync(int ovId, SetCustoInternoRequest request)
+    {
+        var ov = await LoadFullOrThrowAsync(ovId);
+
+        if (request.CustoDespachanteId.HasValue)
+        {
+            var custo = await _db.CustosDespachante
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.CustoDespachanteId.Value)
+                ?? throw new NotFoundException("CustoDespachante", request.CustoDespachanteId.Value);
+
+            if (custo.Status != "Finalizado")
+                throw new BusinessException("Apenas custos finalizados podem ser definidos como custo interno.");
+        }
+
+        ov.CustoInternoId = request.CustoDespachanteId;
+        await _db.SaveChangesAsync();
+        return await GetByIdAsync(ovId);
+    }
+
     // ── Excluir ────────────────────────────────────────────────────────────────
 
     public async Task DeleteAsync(int id)
@@ -617,6 +644,7 @@ public class OrcamentosVendaService
             .Include(x => x.Despesas)
             .Include(x => x.Extras)
             .Include(x => x.Custos).ThenInclude(c => c.CustoDespachante)
+            .Include(x => x.CustoInterno)
             .FirstOrDefaultAsync(x => x.Id == id)
             ?? throw new NotFoundException("OrcamentoVenda", id);
     }
@@ -673,6 +701,7 @@ public class OrcamentosVendaService
             x.FreteInternacional, x.CifReais, x.CifUsd, x.FobReais, x.FobUsd,
             x.TaxaUsd, x.Honorarios, x.TotalImpostos, x.TotalDespesas,
             x.TotalExtras, x.TotalGeral, x.Observacao, x.Status, x.Versao, x.VersaoAnteriorId, x.Imutavel,
+            x.CustoInternoId, x.CustoInterno?.CodigoInterno,
             x.CriadoEm, x.AtualizadoEm,
             x.Despesas.Select(d => ToDespesaDto(d)).ToList(),
             x.Extras.Select(e => new OrcamentoVendaDespesaDto(e.Id, e.OrcamentoVendaId, e.Descricao, e.Valor, e.CriadoEm, e.AtualizadoEm)).ToList(),

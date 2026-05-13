@@ -32,6 +32,9 @@ import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { ApiErrorMapper } from '../../../../core/api/error-handler/api-error.mapper';
 import { CurrencyMaskDirective } from '../../../../core/directives/currency-mask.directive';
+import { SkeletonListComponent } from '../../../../core/components/skeleton-list/skeleton-list.component';
+import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
+import { LoadingButtonDirective } from '../../../../core/directives/loading-button.directive';
 
 type LiForm = { ncm: string; descricao: string; valor: number; data: string };
 type DespesaForm = { descricao: string; valor: number; data: string; entraBaseIcms: boolean };
@@ -54,7 +57,7 @@ type CustoGroupSolicitacao = {
 @Component({
   selector: 'app-custo-despachante',
   standalone: true,
-  imports: [CommonModule, FormsModule, CurrencyPipe, CurrencyMaskDirective, PaginationComponent],
+  imports: [CommonModule, FormsModule, CurrencyPipe, CurrencyMaskDirective, PaginationComponent, SkeletonListComponent, SpinnerComponent, LoadingButtonDirective],
   styles: [
     ...CRUD_STYLES,
     `
@@ -223,6 +226,7 @@ type CustoGroupSolicitacao = {
       .step-connector { min-width:12px; }
       .ncm-card { padding:8px 10px; }
     }
+    @keyframes spin { to { transform: rotate(360deg); } }
     `
   ],
   template: `
@@ -253,6 +257,9 @@ type CustoGroupSolicitacao = {
             </div>
           </div>
 
+          <app-skeleton-list *ngIf="loadingList" [rowCount]="6" [cols]="4"></app-skeleton-list>
+
+          <ng-container *ngIf="!loadingList">
           <ng-container *ngIf="listViewMode === 'agrupado'; else tableView">
             <div class="grouped-wrap" *ngIf="pagedGroupedFiltered.length > 0; else emptyGridGrouped">
               <div class="solic-group" *ngFor="let sg of pagedGroupedFiltered">
@@ -389,6 +396,7 @@ type CustoGroupSolicitacao = {
             [pagedResult]="pagedResult"
             (pageChanged)="onPageChange($event)"
           />
+          </ng-container><!-- fim *ngIf="!loadingList" -->
         </div>
       </ng-container>
 
@@ -415,12 +423,15 @@ type CustoGroupSolicitacao = {
         </div>
 
         <!-- ─ PASSO 1 — Dados Básicos ─ -->
-        <div class="card" *ngIf="step === 1">
+        <div class="card loading-overlay-host" *ngIf="step === 1">
+          <div class="loading-overlay" *ngIf="saving">
+            <app-spinner size="lg"></app-spinner>
+          </div>
           <div class="form-grid">
             <div class="field w2">
               <label>Despachante <span class="required">*</span></label>
-              <select [(ngModel)]="p1.despachanteId" [disabled]="true" [class.err]="showErr && (!p1.despachanteId || hasApiFieldError('despachanteId', 'despachante'))">
-                <option value="">— Selecione —</option>
+              <select [(ngModel)]="p1.despachanteId" [disabled]="!!p1.solicitacaoOrcamentoId || despachantes.length === 0" [class.err]="showErr && (!p1.despachanteId || hasApiFieldError('despachanteId', 'despachante'))">
+                <option value="" [disabled]="despachantes.length === 0">{{ despachantes.length === 0 ? 'Carregando...' : '— Selecione —' }}</option>
                 <option *ngFor="let d of despachantes" [value]="d.id">{{ d.nome }}</option>
               </select>
               <span class="err-msg" *ngIf="showErr && !p1.despachanteId">Obrigatório</span>
@@ -428,8 +439,8 @@ type CustoGroupSolicitacao = {
             </div>
             <div class="field">
               <label>Importador</label>
-              <select [(ngModel)]="p1.importadorId" [class.err]="showErr && hasApiFieldError('importadorId', 'importador')">
-                <option value="">— Selecione —</option>
+              <select [(ngModel)]="p1.importadorId" [disabled]="importadores.length === 0" [class.err]="showErr && hasApiFieldError('importadorId', 'importador')">
+                <option [value]="''" [disabled]="importadores.length === 0">{{ importadores.length === 0 ? 'Carregando...' : '— Selecione —' }}</option>
                 <option *ngFor="let im of importadores" [value]="im.id">{{ im.razaoSocial }}</option>
               </select>
               <span class="err-msg" *ngIf="showErr && hasApiFieldError('importadorId', 'importador')">{{ firstApiFieldError('importadorId', 'importador') }}</span>
@@ -474,43 +485,43 @@ type CustoGroupSolicitacao = {
               </select>
             </div>
             <div class="field">
-              <label>FOB (USD)</label>
-              <input type="text" [(ngModel)]="p1.fobUsd" (ngModelChange)="onFobUsdChange()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" />
-            </div>
-            <div class="field">
-              <label>FOB (R$)</label>
-              <input type="text" [(ngModel)]="p1.fobReais" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" [readonly]="true" />
-            </div>
-            <div class="field">
-              <label>Peso (kg) <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="p1.peso" (ngModelChange)="onPesoChange()" appCurrencyMask="BRL" [currencyMaskMode]="'number'" [currencyMaskUnit]="'kg'" min="0" step="0.01" placeholder="0 kg" />
-            </div>
-            <div class="field">
               <label>Taxa Dólar <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="p1.taxaUsd" (ngModelChange)="onTaxaUsdChange()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00"
+              <input type="text" [(ngModel)]="p1.taxaUsd" (ngModelChange)="onTaxaUsdChange()" appCurrencyMask="USD" [currencyMaskDecimals]="4" min="0" step="0.0001" placeholder="0,0000"
                      [class.err]="showErr && ((!p1.taxaUsd || p1.taxaUsd <= 0) || hasApiFieldError('taxaUsd'))" />
               <span class="err-msg" *ngIf="showErr && (!p1.taxaUsd || p1.taxaUsd <= 0)">Obrigatório</span>
               <span class="err-msg" *ngIf="showErr && hasApiFieldError('taxaUsd')">{{ firstApiFieldError('taxaUsd') }}</span>
             </div>
             <div class="field">
-              <label>Parâmetro (USD)</label>
-              <input type="text" [(ngModel)]="p1.parametroUsd" (ngModelChange)="onParametroUsdChange()" appCurrencyMask="USD" [currencyMaskDecimals]="8" min="0" step="0.00000001" placeholder="$0.00" />
-            </div>
-            <div class="field">
-              <label>Seguro (USD)</label>
-              <input type="text" [(ngModel)]="p1.seguroUsd" (ngModelChange)="recalculateFinancials()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" />
+              <label>FOB (USD) <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="p1.fobUsd" (ngModelChange)="onFobUsdChange()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" />
             </div>
             <div class="field">
               <label>Frete Internacional (USD)</label>
               <input type="text" [(ngModel)]="p1.freteInternacionalUsd" (ngModelChange)="recalculateFinancials()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" />
             </div>
             <div class="field">
+              <label>Seguro (USD)</label>
+              <input type="text" [(ngModel)]="p1.seguroUsd" (ngModelChange)="recalculateFinancials()" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" />
+            </div>
+            <div class="field">
               <label>CIF (USD)</label>
               <input type="text" [(ngModel)]="p1.cifUsd" appCurrencyMask="USD" min="0" step="0.01" placeholder="$0.00" [readonly]="true" />
             </div>
             <div class="field">
+              <label>FOB (R$)</label>
+              <input type="text" [(ngModel)]="p1.fobReais" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" [readonly]="true" />
+            </div>
+            <div class="field">
               <label>CIF (R$)</label>
               <input type="text" [(ngModel)]="p1.cifReais" appCurrencyMask="BRL" min="0" step="0.01" placeholder="R$ 0,00" [readonly]="true" />
+            </div>
+            <div class="field">
+              <label>Parâmetro (USD)</label>
+              <input type="text" [(ngModel)]="p1.parametroUsd" (ngModelChange)="onParametroUsdChange()" appCurrencyMask="USD" [currencyMaskDecimals]="8" min="0" step="0.00000001" placeholder="$0.00" />
+            </div>
+            <div class="field">
+              <label>Peso (kg) <span class="required">*</span></label>
+              <input type="text" [(ngModel)]="p1.peso" (ngModelChange)="onPesoChange()" appCurrencyMask="BRL" [currencyMaskMode]="'number'" [currencyMaskUnit]="'kg'" min="0" step="0.01" placeholder="0 kg" />
             </div>
             <div class="field">
               <label>Taxa USD Agente</label>
@@ -522,11 +533,22 @@ type CustoGroupSolicitacao = {
             </div>
           </div>
 
+          <ng-container *ngIf="p1.solicitacaoOrcamentoId && packlistDocs(p1.solicitacaoOrcamentoId).length > 0">
+            <div class="packlist-box">
+              <h4>📦 Packlist da Solicitação</h4>
+              <div class="packlist-row" *ngFor="let doc of packlistDocs(p1.solicitacaoOrcamentoId)">
+                <span class="packlist-name">{{ doc.nomeArquivo }}</span>
+                <span class="packlist-date">{{ doc.dataUpload | date:'dd/MM/yyyy' }}</span>
+                <button class="btn-icon" title="Baixar / Ver arquivo" (click)="downloadPacklist(doc.linkDocumento, doc.nomeArquivo)">⬇️</button>
+              </div>
+            </div>
+          </ng-container>
+
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
             <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
-            <button class="btn btn-secondary" (click)="tentarFinalizar()">✅ Finalizar</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')" [appLoadingBtn]="saving">💾 Salvar</button>
+            <button class="btn btn-secondary" (click)="tentarFinalizar()" [appLoadingBtn]="saving">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()" [disabled]="step === 1">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -565,8 +587,8 @@ type CustoGroupSolicitacao = {
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
             <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
-            <button class="btn btn-secondary" (click)="tentarFinalizar()">✅ Finalizar</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')" [appLoadingBtn]="saving">💾 Salvar</button>
+            <button class="btn btn-secondary" (click)="tentarFinalizar()" [appLoadingBtn]="saving">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -633,8 +655,8 @@ type CustoGroupSolicitacao = {
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
             <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
-            <button class="btn btn-secondary" (click)="tentarFinalizar()">✅ Finalizar</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')" [appLoadingBtn]="saving">💾 Salvar</button>
+            <button class="btn btn-secondary" (click)="tentarFinalizar()" [appLoadingBtn]="saving">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -757,8 +779,8 @@ type CustoGroupSolicitacao = {
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
             <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
-            <button class="btn btn-secondary" (click)="tentarFinalizar()">✅ Finalizar</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')" [appLoadingBtn]="saving">💾 Salvar</button>
+            <button class="btn btn-secondary" (click)="tentarFinalizar()" [appLoadingBtn]="saving">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -847,8 +869,8 @@ type CustoGroupSolicitacao = {
           <div class="actions">
             <button class="btn btn-primary" (click)="nextStep()">Próximo →</button>
             <button class="btn btn-secondary" (click)="openPreview()">👁 Preview</button>
-            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')">💾 Salvar</button>
-            <button class="btn btn-secondary" (click)="tentarFinalizar()">✅ Finalizar</button>
+            <button class="btn btn-secondary" (click)="salvarTudo('EmAndamento')" [appLoadingBtn]="saving">💾 Salvar</button>
+            <button class="btn btn-secondary" (click)="tentarFinalizar()" [appLoadingBtn]="saving">✅ Finalizar</button>
             <button class="btn btn-secondary" (click)="prevStep()">← Voltar</button>
             <button class="btn btn-secondary" style="margin-left:auto" (click)="cancelWizard()">Cancelar</button>
           </div>
@@ -1201,6 +1223,8 @@ export class CustoDespachanteComponent implements OnInit {
   showWizard = false;
   editing: CustoDespachante | null = null;
   modoVisualizacao = false;
+  loadingList = false;
+  saving = false;
 
   // ── Lookup data ───────────────────────────────────────────────────────
   despachantes: DespachanteV2[] = [];
@@ -1319,8 +1343,13 @@ export class CustoDespachanteComponent implements OnInit {
   }
 
   async load(): Promise<void> {
-    await this.service.refresh();
-    this.syncCustosView();
+    this.loadingList = true;
+    try {
+      await this.service.refresh();
+      this.syncCustosView();
+    } finally {
+      this.loadingList = false;
+    }
   }
 
   syncCustosView(): void {
@@ -1508,7 +1537,7 @@ export class CustoDespachanteComponent implements OnInit {
   // ── Lookup helpers ────────────────────────────────────────────────────
 
   nomeDespachanteById(id: string): string { return this.despachantes.find(d => d.id === id)?.nome ?? id; }
-  nomeImportadorById(id: string): string  { return this.importadores.find(i => i.id === id)?.razaoSocial ?? id; }
+  nomeImportadorById(id: string | null): string  { return id ? (this.importadores.find(i => i.id === id)?.razaoSocial ?? id) : '—'; }
   nomePortoOrigemById(id: string): string { return this.portosOrigem.find(p => p.id === id)?.nome ?? id; }
   nomePortoDestinoById(id: string): string { return this.portosDestino.find(p => p.id === id)?.nome ?? id; }
   codSolById(id: string | undefined): string {
@@ -1818,13 +1847,15 @@ export class CustoDespachanteComponent implements OnInit {
       this.toast.info('Este custo está em modo somente leitura.');
       return;
     }
+    if (this.saving) return;
 
     const eraEdicao = !!this.editing;
     this.apiFieldErrors = {};
+    this.saving = true;
 
     // Salvar (EmAndamento) nunca valida — permite rascunho parcial
     // Finalizar sempre valida (chamado via tentarFinalizar)
-    if (status !== 'EmAndamento' && !this.validateP1()) return;
+    if (status !== 'EmAndamento' && !this.validateP1()) { this.saving = false; return; }
       // Garante que fobReais, cifUsd, cifReais estão recalculados antes de enviar
       this.recalculateFinancials();
 
@@ -1836,7 +1867,7 @@ export class CustoDespachanteComponent implements OnInit {
       if (this.editing) {
         saved = await this.service.update({
           ...this.editing,
-          importadorId:   this.p1.importadorId,
+          importadorId:   this.p1.importadorId || null,
           portoOrigemId:  this.p1.portoOrigemId,
           portoDestinoId: this.p1.portoDestinoId,
           responsavel:    this.p1.responsavel.trim(),
@@ -1859,7 +1890,7 @@ export class CustoDespachanteComponent implements OnInit {
       } else {
         saved = await this.service.create({
           despachanteId:          this.p1.despachanteId,
-          importadorId:           this.p1.importadorId,
+          importadorId:           this.p1.importadorId || null,
           portoOrigemId:          this.p1.portoOrigemId,
           portoDestinoId:         this.p1.portoDestinoId,
           responsavel:            this.p1.responsavel.trim(),
@@ -1939,6 +1970,8 @@ export class CustoDespachanteComponent implements OnInit {
         : (eraEdicao ? 'Custo atualizado com sucesso.' : 'Custo criado com sucesso.'));
     } catch (err: any) {
       this.toast.error(err?.message ?? 'Erro ao salvar os dados do custo.');
+    } finally {
+      this.saving = false;
     }
   }
 
@@ -2061,12 +2094,15 @@ export class CustoDespachanteComponent implements OnInit {
       danger: false
     });
     if (!ok) return;
+    this.saving = true;
     try {
       await this.service.reabrir(id);
       this.syncCustosView();
       this.toast.success('Custo reaberto com sucesso.');
     } catch (err: any) {
       this.toast.error(err?.message ?? 'Erro ao reabrir custo.');
+    } finally {
+      this.saving = false;
     }
   }
 
@@ -2086,12 +2122,15 @@ export class CustoDespachanteComponent implements OnInit {
     });
     if (!ok) return;
 
+    this.saving = true;
     try {
       await this.service.remove(id);
       this.syncCustosView();
       this.toast.success('Custo removido com sucesso.');
     } catch (err: any) {
       this.toast.error(err?.message ?? 'Erro ao excluir custo.');
+    } finally {
+      this.saving = false;
     }
   }
 

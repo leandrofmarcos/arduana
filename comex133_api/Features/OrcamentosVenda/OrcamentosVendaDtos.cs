@@ -16,6 +16,7 @@ public record OrcamentoVendaListDto(
     int Versao,
     int? VersaoAnteriorId,
     bool Imutavel,
+    int? CustoInternoId,
     DateTime CriadoEm,
     DateTime AtualizadoEm
 );
@@ -47,6 +48,8 @@ public record OrcamentoVendaDto(
     int Versao,
     int? VersaoAnteriorId,
     bool Imutavel,
+    int? CustoInternoId,
+    string? CustoInternoCodigoInterno,
     DateTime CriadoEm,
     DateTime AtualizadoEm,
     IReadOnlyList<OrcamentoVendaDespesaDto> Despesas,
@@ -129,3 +132,6 @@ public record VincularCustoRequest(int CustoDespachanteId);
 
 /// <summary>Solicita reabertura (nova versão) de um CustoDespachante vinculado.</summary>
 public record SolicitarReaberturaRequest(string Motivo);
+
+/// <summary>Define o custo interno alternativo da OV (pós-aprovação, sem nova versão ao cliente).</summary>
+public record SetCustoInternoRequest(int? CustoDespachanteId);

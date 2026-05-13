@@ -30,6 +30,14 @@ public class ParametroService
         return ToDto(entity);
     }
 
+    public async Task<ParametroDto> GetByChaveAsync(string chave)
+    {
+        var entity = await _db.ParametrosSistema
+            .FirstOrDefaultAsync(p => p.Chave == chave)
+            ?? throw new NotFoundException("ParametroSistema", chave);
+        return ToDto(entity);
+    }
+
     public async Task<ParametroDto> CreateAsync(CreateParametroRequest request)
     {
         var chaveExiste = await _db.ParametrosSistema

@@ -9,11 +9,13 @@ import { PagedResult, PaginationParams } from '../../../../../core/api/models/ap
 import { ToastService } from '../../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../../core/services/confirm-dialog.service';
 import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.mapper';
+import { SkeletonListComponent } from '../../../../../core/components/skeleton-list/skeleton-list.component';
+import { LoadingButtonDirective } from '../../../../../core/directives/loading-button.directive';
 
 @Component({
   selector: 'app-portos-origem',
   standalone: true,
-  imports: [CommonModule, FormsModule, PaginationComponent],
+  imports: [CommonModule, FormsModule, PaginationComponent, SkeletonListComponent, LoadingButtonDirective],
   styles: CRUD_STYLES,
   template: `
     <div class="container-standard">
@@ -33,7 +35,7 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
           <div class="toolbar">
             <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome, código ou país" />
           </div>
-          <div class="empty-state" *ngIf="loading">Carregando portos de origem...</div>
+          <app-skeleton-list *ngIf="loading" [rowCount]="5" [cols]="3"></app-skeleton-list>
 
           <div class="empty-state" *ngIf="!loading && hasLoadError" style="color:#b91c1c">
             {{ loadErrorMessage }}
@@ -120,7 +122,7 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
             </div>
           </div>
           <div class="actions">
-            <button class="btn btn-primary" (click)="save()">💾 Salvar</button>
+            <button class="btn btn-primary" (click)="save()" [appLoadingBtn]="isSaving">💾 Salvar</button>
             <button class="btn btn-secondary" (click)="cancel()">✖️ Cancelar</button>
           </div>
         </div>
@@ -134,6 +136,7 @@ export class PortosOrigemComponent implements OnInit {
   pagedResult: PagedResult<PortoOrigem> | null = null;
   q = '';
   loading = false;
+  isSaving = false;
   hasLoadError = false;
   loadErrorMessage = '';
   showForm = false;
@@ -208,14 +211,17 @@ export class PortosOrigemComponent implements OnInit {
     this.apiFieldErrors = {};
     if (!this.form.nome.trim() || !this.form.codigo.trim() || !this.form.pais.trim()) return;
 
+    this.isSaving = true;
     if (this.editing) {
       this.service.update({ ...this.editing, ...this.form }).subscribe({
         next: () => {
+          this.isSaving = false;
           this.toast.success('Porto de origem atualizado com sucesso.');
           this.cancel();
           this.load(this.pagedResult?.page ?? 1, this.pagedResult?.pageSize ?? 20);
         },
         error: err => {
+          this.isSaving = false;
           this.apiFieldErrors = this.collectFieldErrors(err);
           if (!Object.keys(this.apiFieldErrors).length) {
             this.toast.error(err?.message ?? 'Erro ao atualizar porto de origem.');
@@ -225,11 +231,13 @@ export class PortosOrigemComponent implements OnInit {
     } else {
       this.service.create(this.form).subscribe({
         next: () => {
+          this.isSaving = false;
           this.toast.success('Porto de origem criado com sucesso.');
           this.cancel();
           this.load(this.pagedResult?.page ?? 1, this.pagedResult?.pageSize ?? 20);
         },
         error: err => {
+          this.isSaving = false;
           this.apiFieldErrors = this.collectFieldErrors(err);
           if (!Object.keys(this.apiFieldErrors).length) {
             this.toast.error(err?.message ?? 'Erro ao criar porto de origem.');

@@ -158,3 +158,10 @@ $RECYCLE.BIN/
 # ------------------------------------------------------------
 *.log
 !web.config
+
+
+# ------------------------------------------------------------
+# Uploads de arquivos (packlist, documentos, etc.)
+# Não versionar arquivos enviados pelos usuários
+# ------------------------------------------------------------
+comex133_api/wwwroot/uploads/

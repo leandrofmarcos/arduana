@@ -1,5 +1,6 @@
 using Comex133Api.Core.Auth;
 using Comex133Api.Core.Database;
+using Comex133Api.Infrastructure.Storage;
 using Comex133Api.Features.UsuarioVinculos;
 using Comex133Api.Features.AgentesCarga;
 using Comex133Api.Features.Auth;
@@ -86,6 +87,9 @@ public static class ServiceCollectionExtensions
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+
+        // Storage — troque LocalStorageService por outra impl (Azure, S3, MinIO) sem alterar o resto
+        services.AddScoped<IStorageService, LocalStorageService>();
         services.AddScoped<UsuarioVinculosService>();
 
         services.AddScoped<ParametroService>();

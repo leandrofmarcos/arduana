@@ -236,7 +236,7 @@ export class CustoDespachanteService {
   // ── Async CRUD ────────────────────────────────────────────────────────────
 
   async create(data: {
-    despachanteId: string; importadorId?: string; portoOrigemId: string;
+    despachanteId: string; importadorId?: string | null; portoOrigemId: string;
     portoDestinoId: string; responsavel: string; tamContainer: string; peso: number;
     fobUsd: number; fobReais: number; cifUsd: number; cifReais: number;
     seguroUsd: number; freteInternacionalUsd: number; taxaUsd: number; parametroUsd: number; taxaUsdAgente?: number;
