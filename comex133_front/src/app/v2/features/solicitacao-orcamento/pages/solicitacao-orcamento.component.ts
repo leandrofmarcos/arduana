@@ -322,7 +322,9 @@ const OV_STATUS_COLORS: Record<string, string> = {
                 <label>Despachante</label>
                 <select [(ngModel)]="despaForm.despachanteId">
                   <option value="">— Selecione —</option>
-                  <option *ngFor="let d of despachantesDisponiveis" [value]="d.id">{{ d.nome }}</option>
+                  <option *ngFor="let d of despachantesDisponiveis" [value]="d.id">
+                    {{ d.nome }}{{ d.prefixoReferencia ? ' [' + d.prefixoReferencia + ']' : '' }}
+                  </option>
                 </select>
               </div>
               <div class="f" style="max-width:145px">
@@ -341,6 +343,7 @@ const OV_STATUS_COLORS: Record<string, string> = {
                 <thead>
                   <tr>
                     <th>Despachante</th>
+                    <th>Prefixo Ref.</th>
                     <th>Data Envio</th>
                     <th>Custo Gerado</th>
                     <th>Status Custo</th>
@@ -350,6 +353,12 @@ const OV_STATUS_COLORS: Record<string, string> = {
                 <tbody>
                   <tr *ngFor="let d of depachantesForm; let i = index">
                     <td>{{ nomeDespachanteById(d.despachanteId) }}</td>
+                    <td>
+                      <ng-container *ngIf="prefixoDespachanteById(d.despachanteId) as pref">
+                        <span style="font-family:monospace;font-weight:700;font-size:12px;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;border-radius:5px;padding:2px 7px">{{ pref }}</span>
+                      </ng-container>
+                      <span *ngIf="!prefixoDespachanteById(d.despachanteId)" style="color:var(--color-text-muted);font-size:12px">—</span>
+                    </td>
                     <td>{{ d.dataEnvio | date:'dd/MM/yyyy' }}</td>
                     <td>
                       <ng-container *ngIf="custoPorDespachante(d.despachanteId) as custo">
@@ -520,10 +529,16 @@ const OV_STATUS_COLORS: Record<string, string> = {
             <div class="sol-preview-section">
               <h4>🧭 Despachantes</h4>
               <table class="sub-table" *ngIf="previewSolDespas.length > 0">
-                <thead><tr><th>Despachante</th><th>Enviado em</th><th>Custo</th><th>Status</th></tr></thead>
+                <thead><tr><th>Despachante</th><th>Prefixo Ref.</th><th>Enviado em</th><th>Custo</th><th>Status</th></tr></thead>
                 <tbody>
                   <tr *ngFor="let d of previewSolDespas">
                     <td>{{ nomeDespachanteById(d.despachanteId) }}</td>
+                    <td>
+                      <ng-container *ngIf="prefixoDespachanteById(d.despachanteId) as pref">
+                        <span style="font-family:monospace;font-weight:700;font-size:12px;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;border-radius:5px;padding:2px 7px">{{ pref }}</span>
+                      </ng-container>
+                      <span *ngIf="!prefixoDespachanteById(d.despachanteId)" style="color:var(--color-text-muted);font-size:12px">—</span>
+                    </td>
                     <td>{{ d.dataEnvio | date:'dd/MM/yyyy' }}</td>
                     <td>
                       <ng-container *ngIf="custoDaSolPorDespachante(previewSol.id, d.despachanteId) as custo">
@@ -1065,6 +1080,10 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
 
   nomeDespachanteById(id: string): string {
     return this.despachantes.find(d => d.id === id)?.nome ?? id;
+  }
+
+  prefixoDespachanteById(id: string): string {
+    return this.despachantes.find(d => d.id === id)?.prefixoReferencia ?? '';
   }
 
   contarDespachantes(solId: string): number {
