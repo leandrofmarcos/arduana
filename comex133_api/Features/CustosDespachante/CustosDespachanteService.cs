@@ -70,7 +70,7 @@ public class CustosDespachanteService
 
         var entity = new Domain.Entities.CustoDespachante
         {
-            CodigoInterno      = await GerarCodigoInternoAsync(),
+            CodigoInterno      = await GerarCodigoInternoAsync(request.DespachanteId),
             SolicitacaoOrcamentoId = request.SolicitacaoOrcamentoId,
             DespachanteId      = request.DespachanteId,
             ImportadorId       = request.ImportadorId,
@@ -209,7 +209,7 @@ public class CustosDespachanteService
 
         var novaVersao = new Domain.Entities.CustoDespachante
         {
-            CodigoInterno          = await GerarCodigoInternoAsync(),
+            CodigoInterno          = await GerarCodigoInternoAsync(entity.DespachanteId),
             SolicitacaoOrcamentoId = entity.SolicitacaoOrcamentoId,
             DespachanteId          = entity.DespachanteId,
             ImportadorId           = entity.ImportadorId,
@@ -756,26 +756,40 @@ public class CustosDespachanteService
             throw new NotFoundException("PortoDestino", portoDestinoId);
     }
 
-    private async Task<string> GerarCodigoInternoAsync()
+    private async Task<string> GerarCodigoInternoAsync(int despachanteId)
     {
-        var year   = DateTime.UtcNow.Year;
-        var prefix = $"CD-{year}-";
+        var despachante = await _db.Despachantes.FindAsync(despachanteId);
+        var prefixo = despachante?.PrefixoReferencia?.Trim().ToUpperInvariant();
 
+        if (!string.IsNullOrEmpty(prefixo) && prefixo.Length == 3)
+        {
+            var now = DateTime.UtcNow;
+            var mm  = now.Month.ToString("D2");
+            var yy  = (now.Year % 100).ToString("D2");
+            // Contador cumulativo por despachante (independente de mês/ano)
+            var count = await _db.CustosDespachante
+                .AsNoTracking()
+                .CountAsync(x => x.DespachanteId == despachanteId);
+            return $"{prefixo}{mm}{yy}{count + 1:D3}";
+        }
+
+        // Fallback para despachantes sem prefixo cadastrado
+        var year   = DateTime.UtcNow.Year;
+        var cdPrefix = $"CD-{year}-";
         var last = await _db.CustosDespachante
             .AsNoTracking()
-            .Where(x => x.CodigoInterno.StartsWith(prefix))
+            .Where(x => x.CodigoInterno.StartsWith(cdPrefix))
             .OrderByDescending(x => x.Id)
             .Select(x => x.CodigoInterno)
             .FirstOrDefaultAsync();
-
         var next = 1;
-        if (!string.IsNullOrWhiteSpace(last) && last.Length >= prefix.Length + 3)
+        if (!string.IsNullOrWhiteSpace(last) && last.Length >= cdPrefix.Length + 3)
         {
-            var suffix = last[prefix.Length..];
+            var suffix = last[cdPrefix.Length..];
             if (int.TryParse(suffix, out var parsed))
                 next = parsed + 1;
         }
-        return $"{prefix}{next:000}";
+        return $"{cdPrefix}{next:D3}";
     }
 
     // ── Mapeamentos ───────────────────────────────────────────────────────────

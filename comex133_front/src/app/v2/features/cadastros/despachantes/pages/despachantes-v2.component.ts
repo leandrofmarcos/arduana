@@ -12,7 +12,15 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
   selector: 'app-despachantes-v2',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  styles: CRUD_STYLES,
+  styles: [
+    ...CRUD_STYLES,
+    `
+    .prefix-input-wrap { position:relative; display:flex; gap:8px; align-items:flex-end; }
+    .prefix-input { text-transform:uppercase; font-family:monospace; font-weight:700; letter-spacing:.1em; width:80px; text-align:center; font-size:15px; }
+    .prefix-preview { font-family:monospace; font-size:12px; color:var(--color-text-muted); margin-top:4px; background:var(--color-bg); border:1px solid var(--color-border); border-radius:6px; padding:3px 8px; white-space:nowrap; }
+    .prefix-badge { display:inline-block; font-family:monospace; font-weight:700; font-size:12px; background:#eff6ff; color:#1d4ed8; border:1px solid #93c5fd; border-radius:6px; padding:2px 8px; }
+    `
+  ],
   template: `
     <div class="container-standard">
 
@@ -29,12 +37,13 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
       <ng-container *ngIf="!showForm">
         <div class="content-section">
           <div class="toolbar">
-            <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome ou CRN" />
+            <input class="search" type="text" [(ngModel)]="q" placeholder="🔎 Buscar por nome, CRN ou prefixo" />
           </div>
           <table class="data-table">
             <thead>
               <tr>
                 <th>Nome</th>
+                <th>Prefixo Ref.</th>
                 <th>CRN</th>
                 <th>E-mail</th>
                 <th>Telefone</th>
@@ -44,10 +53,17 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
             </thead>
             <tbody>
               <tr *ngIf="filtered.length === 0">
-                <td colspan="6" class="empty-state">Nenhum despachante cadastrado</td>
+                <td colspan="7" class="empty-state">Nenhum despachante cadastrado</td>
               </tr>
               <tr *ngFor="let d of filtered">
                 <td><strong>{{ d.nome }}</strong></td>
+                <td>
+                  <ng-container *ngIf="d.prefixoReferencia">
+                    <span class="prefix-badge">{{ d.prefixoReferencia }}</span>
+                    <span style="font-size:10px;color:var(--color-text-muted);margin-left:4px">→ {{ previewCodigo(d.prefixoReferencia) }}</span>
+                  </ng-container>
+                  <span *ngIf="!d.prefixoReferencia" style="color:var(--color-text-muted);font-size:12px">— (padrão CD-)</span>
+                </td>
                 <td><code>{{ d.crn || '—' }}</code></td>
                 <td>{{ d.email || '—' }}</td>
                 <td>{{ d.telefone || '—' }}</td>
@@ -78,7 +94,8 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
           <div class="form-grid">
             <div class="field w2">
               <label>Nome <span class="required">*</span></label>
-              <input type="text" [(ngModel)]="form.nome" placeholder="Ex: João Silva Despachos"
+              <input type="text" [(ngModel)]="form.nome" (ngModelChange)="onNomeChange($event)"
+                     placeholder="Ex: João Silva Despachos"
                      [class.err]="showErrors && (!form.nome.trim() || hasApiFieldError('nome', 'name'))" />
               <span class="err-msg" *ngIf="showErrors && !form.nome.trim()">Nome é obrigatório</span>
               <span class="err-msg" *ngIf="showErrors && hasApiFieldError('nome', 'name')">{{ firstApiFieldError('nome', 'name') }}</span>
@@ -87,6 +104,35 @@ import { ApiErrorMapper } from '../../../../../core/api/error-handler/api-error.
               <label>CRN (nº do registro)</label>
               <input type="text" [(ngModel)]="form.crn" placeholder="Ex: SP-123456" />
             </div>
+
+            <!-- Prefixo de Referência -->
+            <div class="field w2">
+              <label>
+                Prefixo de Referência
+                <span style="font-size:10px;font-weight:400;color:var(--color-text-muted);margin-left:4px">(3 letras — identifica os custos deste despachante)</span>
+              </label>
+              <div class="prefix-input-wrap">
+                <div style="display:flex;flex-direction:column;gap:4px">
+                  <input type="text" class="prefix-input" [(ngModel)]="form.prefixoReferencia"
+                         (ngModelChange)="form.prefixoReferencia = $event.toUpperCase().replace(/[^A-Z]/g, '').slice(0,3)"
+                         maxlength="3"
+                         placeholder="ORC"
+                         [class.err]="showErrors && hasApiFieldError('prefixoreferencia')" />
+                  <span class="err-msg" *ngIf="showErrors && hasApiFieldError('prefixoreferencia')">{{ firstApiFieldError('prefixoreferencia') }}</span>
+                </div>
+                <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px;white-space:nowrap"
+                        [disabled]="!form.nome.trim()"
+                        title="Sugerir prefixo com base no nome"
+                        (click)="sugerirPrefixo()">💡 Sugerir</button>
+                <div *ngIf="form.prefixoReferencia && form.prefixoReferencia.length === 3" class="prefix-preview">
+                  Exemplo: <strong>{{ previewCodigo(form.prefixoReferencia) }}</strong>
+                </div>
+              </div>
+              <p style="font-size:11px;color:var(--color-text-muted);margin:6px 0 0">
+                Formato gerado: <code>{{ form.prefixoReferencia || 'XXX' }}{{ previewMMAA() }}001</code>, <code>{{ form.prefixoReferencia || 'XXX' }}{{ previewMMAA() }}002</code> ...
+              </p>
+            </div>
+
             <div class="field w2">
               <label>E-mail</label>
               <input type="email" [(ngModel)]="form.email" placeholder="despachante@email.com" />
@@ -121,12 +167,12 @@ export class DespachantesV2Component implements OnInit {
   editing: DespachanteV2 | null = null;
   apiFieldErrors: Record<string, string[]> = {};
 
-  form = { nome: '', crn: '', email: '', telefone: '', ativo: true };
+  form = { nome: '', crn: '', email: '', telefone: '', prefixoReferencia: '', ativo: true };
 
   constructor(
     private service: DespachanteV2Service,
     private toast: ToastService,
-    private confirmDialog: ConfirmDialogService,) {}
+    private confirmDialog: ConfirmDialogService) {}
 
   ngOnInit(): void { this.load(); }
 
@@ -138,7 +184,8 @@ export class DespachantesV2Component implements OnInit {
     return this.items.filter(d =>
       d.nome.toLowerCase().includes(s) ||
       (d.crn ?? '').toLowerCase().includes(s) ||
-      (d.email ?? '').toLowerCase().includes(s)
+      (d.email ?? '').toLowerCase().includes(s) ||
+      (d.prefixoReferencia ?? '').toLowerCase().includes(s)
     );
   }
 
@@ -147,14 +194,48 @@ export class DespachantesV2Component implements OnInit {
     this.showErrors = false;
     this.apiFieldErrors = {};
     this.form = item
-      ? { nome: item.nome, crn: item.crn, email: item.email, telefone: item.telefone, ativo: item.ativo }
-      : { nome: '', crn: '', email: '', telefone: '', ativo: true };
+      ? { nome: item.nome, crn: item.crn, email: item.email, telefone: item.telefone, prefixoReferencia: item.prefixoReferencia ?? '', ativo: item.ativo }
+      : { nome: '', crn: '', email: '', telefone: '', prefixoReferencia: '', ativo: true };
     this.showForm = true;
   }
 
   cancel(): void {
     this.showForm = false;
     this.editing = null;
+  }
+
+  onNomeChange(nome: string): void {
+    // Sugerir automaticamente se o prefixo ainda não foi editado manualmente
+    if (!this.editing && !this.form.prefixoReferencia) {
+      this.form.prefixoReferencia = this.calcularSugestao(nome);
+    }
+  }
+
+  sugerirPrefixo(): void {
+    this.form.prefixoReferencia = this.calcularSugestao(this.form.nome);
+  }
+
+  private calcularSugestao(nome: string): string {
+    if (!nome.trim()) return '';
+    const palavras = nome.trim().toUpperCase().split(/\s+/).map(p => p.replace(/[^A-Z]/g, '')).filter(p => p.length > 0);
+    // Iniciais de cada palavra (até 3)
+    let resultado = palavras.map(p => p[0]).join('').slice(0, 3);
+    // Se menos de 3, completa com letras do restante da primeira palavra
+    if (resultado.length < 3 && palavras[0]?.length > 1) {
+      resultado = (resultado + palavras[0].slice(1)).slice(0, 3);
+    }
+    return resultado.slice(0, 3);
+  }
+
+  previewMMAA(): string {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    return `${mm}${yy}`;
+  }
+
+  previewCodigo(prefixo: string): string {
+    return `${prefixo.toUpperCase()}${this.previewMMAA()}001`;
   }
 
   save(): void {
@@ -167,6 +248,7 @@ export class DespachantesV2Component implements OnInit {
       crn: this.form.crn.trim(),
       email: this.form.email.trim(),
       telefone: this.form.telefone.trim(),
+      prefixoReferencia: this.form.prefixoReferencia.trim().toUpperCase(),
       ativo: this.form.ativo
     };
 

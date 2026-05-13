@@ -22,6 +22,10 @@ public class Despachante : IHasTimestamps
     [MaxLength(30)]
     public string? Telefone { get; set; }
 
+    /// <summary>Prefixo de 3 letras usado na geração do código dos custos (ex: "ORC" → ORC0426001)</summary>
+    [MaxLength(3)]
+    public string? PrefixoReferencia { get; set; }
+
     public bool Ativo { get; set; } = true;
 
     public DateTime CriadoEm { get; set; }

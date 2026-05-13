@@ -6,6 +6,7 @@ public record DespachantDto(
     string? Crn,
     string? Email,
     string? Telefone,
+    string? PrefixoReferencia,
     bool Ativo,
     DateTime CriadoEm,
     DateTime AtualizadoEm
@@ -15,14 +16,16 @@ public record CreateDespachantRequest(
     string Nome,
     string? Crn,
     string? Email,
-    string? Telefone
+    string? Telefone,
+    string? PrefixoReferencia
 );
 
 public record UpdateDespachantRequest(
     string Nome,
     string? Crn,
     string? Email,
-    string? Telefone
+    string? Telefone,
+    string? PrefixoReferencia
 );
 
 public record AtivoRequest(bool Ativo);

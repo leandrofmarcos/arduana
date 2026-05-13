@@ -8,6 +8,7 @@ interface DespachanteApiDto {
   crn?: string;
   email?: string;
   telefone?: string;
+  prefixoReferencia?: string;
   ativo: boolean;
 }
 
@@ -34,7 +35,8 @@ export class DespachanteV2Service {
         nome: data.nome,
         crn: data.crn,
         email: data.email,
-        telefone: data.telefone
+        telefone: data.telefone,
+        prefixoReferencia: data.prefixoReferencia || null
       })
       .subscribe({
         next: created => {
@@ -54,7 +56,8 @@ export class DespachanteV2Service {
         nome: item.nome,
         crn: item.crn,
         email: item.email,
-        telefone: item.telefone
+        telefone: item.telefone,
+        prefixoReferencia: item.prefixoReferencia || null
       })
       .subscribe({
         next: () => {
@@ -90,6 +93,7 @@ export class DespachanteV2Service {
       crn: item.crn ?? '',
       email: item.email ?? '',
       telefone: item.telefone ?? '',
+      prefixoReferencia: item.prefixoReferencia ?? '',
       ativo: item.ativo
     };
   }

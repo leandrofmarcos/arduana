@@ -22,6 +22,11 @@ public class CreateDespachantValidator : AbstractValidator<CreateDespachantReque
         RuleFor(x => x.Telefone)
             .MaximumLength(30).WithMessage("Telefone deve ter no máximo 30 caracteres.")
             .When(x => x.Telefone is not null);
+
+        RuleFor(x => x.PrefixoReferencia)
+            .Length(3).WithMessage("Prefixo deve ter exatamente 3 letras.")
+            .Matches("^[A-Za-z]{3}$").WithMessage("Prefixo deve conter apenas letras (A-Z).")
+            .When(x => !string.IsNullOrEmpty(x.PrefixoReferencia));
     }
 }
 
@@ -45,5 +50,10 @@ public class UpdateDespachantValidator : AbstractValidator<UpdateDespachantReque
         RuleFor(x => x.Telefone)
             .MaximumLength(30).WithMessage("Telefone deve ter no máximo 30 caracteres.")
             .When(x => x.Telefone is not null);
+
+        RuleFor(x => x.PrefixoReferencia)
+            .Length(3).WithMessage("Prefixo deve ter exatamente 3 letras.")
+            .Matches("^[A-Za-z]{3}$").WithMessage("Prefixo deve conter apenas letras (A-Z).")
+            .When(x => !string.IsNullOrEmpty(x.PrefixoReferencia));
     }
 }

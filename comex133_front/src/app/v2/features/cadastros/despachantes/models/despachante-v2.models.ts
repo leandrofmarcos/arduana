@@ -4,5 +4,6 @@ export interface DespachanteV2 {
   crn: string;
   email: string;
   telefone: string;
+  prefixoReferencia: string;
   ativo: boolean;
 }

@@ -412,6 +412,10 @@ namespace Comex133Api.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("PrefixoReferencia")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
                     b.Property<string>("Telefone")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");

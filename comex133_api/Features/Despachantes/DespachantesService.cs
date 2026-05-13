@@ -20,6 +20,7 @@ public class DespachantesService
                 x.Crn,
                 x.Email,
                 x.Telefone,
+                x.PrefixoReferencia,
                 x.Ativo,
                 EF.Property<DateTime?>(x, nameof(Despachante.CriadoEm)) ?? DateTime.UnixEpoch,
                 EF.Property<DateTime?>(x, nameof(Despachante.AtualizadoEm)) ?? DateTime.UnixEpoch
@@ -33,10 +34,11 @@ public class DespachantesService
     {
         var entity = new Despachante
         {
-            Nome     = request.Nome.Trim(),
-            Crn      = request.Crn?.Trim(),
-            Email    = request.Email?.Trim().ToLowerInvariant(),
-            Telefone = request.Telefone?.Trim()
+            Nome               = request.Nome.Trim(),
+            Crn                = request.Crn?.Trim(),
+            Email              = request.Email?.Trim().ToLowerInvariant(),
+            Telefone           = request.Telefone?.Trim(),
+            PrefixoReferencia  = NormalizarPrefixo(request.PrefixoReferencia)
         };
         _db.Despachantes.Add(entity);
         await _db.SaveChangesAsync();
@@ -46,10 +48,11 @@ public class DespachantesService
     public async Task<DespachantDto> UpdateAsync(int id, UpdateDespachantRequest request)
     {
         var entity = await FindOrThrowAsync(id);
-        entity.Nome     = request.Nome.Trim();
-        entity.Crn      = request.Crn?.Trim();
-        entity.Email    = request.Email?.Trim().ToLowerInvariant();
-        entity.Telefone = request.Telefone?.Trim();
+        entity.Nome              = request.Nome.Trim();
+        entity.Crn               = request.Crn?.Trim();
+        entity.Email             = request.Email?.Trim().ToLowerInvariant();
+        entity.Telefone          = request.Telefone?.Trim();
+        entity.PrefixoReferencia = NormalizarPrefixo(request.PrefixoReferencia);
         await _db.SaveChangesAsync();
         return ToDto(entity);
     }
@@ -71,8 +74,11 @@ public class DespachantesService
     private async Task<Despachante> FindOrThrowAsync(int id) =>
         await _db.Despachantes.FindAsync(id) ?? throw new NotFoundException("Despachante", id);
 
+    private static string? NormalizarPrefixo(string? prefixo) =>
+        string.IsNullOrWhiteSpace(prefixo) ? null : prefixo.Trim().ToUpperInvariant();
+
     private static DespachantDto ToDto(Despachante x) =>
-        new(x.Id, x.Nome, x.Crn, x.Email, x.Telefone, x.Ativo, x.CriadoEm, x.AtualizadoEm);
+        new(x.Id, x.Nome, x.Crn, x.Email, x.Telefone, x.PrefixoReferencia, x.Ativo, x.CriadoEm, x.AtualizadoEm);
 }
 
 
