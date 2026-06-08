@@ -36,6 +36,9 @@ import { firstValueFrom } from 'rxjs';
 import { SkeletonListComponent } from '../../../../core/components/skeleton-list/skeleton-list.component';
 import { EmptyLoadingComponent } from '../../../../core/components/empty-loading/empty-loading.component';
 import { LoadingButtonDirective } from '../../../../core/directives/loading-button.directive';
+import { PacklistAssistenteComponent } from '../components/packlist-assistente.component';
+import { PacklistDto, PendingPacklist } from '../models/solicitacao-orcamento.models';
+import { PacklistApiService } from '../services/packlist-api.service';
 
 
 interface DespaForm {
@@ -77,7 +80,7 @@ const OV_STATUS_COLORS: Record<string, string> = {
 @Component({
   selector: 'app-solicitacao-orcamento',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe, CurrencyPipe, PaginationComponent, SkeletonListComponent, EmptyLoadingComponent, LoadingButtonDirective],
+  imports: [CommonModule, FormsModule, DatePipe, CurrencyPipe, PaginationComponent, SkeletonListComponent, EmptyLoadingComponent, LoadingButtonDirective, PacklistAssistenteComponent],
   styles: [
     ...CRUD_STYLES,
     `
@@ -427,72 +430,14 @@ const OV_STATUS_COLORS: Record<string, string> = {
             </ng-template>
           </div>
 
-          <!-- Seção documentos -->
+          <!-- Seção packlist com assistente de mapeamento -->
           <div class="section-card">
-            <h3>� Packlist</h3>
-
-            <div class="inline-form">
-              <div class="f">
-                <label>Nome do arquivo</label>
-                <input type="text" [(ngModel)]="docForm.nomeArquivo" placeholder="Ex: Proforma Invoice" />
-              </div>
-              <div class="f" style="flex:2">
-                <label>Arquivo</label>
-                <div style="display:flex;gap:6px;align-items:center">
-                  <input #fileInput type="file" style="display:none" (change)="onFileSelected($event)" [disabled]="uploading" />
-                  <input type="text" [value]="uploading ? '⏳ Enviando...' : (docForm.linkDocumento || '')" readonly
-                    placeholder="Clique em Buscar para selecionar..."
-                    style="flex:1;cursor:pointer;background:var(--color-bg);padding:8px 10px;border:2px solid var(--color-border);border-radius:8px;font-size:13px;color:var(--color-text)"
-                    (click)="!uploading && fileInput.click()" />
-                  <button class="btn btn-secondary" type="button" style="white-space:nowrap"
-                    [disabled]="uploading"
-                    (click)="fileInput.click()">{{ uploading ? '⏳ Enviando...' : '📂 Buscar' }}</button>
-                </div>
-              </div>
-              <div class="f" style="max-width:145px">
-                <label>Data Upload</label>
-                <input type="date" [(ngModel)]="docForm.dataUpload" />
-              </div>
-              <div class="f">
-                <label>Observação</label>
-                <input type="text" [(ngModel)]="docForm.observacao" placeholder="Opcional" />
-              </div>
-              <div class="f" style="max-width:120px">
-                <label>&nbsp;</label>
-                <button class="btn btn-secondary" (click)="addDocumento()"
-                  [disabled]="!docForm.nomeArquivo">+ Adicionar</button>
-              </div>
-            </div>
-
-            <ng-container *ngIf="documentosForm.length > 0">
-              <table class="sub-table">
-                <thead>
-                  <tr>
-                    <th>Nome</th>
-                    <th>Link</th>
-                    <th>Data</th>
-                    <th>Observação</th>
-                    <th style="width:40px"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let d of documentosForm; let i = index">
-                    <td>{{ d.nomeArquivo }}</td>
-                    <td>
-                      <span style="font-size:12px;font-family:monospace;color:var(--color-text-muted)">{{ d.linkDocumento || '—' }}</span>
-                    </td>
-                    <td>{{ d.dataUpload | date:'dd/MM/yyyy' }}</td>
-                    <td>{{ d.observacao || '—' }}</td>
-                    <td>
-                      <button class="btn-icon danger" (click)="removeDocumento(i)" title="Remover">🗑️</button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </ng-container>
-            <p *ngIf="documentosForm.length === 0" style="font-size:13px;color:var(--color-text-muted);margin:0">
-              Nenhum documento adicionado.
-            </p>
+            <h3>📦 Packlist</h3>
+            <app-packlist-assistente
+              [solicitacaoId]="form.id"
+              (mapeado)="onPacklistMapeado($event)"
+              (pendente)="onPacklistPendente($event)">
+            </app-packlist-assistente>
           </div>
 
           <!-- Ações do form -->
@@ -626,6 +571,9 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
   docForm: DocForm = this.emptyDocForm();
   uploading = false;
 
+  packlistRecente: PacklistDto | null = null;
+  pendingPacklist: PendingPacklist | null = null;
+
   constructor(
     private svc: SolicitacaoOrcamentoService,
     private portoOrigemSvc: PortoOrigemService,
@@ -641,9 +589,19 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     private router: Router,
     private toast: ToastService,
     private confirmDialog: ConfirmDialogService,
-    private apiClient: ApiClientService
+    private apiClient: ApiClientService,
+    private packlistApiSvc: PacklistApiService
   ) {
     this.form = this.emptyForm();
+  }
+
+  onPacklistMapeado(result: PacklistDto): void {
+    this.packlistRecente = result;
+    this.toast.success(`Packlist "${result.nomeArquivo}" salvo com ${result.totalLinhas} itens.`);
+  }
+
+  onPacklistPendente(p: PendingPacklist): void {
+    this.pendingPacklist = p;
   }
 
   ngOnInit(): void {
@@ -778,6 +736,7 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     }
     this.despaForm = this.emptyDespaForm();
     this.docForm = this.emptyDocForm();
+    this.pendingPacklist = null;
     this.showForm = true;
   }
 
@@ -785,6 +744,20 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
     this.showForm = false;
     this.showErr = false;
     this.apiFieldErrors = {};
+    this.pendingPacklist = null;
+  }
+
+  private async uploadPendingPacklist(solicitacaoId: string, p: PendingPacklist): Promise<void> {
+    const file = new File([p.blob], p.nomeArquivo);
+    const uploadResp = await this.packlistApiSvc.upload(file, Number(solicitacaoId));
+    if (!p.temCelulasMescladas) {
+      await this.packlistApiSvc.saveMapeamento(
+        uploadResp.packlistId,
+        p.colunaNCM,
+        p.colunaDescricao,
+        p.colunaPreco
+      );
+    }
   }
 
   async salvar(): Promise<void> {
@@ -819,6 +792,16 @@ export class SolicitacaoOrcamentoComponent implements OnInit {
           observacao:      this.form.observacao,
           data:            this.form.data
         });
+        // Upload pending packlist BEFORE setting form.id so the assistente's
+        // ngOnChanges reset runs after the packlist is already in the API.
+        if (this.pendingPacklist) {
+          try {
+            await this.uploadPendingPacklist(criada.id, this.pendingPacklist);
+            this.pendingPacklist = null;
+          } catch {
+            this.toast.error('Solicitação criada, mas houve erro ao salvar o packlist. Adicione-o novamente na edição.');
+          }
+        }
         this.form.id = criada.id;
         this.form.codigoInterno = criada.codigoInterno;
         this.editando = true;

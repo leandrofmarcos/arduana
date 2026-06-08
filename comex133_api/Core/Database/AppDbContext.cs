@@ -41,6 +41,10 @@ public class AppDbContext : DbContext
     public DbSet<SolicitacaoOrcamentoDespachante> SolicitacoesOrcamentoDespachantes => Set<SolicitacaoOrcamentoDespachante>();
     public DbSet<SolicitacaoOrcamentoDocumento> SolicitacoesOrcamentoDocumentos => Set<SolicitacaoOrcamentoDocumento>();
 
+    // Packlist
+    public DbSet<Packlist>     Packlists     => Set<Packlist>();
+    public DbSet<PacklistItem> PacklistItens => Set<PacklistItem>();
+
     // Phase OP — Fluxo operacional (CustoDespachante + OrcamentoVenda)
     public DbSet<CustoDespachante>       CustosDespachante         => Set<CustoDespachante>();
     public DbSet<CustoDespachanteLi>     CustosDespachantelis      => Set<CustoDespachanteLi>();
@@ -220,6 +224,25 @@ public class AppDbContext : DbContext
                   .WithMany(t => t.Vinculos)
                   .HasForeignKey(v => v.NavioTrajetoId)
                   .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Packlist
+        modelBuilder.Entity<Packlist>(entity =>
+        {
+            entity.HasIndex(x => x.SolicitacaoOrcamentoId).IsUnique();
+
+            entity.HasOne(x => x.SolicitacaoOrcamento)
+                  .WithMany()
+                  .HasForeignKey(x => x.SolicitacaoOrcamentoId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PacklistItem>(entity =>
+        {
+            entity.HasOne(x => x.Packlist)
+                  .WithMany(x => x.Itens)
+                  .HasForeignKey(x => x.PacklistId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Phase OP — CustoDespachante
@@ -415,6 +438,10 @@ public class AppDbContext : DbContext
         SetTimestamps<SolicitacaoOrcamentoDocumento>(now);
         SetTimestamps<ControleNavio>(now);
         SetTimestamps<ControleNavioTrajeto>(now);
+
+        // Packlist
+        SetTimestamps<Packlist>(now);
+        SetTimestamps<PacklistItem>(now);
 
         // Phase OP
         SetTimestamps<CustoDespachante>(now);

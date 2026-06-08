@@ -17,6 +17,8 @@ import { ImportadorService } from '../../cadastros/importadores/services/importa
 import { ImpostoCalculatorService } from '../../custo-despachante/services/imposto-calculator.service';
 import { SolicitacaoOrcamentoService } from '../../solicitacao-orcamento/services/solicitacao-orcamento.service';
 import { SolicitacaoOrcamento } from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
+import { PacklistApiService } from '../../solicitacao-orcamento/services/packlist-api.service';
+import { PacklistDto, PacklistItemDto } from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
 import { AuthService } from '../../../../features/auth/auth.providers';
 import { ModeloDespesaService } from '../../cadastros/modelos-despesa/services/modelo-despesa.service';
 import { ModeloDespesa } from '../../cadastros/modelos-despesa/models/modelo-despesa.models';
@@ -722,6 +724,53 @@ type LinhaForm = { descricao: string; valor: number };
                 </fieldset>
               </ng-container>
 
+              <!-- Packlist da Solicitação -->
+              <ng-container *ngIf="solicitacaoAtualId">
+                <fieldset *ngIf="plLoading || plDto" style="margin-top:16px;padding:12px 16px;border:1px solid #e2e8f0;border-radius:8px">
+                  <legend style="font-size:13px;font-weight:600;color:#64748b;padding:0 6px">Packlist</legend>
+                  <div *ngIf="plLoading && !plDto" style="font-size:12px;color:var(--color-text-muted)">Verificando packlist...</div>
+                  <ng-container *ngIf="plDto">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                      <span style="font-size:13px;font-weight:600">📦 {{ plDto.nomeArquivo }}</span>
+                      <span style="font-size:11px;color:var(--color-text-muted)">{{ plDto.totalLinhas }} linha(s)</span>
+                      <button class="btn btn-secondary" style="font-size:12px;padding:3px 10px;margin-left:auto" (click)="downloadPl()">⬇️ Download</button>
+                    </div>
+                    <!-- Grid com colunas mapeadas -->
+                    <ng-container *ngIf="temMapeamentoPl(plDto)">
+                      <div *ngIf="plLoading" style="font-size:12px;color:var(--color-text-muted);margin-bottom:8px">Carregando itens...</div>
+                      <ng-container *ngIf="!plLoading && plItems.length > 0">
+                        <table class="items-table">
+                          <thead>
+                            <tr>
+                              <th style="width:36px">#</th>
+                              <th *ngIf="plDto.colunaNCM">NCM</th>
+                              <th *ngIf="plDto.colunaDescricao">Descrição</th>
+                              <th *ngIf="plDto.colunaPreco" style="text-align:right;width:110px">Preço</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let it of plItemsPaged">
+                              <td style="color:var(--color-text-muted);font-size:11px">{{ it.numeroLinha }}</td>
+                              <td *ngIf="plDto.colunaNCM">{{ it.ncm ?? '—' }}</td>
+                              <td *ngIf="plDto.colunaDescricao">{{ it.descricao ?? '—' }}</td>
+                              <td *ngIf="plDto.colunaPreco" style="text-align:right">{{ it.preco != null ? (it.preco | currency:'BRL':'symbol':'1.2-2') : '—' }}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <div *ngIf="plTotalPages > 1" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:8px;font-size:12px">
+                          <button class="btn btn-secondary" style="padding:3px 10px;font-size:12px" [disabled]="plPage <= 1" (click)="plPage = plPage - 1">‹</button>
+                          <span style="color:var(--color-text-muted)">{{ plPage }} / {{ plTotalPages }}</span>
+                          <button class="btn btn-secondary" style="padding:3px 10px;font-size:12px" [disabled]="plPage >= plTotalPages" (click)="plPage = plPage + 1">›</button>
+                        </div>
+                      </ng-container>
+                      <p *ngIf="!plLoading && plItems.length === 0" style="font-size:12px;color:var(--color-text-muted);margin:4px 0">Nenhum item carregado.</p>
+                    </ng-container>
+                    <!-- Sem mapeamento: apenas aviso (arquivo já tem botão de download acima) -->
+                    <p *ngIf="!temMapeamentoPl(plDto)" style="font-size:12px;color:var(--color-text-muted);margin:0">Colunas não mapeadas — use o botão de download para acessar o arquivo original.</p>
+                  </ng-container>
+                </fieldset>
+              </ng-container>
+
               <!-- Botões inferiores -->
               <div class="actions" style="margin-top:16px">
                 <button class="btn btn-primary" *ngIf="!modoVisualizacao" (click)="salvar()">💾 Salvar</button>
@@ -820,6 +869,13 @@ export class OrcamentoVendaComponent implements OnInit {
   // ── Fase 1: Modalidade B (despachante usou total manual) ──────────────
   custoBaseUsouTotalManual = false;
 
+  // ── Packlist (visualização no OV) ────────────────────────────────────
+  plDto: PacklistDto | null = null;
+  plItems: PacklistItemDto[] = [];
+  plPage = 1;
+  plPageSize = 10;
+  plLoading = false;
+
   constructor(
     private sanitizer: DomSanitizer,
     private service: OrcamentoVendaService,
@@ -838,7 +894,8 @@ export class OrcamentoVendaComponent implements OnInit {
     private router: Router,
     private toast: ToastService,
     private confirmDialog: ConfirmDialogService,
-    private parametroSvc: ParametroSistemaService) {}
+    private parametroSvc: ParametroSistemaService,
+    private packlistApiSvc: PacklistApiService) {}
 
   async ngOnInit(): Promise<void> {
     this.isDespachante = this.auth.hasRole('despachante');
@@ -1252,8 +1309,46 @@ export class OrcamentoVendaComponent implements OnInit {
     }
     this.despesaForm = { descricao: '', valor: 0 };
     this.extraForm   = { descricao: '', valor: 0 };
+    this.plDto = null;
+    this.plItems = [];
+    this.plPage = 1;
+    if (this.solicitacaoAtualId) {
+      void this.loadPlParaOv(this.solicitacaoAtualId);
+    }
     this.showForm = true;
     this.showPreview = false;
+  }
+
+  private async loadPlParaOv(solId: string): Promise<void> {
+    this.plLoading = true;
+    try {
+      const dto = await this.packlistApiSvc.loadBySolicitacao(solId);
+      this.plDto = dto;
+      if (dto && this.temMapeamentoPl(dto)) {
+        this.plItems = await this.packlistApiSvc.loadItems(dto.id);
+      }
+    } finally {
+      this.plLoading = false;
+    }
+  }
+
+  temMapeamentoPl(dto: PacklistDto): boolean {
+    return !!(dto.colunaNCM || dto.colunaDescricao || dto.colunaPreco);
+  }
+
+  get plTotalPages(): number {
+    return Math.ceil(this.plItems.length / this.plPageSize) || 1;
+  }
+
+  get plItemsPaged(): PacklistItemDto[] {
+    const start = (this.plPage - 1) * this.plPageSize;
+    return this.plItems.slice(start, start + this.plPageSize);
+  }
+
+  downloadPl(): void {
+    if (this.plDto) {
+      this.packlistApiSvc.downloadArquivo(this.plDto.id, this.plDto.nomeArquivo);
+    }
   }
 
   cancelForm(): void {

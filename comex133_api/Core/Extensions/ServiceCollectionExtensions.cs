@@ -16,6 +16,7 @@ using Comex133Api.Features.Importadores;
 using Comex133Api.Features.ListaPrecoLcl;
 using Comex133Api.Features.ModelosDespesa;
 using Comex133Api.Features.OrcamentosVenda;
+using Comex133Api.Features.Packlist;
 using Comex133Api.Features.Ncms;
 using Comex133Api.Features.Parametros;
 using Comex133Api.Features.PortosDestino;
@@ -120,6 +121,9 @@ public static class ServiceCollectionExtensions
         // Phase OP — Fluxo operacional
         services.AddScoped<CustosDespachanteService>();
         services.AddScoped<OrcamentosVendaService>();
+
+        // Packlist
+        services.AddScoped<PacklistService>();
         return services;
     }
 
@@ -196,6 +200,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IValidator<UpdateOrcamentoVendaRequest>,           UpdateOrcamentoVendaValidator>();
         services.AddScoped<IValidator<UpsertOrcamentoVendaDespesaRequest>,    UpsertOrcamentoVendaDespesaValidator>();
         services.AddScoped<IValidator<SolicitarReaberturaRequest>,            SolicitarReaberturaValidator>();
+
+        // Packlist
+        services.AddScoped<IValidator<SaveMapeamentoRequest>, SaveMapeamentoRequestValidator>();
 
         return services;
     }

@@ -21,6 +21,8 @@ import { ModeloDespesaService } from '../../cadastros/modelos-despesa/services/m
 import { DespesaCadastroService } from '../../cadastros/despesas-cadastro/services/despesa-cadastro.service';
 import { SolicitacaoOrcamentoService } from '../../solicitacao-orcamento/services/solicitacao-orcamento.service';
 import { SolicitacaoOrcamento } from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
+import { PacklistApiService } from '../../solicitacao-orcamento/services/packlist-api.service';
+import { PacklistDto, PacklistItemDto } from '../../solicitacao-orcamento/models/solicitacao-orcamento.models';
 
 import { DespachanteV2 } from '../../cadastros/despachantes/models/despachante-v2.models';
 import { Importador } from '../../cadastros/importadores/models/importador.models';
@@ -35,6 +37,15 @@ import { CurrencyMaskDirective } from '../../../../core/directives/currency-mask
 import { SkeletonListComponent } from '../../../../core/components/skeleton-list/skeleton-list.component';
 import { SpinnerComponent } from '../../../../core/components/spinner/spinner.component';
 import { LoadingButtonDirective } from '../../../../core/directives/loading-button.directive';
+
+interface PacklistViewDto {
+  id: number;
+  nomeArquivoOriginal: string;
+  totalLinhas: number;
+  temCelulasMescladas: boolean;
+  mapeamento: { colunaNCM?: string; colunaDescricao?: string; colunaPreco?: string };
+  itens: PacklistItemDto[];
+}
 
 type LiForm = { ncm: string; descricao: string; valor: number; data: string };
 type DespesaForm = { descricao: string; valor: number; data: string; entraBaseIcms: boolean };
@@ -576,27 +587,67 @@ type CustoGroupSolicitacao = {
 
         <!-- ─ PASSO 2 — Packlist ─ -->
         <div class="card" *ngIf="step === 2">
-          <p style="font-size:13px;color:var(--color-text-muted);margin-bottom:16px">
-            Packlist vinculado a solicitacao de orcamento. Neste passo, o usuario pode apenas baixar os arquivos.
-          </p>
 
           <ng-container *ngIf="p1.solicitacaoOrcamentoId; else semSolicitacaoPacklist">
-            <div class="packlist-box" style="margin-top:0">
-              <h4>📦 Packlist da Solicitação</h4>
-              <ng-container *ngIf="packlistDocs(p1.solicitacaoOrcamentoId).length > 0; else semDocsPacklistStep">
-                <div class="packlist-row" *ngFor="let doc of packlistDocs(p1.solicitacaoOrcamentoId)">
-                  <span class="packlist-name">{{ doc.nomeArquivo }}</span>
-                  <span class="packlist-obs">{{ doc.observacao || '' }}</span>
-                  <span class="packlist-date">{{ doc.dataUpload | date:'dd/MM/yyyy' }}</span>
-                  <button class="btn-icon" title="Baixar / Ver arquivo"
-                    (click)="downloadPacklist(doc.linkDocumento, doc.nomeArquivo)">⬇️</button>
+            <ng-container *ngIf="packlistMapeado(p1.solicitacaoOrcamentoId) as pl; else semMapeamento">
+              <!-- Packlist com mapeamento -->
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+                <div>
+                  <strong style="font-size:14px">📦 {{ pl.nomeArquivoOriginal }}</strong>
+                  <span style="font-size:12px;color:var(--color-text-muted);margin-left:8px">{{ pl.totalLinhas }} itens importados</span>
                 </div>
-              </ng-container>
-              <ng-template #semDocsPacklistStep>
-                <p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhum arquivo cadastrado nesta solicitacao.</p>
-              </ng-template>
-            </div>
+                <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px"
+                  (click)="downloadPacklistMapeado(pl)" title="Baixar arquivo original">⬇️ Baixar original</button>
+              </div>
+              <!-- Colunas mapeadas: NCM, Descrição, Preço -->
+              <div style="overflow-x:auto;border:1px solid var(--color-border);border-radius:8px">
+                <table style="width:100%;border-collapse:collapse;font-size:13px">
+                  <thead>
+                    <tr>
+                      <th style="padding:7px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);background:var(--color-bg);border-bottom:1px solid var(--color-border)">#</th>
+                      <th *ngIf="pl.mapeamento.colunaNCM" style="padding:7px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);background:var(--color-bg);border-bottom:1px solid var(--color-border)">NCM</th>
+                      <th *ngIf="pl.mapeamento.colunaDescricao" style="padding:7px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);background:var(--color-bg);border-bottom:1px solid var(--color-border)">Descrição</th>
+                      <th *ngIf="pl.mapeamento.colunaPreco" style="padding:7px 12px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);background:var(--color-bg);border-bottom:1px solid var(--color-border)">Preço</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let item of pl.itens; let i = index"
+                        [style.background]="i % 2 === 0 ? 'transparent' : 'var(--color-bg)'">
+                      <td style="padding:6px 12px;border-bottom:1px solid var(--color-border);color:var(--color-text-muted);font-size:12px">{{ item.numeroLinha }}</td>
+                      <td *ngIf="pl.mapeamento.colunaNCM" style="padding:6px 12px;border-bottom:1px solid var(--color-border);font-family:monospace;font-size:12px">{{ item.ncm || '—' }}</td>
+                      <td *ngIf="pl.mapeamento.colunaDescricao" style="padding:6px 12px;border-bottom:1px solid var(--color-border)">{{ item.descricao || '—' }}</td>
+                      <td *ngIf="pl.mapeamento.colunaPreco" style="padding:6px 12px;border-bottom:1px solid var(--color-border);text-align:right;font-weight:600">
+                        {{ item.preco != null ? (item.preco | currency:'BRL':'symbol':'1.2-2') : '—' }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p style="font-size:11px;color:var(--color-text-muted);margin:8px 0 0">
+                Exibindo {{ pl.itens.length }} itens. Para ver todas as colunas, baixe o arquivo original.
+              </p>
+            </ng-container>
+
+            <!-- Sem mapeamento mas tem documentos da solicitação -->
+            <ng-template #semMapeamento>
+              <div class="packlist-box" style="margin-top:0">
+                <h4>📦 Packlist da Solicitação</h4>
+                <ng-container *ngIf="packlistDocs(p1.solicitacaoOrcamentoId).length > 0; else semDocsPacklistStep">
+                  <div class="packlist-row" *ngFor="let doc of packlistDocs(p1.solicitacaoOrcamentoId)">
+                    <span class="packlist-name">{{ doc.nomeArquivo }}</span>
+                    <span class="packlist-obs">{{ doc.observacao || '' }}</span>
+                    <span class="packlist-date">{{ doc.dataUpload | date:'dd/MM/yyyy' }}</span>
+                    <button class="btn-icon" title="Baixar / Ver arquivo"
+                      (click)="downloadPacklist(doc.linkDocumento, doc.nomeArquivo)">⬇️</button>
+                  </div>
+                </ng-container>
+                <ng-template #semDocsPacklistStep>
+                  <p style="font-size:12px;color:var(--color-text-muted);margin:0">Nenhum packlist mapeado para esta solicitação.</p>
+                </ng-template>
+              </div>
+            </ng-template>
           </ng-container>
+
           <ng-template #semSolicitacaoPacklist>
             <div class="packlist-box" style="margin-top:0">
               <h4>📦 Packlist da Solicitação</h4>
@@ -1312,7 +1363,8 @@ export class CustoDespachanteComponent implements OnInit {
     private ncmSvc: NcmService,
     private modeloSvc: ModeloDespesaService,
     private despesaCadastroSvc: DespesaCadastroService,
-    private solicitacaoSvc: SolicitacaoOrcamentoService,
+    private solicitacaoSvc:  SolicitacaoOrcamentoService,
+    private packlistApiSvc:  PacklistApiService,
     private route: ActivatedRoute,
     private toast: ToastService,
     private confirmDialog: ConfirmDialogService,) {}
@@ -1367,9 +1419,17 @@ export class CustoDespachanteComponent implements OnInit {
     try {
       await this.service.refresh();
       this.syncCustosView();
+      void this.preloadPacklists();
     } finally {
       this.loadingList = false;
     }
+  }
+
+  private async preloadPacklists(): Promise<void> {
+    const ids = [...new Set(
+      this.custos.map(c => c.solicitacaoOrcamentoId).filter((id): id is string => !!id)
+    )];
+    await this.packlistApiSvc.preloadForSolicitacoes(ids);
   }
 
   syncCustosView(): void {
@@ -1568,6 +1628,39 @@ export class CustoDespachanteComponent implements OnInit {
   packlistDocs(solicitacaoId: string | undefined) {
     if (!solicitacaoId) return [];
     return this.solicitacaoSvc.getDocumentos(solicitacaoId);
+  }
+
+  packlistMapeado(solicitacaoId: string | undefined): PacklistViewDto | undefined {
+    if (!solicitacaoId) return undefined;
+
+    const dto = this.packlistApiSvc.getBySolicitacao(solicitacaoId);
+    if (dto === undefined) {
+      void this.packlistApiSvc.loadBySolicitacao(solicitacaoId);
+      return undefined;
+    }
+    if (dto === null) return undefined;
+
+    let itens = this.packlistApiSvc.getItems(dto.id) ?? [];
+    if (!dto.temCelulasMescladas && dto.totalLinhas > 0 && this.packlistApiSvc.getItems(dto.id) === undefined) {
+      void this.packlistApiSvc.loadItems(dto.id);
+    }
+
+    return {
+      id:                 dto.id,
+      nomeArquivoOriginal: dto.nomeArquivo,
+      totalLinhas:        dto.totalLinhas,
+      temCelulasMescladas: dto.temCelulasMescladas,
+      mapeamento: {
+        colunaNCM:       dto.colunaNCM       ?? undefined,
+        colunaDescricao: dto.colunaDescricao ?? undefined,
+        colunaPreco:     dto.colunaPreco     ?? undefined,
+      },
+      itens,
+    };
+  }
+
+  downloadPacklistMapeado(pl: PacklistViewDto): void {
+    this.packlistApiSvc.downloadArquivo(pl.id, pl.nomeArquivoOriginal);
   }
 
   downloadPacklist(linkDocumento: string, nomeArquivo: string): void {
